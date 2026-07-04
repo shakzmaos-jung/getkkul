@@ -1,0 +1,61 @@
+import { createPipelineClient } from '@/lib/pipeline/supabase';
+import { channelFeedUrl, parseChannelFeed } from '@/lib/pipeline/rss';
+
+/**
+ * 신규 영상 감지 (SSR REQ-C1). 구독된 distinct channel_id 의 RSS 를 폴링해
+ * videos 에 upsert(status=pending). video_id UNIQUE 로 재등록 방지(AC-C1.2).
+ * 개별 채널 실패가 전체를 막지 않는다(H6).
+ */
+export interface DetectResult {
+  channels: number;
+  registered: number;
+}
+
+export async function detectNewVideos(
+  deps: { fetchFn?: typeof fetch } = {},
+): Promise<DetectResult> {
+  const fetchFn = deps.fetchFn ?? fetch;
+  const supabase = createPipelineClient();
+
+  const { data: subs, error } = await supabase.from('subscriptions').select('channel_id');
+  if (error) throw new Error(`구독 조회 실패: ${error.message}`);
+
+  const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
+  let registered = 0;
+
+  for (const channelId of channelIds) {
+    try {
+      const res = await fetchFn(channelFeedUrl(channelId));
+      if (!res.ok) {
+        console.warn(`[detect] RSS ${channelId} → ${res.status}`);
+        continue;
+      }
+      const feed = parseChannelFeed(await res.text());
+      if (feed.videos.length === 0) continue;
+
+      const rows = feed.videos.map((v) => ({
+        channel_id: channelId,
+        video_id: v.videoId,
+        title: v.title,
+        url: v.url,
+        published_at: v.publishedAt || null,
+        status: 'pending' as const,
+      }));
+
+      // ignoreDuplicates: 이미 있는 video_id 는 건드리지 않고(상태/전사 보존), 새 것만 삽입.
+      const { data: inserted, error: upErr } = await supabase
+        .from('videos')
+        .upsert(rows, { onConflict: 'video_id', ignoreDuplicates: true })
+        .select('video_id');
+      if (upErr) {
+        console.warn(`[detect] upsert ${channelId}: ${upErr.message}`);
+        continue;
+      }
+      registered += inserted?.length ?? 0;
+    } catch (e) {
+      console.warn(`[detect] ${channelId} 실패: ${(e as Error).message}`);
+    }
+  }
+
+  return { channels: channelIds.length, registered };
+}
