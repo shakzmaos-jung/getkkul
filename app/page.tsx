@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SignOutButton from '@/components/auth/SignOutButton';
@@ -23,6 +24,9 @@ export default async function Home() {
       <p className="text-sm text-gray-500" data-testid="user-email">
         {user.email}
       </p>
+      <Link href="/subscriptions" className="text-sm underline" data-testid="nav-subscriptions">
+        구독 채널 관리
+      </Link>
       <SignOutButton />
       <DeleteAccountButton />
     </main>
