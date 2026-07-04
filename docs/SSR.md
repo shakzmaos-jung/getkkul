@@ -93,10 +93,10 @@
 ## G. 데이터 모델 (Postgres / Supabase, 초안)
 
 - **profiles**(id=auth.uid PK, email, created_at)
-- **user_settings**(user_id PK→profiles, summary_length enum['짧게','보통','길게'] default '보통')
+- **user_settings**(user_id PK→profiles, summary_length enum['short','normal','long'] default 'normal' — ADR-0002; 표시 라벨 짧게/보통/길게는 i18n)
 - **subscriptions**(id PK, user_id→profiles, channel_id, channel_title, channel_url, created_at, UNIQUE(user_id, channel_id))
 - **videos**(id PK, channel_id, video_id UNIQUE, title, url, published_at, transcript, transcript_source enum['caption','audio','none'], status enum['pending','processing','done','failed'], created_at)
-- **summaries**(id PK, video_id→videos, length_mode enum, language enum['ko','en'] default 'ko', headline, core_text, body jsonb, created_at, UNIQUE(video_id, length_mode, language))
+- **summaries**(id PK, video_id→videos, length_mode enum['short','normal','long'], language enum['ko','en'] default 'ko', headline, core_text, body jsonb, created_at, UNIQUE(video_id, length_mode, language))
 - **deliveries**(id PK, user_id→profiles, video_id→videos, slot enum['0730','1130','1730'], channel enum['email'], status enum['pending','sent','failed'], sent_at, UNIQUE(user_id, video_id))
 
 RLS: profiles/user_settings/subscriptions/deliveries는 `user_id = auth.uid()` 행만 접근. videos/summaries는 인증 사용자 읽기 가능, 쓰기는 서비스 롤만.

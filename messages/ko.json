@@ -3,5 +3,10 @@
     "appName": "겟꿀",
     "confirm": "확인",
     "cancel": "취소"
+  },
+  "summaryLength": {
+    "short": "짧게",
+    "normal": "보통",
+    "long": "길게"
   }
 }
