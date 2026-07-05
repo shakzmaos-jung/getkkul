@@ -1,5 +1,5 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
-import { ResendNotifier } from '@/lib/notify/resend';
+import { createNotifier } from '@/lib/notify/create-notifier';
 import type { Notifier } from '@/lib/notify/notify';
 import type { LengthMode } from '@/lib/summary/format';
 import type { SlotCode } from '@/lib/time';
@@ -29,7 +29,7 @@ export async function deliverAll(
   deps: { supabase?: SupabaseClient; notifier?: Notifier; nowIso?: string } = {},
 ): Promise<DeliverResult> {
   const supabase = deps.supabase ?? createPipelineClient();
-  const notifier = deps.notifier ?? new ResendNotifier();
+  const notifier = deps.notifier ?? createNotifier();
   const nowIso = deps.nowIso ?? new Date().toISOString();
   const appBaseUrl = process.env.APP_BASE_URL;
 

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { ResendNotifier } from '@/lib/notify/resend';
+import { createNotifier } from '@/lib/notify/create-notifier';
 import { generateOtp, hashOtp, isValidEmail, OTP_TTL_MS } from '@/lib/delivery/otp';
 
 export type EmailState = {
@@ -91,7 +91,7 @@ export async function manageDeliveryEmail(
   if (error) return { error: '요청 저장에 실패했습니다.', step: 'request' };
 
   try {
-    await new ResendNotifier().send(
+    await createNotifier().send(
       { email },
       {
         subject: '겟꿀 수신 이메일 인증 코드',
