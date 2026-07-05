@@ -1,6 +1,7 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import AppHeader from '@/components/layout/AppHeader';
+import { Card } from '@/components/ui/Card';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
 import { removeSubscription } from './actions';
 
@@ -20,48 +21,51 @@ export default async function SubscriptionsPage() {
   const list = subs ?? [];
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">구독 채널</h1>
-        <Link href="/" className="text-sm underline">
-          홈
-        </Link>
-      </div>
+    <div className="min-h-screen">
+      <AppHeader />
+      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <header className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight">구독 채널</h1>
+          <p className="mt-1 text-sm text-muted-foreground">감시할 유튜브 채널을 관리하세요.</p>
+        </header>
 
-      <AddSubscriptionForm />
+        <AddSubscriptionForm />
 
-      {list.length === 0 ? (
-        <p className="text-sm text-gray-500">아직 구독한 채널이 없습니다.</p>
-      ) : (
-        <ul data-testid="subscription-list" className="flex flex-col divide-y">
-          {list.map((s) => (
-            <li
-              key={s.id}
-              data-testid="subscription-item"
-              className="flex items-center justify-between py-3"
-            >
-              <a
-                href={s.channel_url ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium hover:underline"
+        {list.length === 0 ? (
+          <div className="mt-6 rounded-xl border border-dashed border-border px-6 py-16 text-center">
+            <p className="text-sm text-muted-foreground">아직 구독한 채널이 없습니다.</p>
+          </div>
+        ) : (
+          <Card data-testid="subscription-list" className="mt-6 divide-y divide-border">
+            {list.map((s) => (
+              <div
+                key={s.id}
+                data-testid="subscription-item"
+                className="flex items-center justify-between gap-3 px-4 py-3"
               >
-                {s.channel_title ?? s.channel_id}
-              </a>
-              <form action={removeSubscription}>
-                <input type="hidden" name="id" value={s.id} />
-                <button
-                  type="submit"
-                  data-testid="remove-subscription"
-                  className="text-xs text-red-500 underline"
+                <a
+                  href={s.channel_url ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate text-sm font-medium hover:underline"
                 >
-                  삭제
-                </button>
-              </form>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+                  {s.channel_title ?? s.channel_id}
+                </a>
+                <form action={removeSubscription}>
+                  <input type="hidden" name="id" value={s.id} />
+                  <button
+                    type="submit"
+                    data-testid="remove-subscription"
+                    className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-danger"
+                  >
+                    삭제
+                  </button>
+                </form>
+              </div>
+            ))}
+          </Card>
+        )}
+      </main>
+    </div>
   );
 }

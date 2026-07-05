@@ -6,6 +6,8 @@ import {
   resetDeliveryEmail,
   type EmailState,
 } from '@/app/settings/email-actions';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 const initial: EmailState = { step: 'request' };
 
@@ -25,15 +27,15 @@ export default function DeliveryEmailForm({
         <span className="font-medium" data-testid="current-delivery-email">
           {current}
         </span>
-        {isDefault && <span className="text-gray-400"> (구글 계정 기본)</span>}
+        {isDefault && <span className="text-muted-foreground"> (구글 계정 기본)</span>}
       </p>
 
       {state.step === 'verify' ? (
         <form action={action} className="flex flex-col gap-2">
           <input type="hidden" name="intent" value="verify" />
-          <p className="text-sm text-gray-600">새 이메일로 보낸 6자리 코드를 입력하세요.</p>
+          <p className="text-sm text-muted-foreground">새 이메일로 보낸 6자리 코드를 입력하세요.</p>
           <div className="flex gap-2">
-            <input
+            <Input
               name="code"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -41,56 +43,54 @@ export default function DeliveryEmailForm({
               required
               placeholder="000000"
               data-testid="otp-code"
-              className="w-32 rounded-md border px-3 py-2 text-sm tracking-widest"
+              className="w-32 tracking-[0.3em]"
             />
-            <button
+            <Button
               type="submit"
+              variant="primary"
               disabled={pending}
               data-testid="verify-otp"
-              className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+              className="shrink-0"
             >
               {pending ? '확인 중…' : '확인'}
-            </button>
-            <button
-              type="submit"
-              name="intent"
-              value="cancel"
-              formNoValidate
-              className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
-            >
+            </Button>
+            <Button type="submit" name="intent" value="cancel" variant="secondary" formNoValidate>
               취소
-            </button>
+            </Button>
           </div>
-          {state.error && <p className="text-sm text-red-500">{state.error}</p>}
+          {state.error && <p className="text-sm text-danger">{state.error}</p>}
         </form>
       ) : (
         <>
           <form action={action} className="flex flex-col gap-2">
             <input type="hidden" name="intent" value="request" />
             <div className="flex gap-2">
-              <input
+              <Input
                 name="email"
                 type="email"
                 required
                 placeholder="새 수신 이메일"
                 data-testid="new-email"
-                className="flex-1 rounded-md border px-3 py-2 text-sm"
               />
-              <button
+              <Button
                 type="submit"
+                variant="primary"
                 disabled={pending}
                 data-testid="send-otp"
-                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+                className="shrink-0"
               >
                 {pending ? '전송 중…' : '인증 코드 보내기'}
-              </button>
+              </Button>
             </div>
-            {state.error && <p className="text-sm text-red-500">{state.error}</p>}
-            {state.ok && <p className="text-sm text-green-600">수신 이메일이 변경되었습니다.</p>}
+            {state.error && <p className="text-sm text-danger">{state.error}</p>}
+            {state.ok && <p className="text-sm text-accent">수신 이메일이 변경되었습니다.</p>}
           </form>
           {!isDefault && (
             <form action={resetDeliveryEmail}>
-              <button type="submit" className="text-xs text-gray-500 underline">
+              <button
+                type="submit"
+                className="text-xs text-muted-foreground underline transition-colors hover:text-foreground"
+              >
                 구글 계정 이메일로 되돌리기
               </button>
             </form>

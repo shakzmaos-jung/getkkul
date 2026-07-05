@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react';
 import { addSubscription, type AddSubscriptionState } from '@/app/subscriptions/actions';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 const initialState: AddSubscriptionState = {};
 
@@ -9,33 +11,31 @@ export default function AddSubscriptionForm() {
   const [state, formAction, pending] = useActionState(addSubscription, initialState);
 
   return (
-    <form action={formAction} className="flex w-full max-w-md flex-col gap-2">
+    <form action={formAction} className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <input
+        <Input
           name="channel"
           type="text"
           required
           placeholder="@handle 또는 채널 URL"
           data-testid="channel-input"
-          className="flex-1 rounded-md border px-3 py-2 text-sm"
         />
-        <button
+        <Button
           type="submit"
+          variant="primary"
           disabled={pending}
           data-testid="add-subscription"
-          className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          className="shrink-0"
         >
           {pending ? '추가 중…' : '구독 추가'}
-        </button>
+        </Button>
       </div>
       {state.error && (
-        <p data-testid="add-error" className="text-sm text-red-500">
+        <p data-testid="add-error" className="text-sm text-danger">
           {state.error}
         </p>
       )}
-      {state.ok && (
-        <p className="text-sm text-green-600">추가됨: {state.addedTitle}</p>
-      )}
+      {state.ok && <p className="text-sm text-accent">추가됨: {state.addedTitle}</p>}
     </form>
   );
 }
