@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pipeline": "tsx scripts/pipeline.ts"
+    "pipeline": "tsx scripts/pipeline.ts",
+    "deliver": "tsx scripts/deliver.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

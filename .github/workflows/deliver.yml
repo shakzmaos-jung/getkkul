@@ -1,0 +1,33 @@
+name: deliver
+
+# 다이제스트 발송 (ADR-0005). KST 07:30 / 11:30 / 17:30 = UTC 22:30 / 02:30 / 08:30.
+on:
+  schedule:
+    - cron: '30 22 * * *' # 07:30 KST
+    - cron: '30 2 * * *' # 11:30 KST
+    - cron: '30 8 * * *' # 17:30 KST
+  workflow_dispatch:
+
+concurrency:
+  group: deliver
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run delivery
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DELIVERY_FROM_EMAIL: ${{ secrets.DELIVERY_FROM_EMAIL }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: npm run deliver
