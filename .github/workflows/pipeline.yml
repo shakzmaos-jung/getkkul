@@ -32,6 +32,13 @@ jobs:
           sudo chmod a+rx /usr/local/bin/yt-dlp
           yt-dlp --version
 
+      # yt-dlp 가 YouTube n-challenge(nsig)를 풀려면 JS 런타임이 필요하다.
+      - name: Install deno (yt-dlp JS challenge solver)
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh -s -- -y
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+          "$HOME/.deno/bin/deno" --version | head -1
+
       # 데이터센터 IP 봇차단 우회: 로그인 쿠키를 파일로 기록(비어있으면 무시)
       - name: Write YouTube cookies
         env:
