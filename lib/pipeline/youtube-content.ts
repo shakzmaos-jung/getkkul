@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile, readdir, mkdtemp, rm } from 'node:fs/promises';
+import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { vttToText } from '@/lib/pipeline/vtt';
@@ -13,6 +14,16 @@ import type { VideoRef } from '@/lib/pipeline/fetch-content';
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * 데이터센터 IP(GitHub Actions)는 YouTube 봇차단에 걸리므로, 로그인 쿠키로 우회한다.
+ * YTDLP_COOKIES_FILE 가 비어있지 않은 파일을 가리키면 --cookies 로 전달한다.
+ */
+function cookieArgs(): string[] {
+  const f = process.env.YTDLP_COOKIES_FILE;
+  if (f && existsSync(f) && statSync(f).size > 0) return ['--cookies', f];
+  return [];
+}
+
 // 우선순위 언어. 한 번에 여러 언어를 요청하면 자막 다운로드가 폭주해 YouTube 429 를
 // 유발하므로, 언어를 하나씩 순차 시도하고 첫 성공에서 멈춘다.
 const CAPTION_LANGS = ['ko', 'en'];
@@ -24,6 +35,7 @@ async function captionForLang(video: VideoRef, lang: string): Promise<string | n
       'yt-dlp',
       [
         '--skip-download',
+        ...cookieArgs(),
         '--write-subs', // 수동 자막 우선
         '--write-auto-subs', // 없으면 자동자막
         '--sub-langs',
@@ -68,7 +80,7 @@ export async function whisperAudio(video: VideoRef): Promise<string> {
   try {
     await execFileAsync(
       'yt-dlp',
-      ['-x', '--audio-format', 'mp3', '--audio-quality', '5', '-o', join(dir, '%(id)s.%(ext)s'), video.url],
+      ['-x', ...cookieArgs(), '--audio-format', 'mp3', '--audio-quality', '5', '-o', join(dir, '%(id)s.%(ext)s'), video.url],
       { timeout: 300_000, maxBuffer: 32 * 1024 * 1024 },
     );
 

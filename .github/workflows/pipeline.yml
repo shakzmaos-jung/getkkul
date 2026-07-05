@@ -32,10 +32,17 @@ jobs:
           sudo chmod a+rx /usr/local/bin/yt-dlp
           yt-dlp --version
 
+      # 데이터센터 IP 봇차단 우회: 로그인 쿠키를 파일로 기록(비어있으면 무시)
+      - name: Write YouTube cookies
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: printf '%s' "$YOUTUBE_COOKIES" > /tmp/yt-cookies.txt
+
       - name: Run pipeline
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          YTDLP_COOKIES_FILE: /tmp/yt-cookies.txt
         run: npm run pipeline
