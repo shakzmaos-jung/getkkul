@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
+import AppFooter from '@/components/layout/AppFooter';
 import { Card } from '@/components/ui/Card';
 
 /**
@@ -19,9 +20,9 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <AppHeader />
-      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">안녕하세요 👋</h1>
           <p className="mt-1 text-sm text-muted-foreground" data-testid="user-email">
@@ -49,6 +50,7 @@ export default async function Home() {
           </div>
         </Card>
       </main>
+      <AppFooter />
     </div>
   );
 }

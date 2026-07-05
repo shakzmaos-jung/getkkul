@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
+import AppFooter from '@/components/layout/AppFooter';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -123,9 +124,9 @@ export default async function FeedPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <AppHeader />
-      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -152,6 +153,7 @@ export default async function FeedPage() {
           />
         )}
       </main>
+      <AppFooter />
     </div>
   );
 }

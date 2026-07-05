@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
+import AppFooter from '@/components/layout/AppFooter';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
@@ -35,9 +36,9 @@ export default async function SubscriptionsPage() {
   const list = subs ?? [];
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <AppHeader />
-      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">구독 채널</h1>
           <p className="mt-1 text-sm text-muted-foreground">감시할 유튜브 채널을 관리하세요.</p>
@@ -99,6 +100,7 @@ export default async function SubscriptionsPage() {
           </Card>
         )}
       </main>
+      <AppFooter />
     </div>
   );
 }
