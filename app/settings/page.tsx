@@ -4,6 +4,8 @@ import AppHeader from '@/components/layout/AppHeader';
 import { Card } from '@/components/ui/Card';
 import LengthModeForm from '@/components/settings/LengthModeForm';
 import DeliveryEmailForm from '@/components/settings/DeliveryEmailForm';
+import SignOutButton from '@/components/auth/SignOutButton';
+import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 import type { LengthMode } from '@/lib/summary/format';
 
 /** 설정 (요약 길이 / 수신 이메일). */
@@ -42,6 +44,16 @@ export default async function SettingsPage() {
             <DeliveryEmailForm current={deliveryEmail} isDefault={isDefaultEmail} />
           </Card>
         </div>
+
+        <section className="mt-12 border-t border-border pt-6">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            계정
+          </h2>
+          <div className="mt-2 flex flex-col items-start">
+            <SignOutButton />
+            <DeleteAccountButton />
+          </div>
+        </section>
       </main>
     </div>
   );

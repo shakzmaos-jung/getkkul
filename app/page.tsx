@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import { Card } from '@/components/ui/Card';
-import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 
 /**
  * 홈. proxy 가 1차로 가드하지만, 서버 액션/직접 접근을 대비해
@@ -49,13 +48,6 @@ export default async function Home() {
             </Link>
           </div>
         </Card>
-
-        <section className="mt-10 border-t border-border pt-6">
-          <h2 className="text-sm font-semibold text-muted-foreground">계정</h2>
-          <div className="mt-3">
-            <DeleteAccountButton />
-          </div>
-        </section>
       </main>
     </div>
   );

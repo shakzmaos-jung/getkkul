@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import SignOutButton from '@/components/auth/SignOutButton';
 
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -24,9 +23,6 @@ export default function AppHeader() {
           <NavLink href="/feed">다이제스트</NavLink>
           <NavLink href="/subscriptions">구독</NavLink>
           <NavLink href="/settings">설정</NavLink>
-          <span className="ml-1">
-            <SignOutButton />
-          </span>
         </nav>
       </div>
     </header>
