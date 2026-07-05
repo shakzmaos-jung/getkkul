@@ -24,6 +24,15 @@ describe('parseChannelInput (REQ-B1)', () => {
     expect(parseChannelInput('mrbeast')).toEqual({ kind: 'handle', handle: 'mrbeast' });
   });
 
+  it('한글(유니코드) 핸들도 인식한다', () => {
+    expect(parseChannelInput('@지식인사이드')).toEqual({ kind: 'handle', handle: '지식인사이드' });
+    expect(parseChannelInput('https://youtube.com/@지식인사이드')).toEqual({
+      kind: 'handle',
+      handle: '지식인사이드',
+    });
+    expect(parseChannelInput('지식인사이드')).toEqual({ kind: 'handle', handle: '지식인사이드' });
+  });
+
   it('프로토콜 없는 URL 도 처리한다', () => {
     expect(parseChannelInput('www.youtube.com/@mrbeast')).toEqual({
       kind: 'handle',

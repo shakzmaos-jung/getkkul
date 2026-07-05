@@ -12,7 +12,17 @@ export type ParsedChannelInput =
   | { kind: 'reject'; reason: 'video' | 'playlist' | 'empty' | 'invalid' };
 
 const CHANNEL_ID_RE = /^UC[0-9A-Za-z_-]{22}$/;
-const HANDLE_RE = /^[A-Za-z0-9._-]{3,30}$/;
+// 유니코드 letter/number 허용 — 한글 등 비ASCII 핸들 지원(YouTube 는 한글 핸들 해석 가능).
+const HANDLE_RE = /^[\p{L}\p{N}._-]{3,30}$/u;
+
+/** 퍼센트 인코딩된 경로 세그먼트를 안전하게 디코드(한글 핸들 대응). */
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
 
 /** URL 문자열로 파싱 시도. 프로토콜이 없으면 https:// 를 붙여 재시도. */
 function tryParseUrl(input: string): URL | null {
@@ -60,7 +70,7 @@ export function parseChannelInput(raw: string): ParsedChannelInput {
     if (url.pathname.startsWith('/shorts/') || url.pathname.startsWith('/embed/'))
       return { kind: 'reject', reason: 'video' };
 
-    const segments = url.pathname.split('/').filter(Boolean);
+    const segments = url.pathname.split('/').filter(Boolean).map(safeDecode);
     if (segments.length === 0) return { kind: 'reject', reason: 'invalid' };
 
     // /@handle
