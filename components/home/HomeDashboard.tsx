@@ -7,7 +7,7 @@ export interface HomeRecentItem {
   title: string;
   channelTitle: string;
   time: string;
-  url: string;
+  dateKst: string;
 }
 
 interface Props {
@@ -29,6 +29,7 @@ function Stat({ label, value, testId }: { label: string; value: string; testId: 
 /**
  * 홈 관제판(notification-first). 콘텐츠 리더가 아니라 설정·상태 확인용 가벼운 화면.
  * 구독 0개면 통계 대신 빈 상태 안내 + 채널 추가 버튼을 크게 노출한다.
+ * 채널 관리 진입은 '구독 채널' 통계 카드 클릭으로 통합(별도 버튼 제거).
  */
 export default function HomeDashboard({
   subscriptionCount,
@@ -70,33 +71,44 @@ export default function HomeDashboard({
         </Card>
       ) : (
         <>
-          {/* 3. 통계 3종 */}
+          {/* 3. 통계 3종 (구독 채널은 클릭 시 관리 화면으로) */}
           <div data-testid="home-stats" className="grid grid-cols-3 gap-3">
-            <Stat testId="stat-subscriptions" label="구독 채널" value={String(subscriptionCount)} />
+            <Link
+              href="/subscriptions"
+              data-testid="stat-subscriptions"
+              className="group relative rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-foreground/25 hover:bg-muted"
+            >
+              <div className="text-2xl font-semibold tracking-tight">{subscriptionCount}</div>
+              <div className="mt-1 text-xs text-muted-foreground">구독 채널</div>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+                className="absolute right-2 top-2 text-muted-foreground/40 transition-colors group-hover:text-foreground"
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </Link>
             <Stat testId="stat-today" label="오늘 다이제스트" value={String(todayDigestCount)} />
             <Stat testId="stat-next-slot" label="다음 발송" value={nextSlot} />
           </div>
 
-          {/* 4. 핵심 행동 */}
-          <Link
-            href="/subscriptions"
-            data-testid="manage-channels"
-            className="inline-flex h-10 w-fit items-center justify-center rounded-lg border border-border bg-card px-5 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            채널 관리
-          </Link>
-
-          {/* 5. 최근 다이제스트 미리보기 */}
+          {/* 4. 최근 다이제스트 미리보기 → 앱 내 다이제스트 카드로 이동 */}
           {recent.length > 0 && (
             <div>
               <h2 className="mb-2 text-sm font-semibold">최근 다이제스트</h2>
               <Card className="divide-y divide-border">
                 {recent.map((it) => (
-                  <a
+                  <Link
                     key={it.id}
-                    href={it.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/feed?date=${it.dateKst}#d-${it.id}`}
+                    data-testid="recent-item"
                     className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted"
                   >
                     <div className="min-w-0">
@@ -104,7 +116,7 @@ export default function HomeDashboard({
                       <p className="truncate text-xs text-muted-foreground">{it.channelTitle}</p>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">{it.time}</span>
-                  </a>
+                  </Link>
                 ))}
               </Card>
             </div>

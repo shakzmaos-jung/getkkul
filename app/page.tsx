@@ -58,7 +58,7 @@ export default async function Home() {
       title: v.title ?? '',
       channelTitle: titleById.get(v.channel_id) ?? '',
       time: v.published_at ? kstShort.format(new Date(v.published_at)) : '',
-      url: v.url ?? '',
+      dateKst: v.published_at ? kstDate.format(new Date(v.published_at)) : '',
     }));
   }
 

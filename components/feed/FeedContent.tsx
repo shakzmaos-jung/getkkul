@@ -33,13 +33,15 @@ export default function FeedContent({
   channels,
   digestDates,
   todayKst,
+  initialDate,
 }: {
   items: FeedItem[];
   channels: FeedChannel[];
   digestDates: { c: string; d: string }[];
   todayKst: string;
+  initialDate?: string;
 }) {
-  const [selected, setSelected] = useState(todayKst);
+  const [selected, setSelected] = useState(() => initialDate ?? todayKst);
   const [checked, setChecked] = useState<Set<string>>(() => new Set(channels.map((c) => c.id)));
 
   // 선택 채널 기준 일자별 다이제스트 수 재집계

@@ -9,7 +9,15 @@ import type { LengthMode } from '@/lib/summary/format';
 type ModeSummary = { coreText: string; bullets: string[] };
 
 /** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  const initialDate =
+    typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : undefined;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -150,6 +158,7 @@ export default async function FeedPage() {
             channels={channels}
             digestDates={digestDates}
             todayKst={todayKst}
+            initialDate={initialDate}
           />
         )}
       </main>

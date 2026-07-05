@@ -69,7 +69,7 @@ export default function SummaryCard({
   }
 
   return (
-    <Card data-testid="summary-card" className="p-5">
+    <Card id={`d-${videoId}`} data-testid="summary-card" className="scroll-mt-20 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {channelTitle && (
