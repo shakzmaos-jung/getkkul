@@ -3,8 +3,20 @@ import {
   LENGTH_SPECS,
   countSentences,
   validateSummaryFormat,
+  isLengthMode,
   type Summary,
 } from './format';
+
+describe('isLengthMode', () => {
+  it('유효한 모드만 통과', () => {
+    expect(isLengthMode('short')).toBe(true);
+    expect(isLengthMode('normal')).toBe(true);
+    expect(isLengthMode('long')).toBe(true);
+    expect(isLengthMode('짧게')).toBe(false);
+    expect(isLengthMode('')).toBe(false);
+    expect(isLengthMode(undefined)).toBe(false);
+  });
+});
 
 function makeSummary(sentences: number, bullets: number): Summary {
   return {

@@ -6,6 +6,13 @@
 export type LengthMode = 'short' | 'normal' | 'long';
 export type SummaryLanguage = 'ko' | 'en';
 
+export const LENGTH_MODES: readonly LengthMode[] = ['short', 'normal', 'long'];
+
+/** 임의 값이 유효한 길이 모드인지 판정한다(폼 입력 검증용). */
+export function isLengthMode(value: unknown): value is LengthMode {
+  return typeof value === 'string' && (LENGTH_MODES as readonly string[]).includes(value);
+}
+
 export interface LengthSpec {
   coreSentencesMin: number;
   coreSentencesMax: number;

@@ -24,9 +24,17 @@ export default async function Home() {
       <p className="text-sm text-gray-500" data-testid="user-email">
         {user.email}
       </p>
-      <Link href="/subscriptions" className="text-sm underline" data-testid="nav-subscriptions">
-        구독 채널 관리
-      </Link>
+      <nav className="flex gap-4 text-sm underline">
+        <Link href="/feed" data-testid="nav-feed">
+          다이제스트
+        </Link>
+        <Link href="/subscriptions" data-testid="nav-subscriptions">
+          구독 채널 관리
+        </Link>
+        <Link href="/settings" data-testid="nav-settings">
+          설정
+        </Link>
+      </nav>
       <SignOutButton />
       <DeleteAccountButton />
     </main>
