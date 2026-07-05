@@ -23,6 +23,11 @@ export default async function FeedPage() {
   const channelTitleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
   const channelThumbById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_thumbnail]));
   const channelHandleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_handle]));
+  const channels = (subs ?? []).map((s) => ({
+    id: s.channel_id,
+    title: s.channel_title ?? s.channel_id,
+    thumbnail: s.channel_thumbnail,
+  }));
 
   const { data: setting } = await supabase
     .from('user_settings')
@@ -31,24 +36,23 @@ export default async function FeedPage() {
     .maybeSingle();
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
 
-  // 캘린더: 오늘(KST) 기본값 + 일자별 다이제스트 수
+  // 캘린더: 오늘(KST) 기본값. 일자별 수는 채널 필터에 따라 클라이언트에서 재집계하도록 원본 전달.
   const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-  const countsByDate: Record<string, number> = {};
+  const digestDates: { c: string; d: string }[] = [];
 
   const items: FeedItem[] = [];
 
   if (channelIds.length > 0) {
-    // 일자별 다이제스트 수 (모든 done 영상, published_at KST 기준)
+    // 모든 done 영상의 (채널, KST 일자) — 채널 멀티체크 재집계 원본
     const { data: allDone } = await supabase
       .from('videos')
-      .select('published_at')
+      .select('published_at, channel_id')
       .eq('status', 'done')
       .in('channel_id', channelIds);
     const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
     for (const r of allDone ?? []) {
       if (!r.published_at) continue;
-      const key = kstFmt.format(new Date(r.published_at));
-      countsByDate[key] = (countsByDate[key] ?? 0) + 1;
+      digestDates.push({ c: r.channel_id, d: kstFmt.format(new Date(r.published_at)) });
     }
 
     const { data: videos } = await supabase
@@ -103,6 +107,7 @@ export default async function FeedPage() {
               : (Object.keys(summaries)[0] as LengthMode);
         items.push({
           id: v.id,
+          channelId: v.channel_id,
           title: v.title ?? '',
           url: v.url ?? '',
           channelTitle: channelTitleById.get(v.channel_id) ?? '',
@@ -139,7 +144,12 @@ export default async function FeedPage() {
             </Link>
           </div>
         ) : (
-          <FeedContent items={items} todayKst={todayKst} countsByDate={countsByDate} />
+          <FeedContent
+            items={items}
+            channels={channels}
+            digestDates={digestDates}
+            todayKst={todayKst}
+          />
         )}
       </main>
     </div>
