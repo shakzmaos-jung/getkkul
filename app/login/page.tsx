@@ -106,19 +106,19 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={verifyOtp} className="flex flex-col gap-2 text-left">
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{email}</span>로 보낸 인증 코드를
+              <span className="font-medium text-foreground">{email}</span>로 보낸 6자리 코드를
               입력하세요.
             </p>
             <Input
               inputMode="numeric"
               pattern="[0-9]*"
-              maxLength={10}
+              maxLength={6}
               required
-              placeholder="인증 코드"
+              placeholder="000000"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               data-testid="login-otp"
-              className="tracking-[0.2em]"
+              className="tracking-[0.3em]"
             />
             <Button type="submit" variant="primary" disabled={loading} className="w-full">
               {loading ? '확인 중…' : '로그인'}
