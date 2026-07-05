@@ -25,7 +25,7 @@ export async function acquireTranscripts(
   } = {},
 ): Promise<AcquireResult> {
   const supabase = deps.supabase ?? createPipelineClient();
-  const limit = deps.limit ?? 20;
+  const limit = deps.limit ?? 40;
   const baseMs = deps.baseMs ?? 1000;
   const run =
     deps.fetchContentFn ??
