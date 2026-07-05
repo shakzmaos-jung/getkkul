@@ -1,5 +1,6 @@
 import { detectNewVideos } from '@/lib/pipeline/detect';
 import { acquireTranscripts } from '@/lib/pipeline/acquire';
+import { summarizePending } from '@/lib/pipeline/summarize-pending';
 
 /**
  * 처리 파이프라인 진입점 (ADR-0004, GitHub Actions 30분 스케줄).
@@ -15,7 +16,8 @@ async function main() {
   const acq = await acquireTranscripts();
   console.log(`[acquire] processed=${acq.processed} done=${acq.done} failed=${acq.failed}`);
 
-  // TODO(M4): summarizePending() — status=done 전사를 (모드,언어)별 요약 캐시로
+  const sum = await summarizePending();
+  console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
 
   console.log('[pipeline] done');
 }
