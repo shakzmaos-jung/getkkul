@@ -26,6 +26,44 @@ function Stat({ label, value, testId }: { label: string; value: string; testId: 
   );
 }
 
+/** 클릭 시 관련 화면으로 이동하는 통계 카드(우상단 화살표 + hover). */
+function StatLink({
+  href,
+  label,
+  value,
+  testId,
+}: {
+  href: string;
+  label: string;
+  value: string;
+  testId: string;
+}) {
+  return (
+    <Link
+      href={href}
+      data-testid={testId}
+      className="group relative rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-foreground/25 hover:bg-muted"
+    >
+      <div className="text-2xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        className="absolute right-2 top-2 text-muted-foreground/40 transition-colors group-hover:text-foreground"
+      >
+        <path d="M9 18l6-6-6-6" />
+      </svg>
+    </Link>
+  );
+}
+
 /**
  * 홈 관제판(notification-first). 콘텐츠 리더가 아니라 설정·상태 확인용 가벼운 화면.
  * 구독 0개면 통계 대신 빈 상태 안내 + 채널 추가 버튼을 크게 노출한다.
@@ -71,31 +109,20 @@ export default function HomeDashboard({
         </Card>
       ) : (
         <>
-          {/* 3. 통계 3종 (구독 채널은 클릭 시 관리 화면으로) */}
+          {/* 3. 통계 3종 (구독 채널→관리, 오늘 다이제스트→다이제스트) */}
           <div data-testid="home-stats" className="grid grid-cols-3 gap-3">
-            <Link
+            <StatLink
               href="/subscriptions"
-              data-testid="stat-subscriptions"
-              className="group relative rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-foreground/25 hover:bg-muted"
-            >
-              <div className="text-2xl font-semibold tracking-tight">{subscriptionCount}</div>
-              <div className="mt-1 text-xs text-muted-foreground">구독 채널</div>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-                className="absolute right-2 top-2 text-muted-foreground/40 transition-colors group-hover:text-foreground"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </Link>
-            <Stat testId="stat-today" label="오늘 다이제스트" value={String(todayDigestCount)} />
+              testId="stat-subscriptions"
+              label="구독 채널"
+              value={String(subscriptionCount)}
+            />
+            <StatLink
+              href="/feed"
+              testId="stat-today"
+              label="오늘 다이제스트"
+              value={String(todayDigestCount)}
+            />
             <Stat testId="stat-next-slot" label="다음 발송" value={nextSlot} />
           </div>
 

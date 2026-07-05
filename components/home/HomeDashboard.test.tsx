@@ -35,12 +35,12 @@ describe('HomeDashboard 빈 상태 분기', () => {
     expect(screen.getByText('영상 A')).toBeTruthy();
   });
 
-  it('구독 채널 통계는 채널 관리(/subscriptions)로 이동하는 링크다', () => {
+  it('구독 채널/오늘 다이제스트 통계는 각각 링크로 이동한다', () => {
     render(
       <HomeDashboard subscriptionCount={3} todayDigestCount={0} nextSlot="07:30" recent={[]} />,
     );
-    const stat = screen.getByTestId('stat-subscriptions');
-    expect(stat.getAttribute('href')).toBe('/subscriptions');
+    expect(screen.getByTestId('stat-subscriptions').getAttribute('href')).toBe('/subscriptions');
+    expect(screen.getByTestId('stat-today').getAttribute('href')).toBe('/feed');
   });
 
   it('최근 항목은 앱 내 다이제스트(/feed)로 이동한다(유튜브 아님)', () => {

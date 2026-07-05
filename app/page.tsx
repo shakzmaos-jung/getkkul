@@ -28,6 +28,7 @@ export default async function Home() {
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
   const kstShort = new Intl.DateTimeFormat('sv-SE', {
     timeZone: KST_TIME_ZONE,
+    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
