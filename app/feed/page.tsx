@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import SummaryCard from '@/components/feed/SummaryCard';
-import DigestCalendar from '@/components/feed/DigestCalendar';
+import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
 import type { LengthMode } from '@/lib/summary/format';
 
@@ -34,15 +33,7 @@ export default async function FeedPage() {
   const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
   const countsByDate: Record<string, number> = {};
 
-  const items: {
-    id: string;
-    title: string;
-    url: string;
-    channelTitle: string;
-    publishedAt: string | null;
-    initialMode: LengthMode;
-    summaries: Partial<Record<LengthMode, ModeSummary>>;
-  }[] = [];
+  const items: FeedItem[] = [];
 
   if (channelIds.length > 0) {
     // 일자별 다이제스트 수 (모든 done 영상, published_at KST 기준)
@@ -114,6 +105,7 @@ export default async function FeedPage() {
           url: v.url ?? '',
           channelTitle: channelTitleById.get(v.channel_id) ?? '',
           publishedAt: v.published_at,
+          dateKst: v.published_at ? kstFmt.format(new Date(v.published_at)) : '',
           initialMode,
           summaries,
         });
@@ -132,10 +124,6 @@ export default async function FeedPage() {
           </p>
         </header>
 
-        <div className="mb-6">
-          <DigestCalendar todayKst={todayKst} countsByDate={countsByDate} />
-        </div>
-
         {items.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">아직 요약된 영상이 없습니다.</p>
@@ -147,20 +135,7 @@ export default async function FeedPage() {
             </Link>
           </div>
         ) : (
-          <div data-testid="feed-list" className="flex flex-col gap-4">
-            {items.map((it) => (
-              <SummaryCard
-                key={it.id}
-                videoId={it.id}
-                channelTitle={it.channelTitle}
-                title={it.title}
-                url={it.url}
-                publishedAt={it.publishedAt}
-                initialMode={it.initialMode}
-                summaries={it.summaries}
-              />
-            ))}
-          </div>
+          <FeedContent items={items} todayKst={todayKst} countsByDate={countsByDate} />
         )}
       </main>
     </div>

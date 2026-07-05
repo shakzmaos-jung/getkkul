@@ -25,23 +25,26 @@ function Chevron({ dir }: { dir: 'left' | 'right' }) {
 
 /**
  * 다이제스트 캘린더 — 가로 날짜 스트립(요일·일자·다이제스트 수).
- * 년/월 좌우 버튼·클릭 이동, 스트립은 터치 스와이프 + 좌우 버튼 페이징(다음 페이지 연속).
- * default 년/월·일자는 오늘(KST, todayKst).
+ * 년/월은 타이틀 클릭 → 선택 패널(월 이동 버튼 없음). 스트립은 스와이프 + 좌우 버튼 페이징.
+ * 컨트롤드: selected/onSelect 로 피드 필터링과 연동. default 는 오늘(todayKst).
  */
 export default function DigestCalendar({
   todayKst,
+  selected,
+  onSelect,
   countsByDate,
 }: {
   todayKst: string;
+  selected: string;
+  onSelect: (date: string) => void;
   countsByDate: Record<string, number>;
 }) {
-  const [ty, tm] = todayKst.split('-').map(Number);
-  const [viewYear, setViewYear] = useState(ty);
-  const [viewMonth, setViewMonth] = useState(tm);
-  const [selected, setSelected] = useState(todayKst);
+  const [sy0, sm0] = selected.split('-').map(Number);
+  const [viewYear, setViewYear] = useState(sy0);
+  const [viewMonth, setViewMonth] = useState(sm0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const stripRef = useRef<HTMLDivElement>(null);
-  const todayCellRef = useRef<HTMLButtonElement>(null);
+  const selectedCellRef = useRef<HTMLButtonElement>(null);
 
   const days = useMemo(() => {
     const n = daysInMonth(viewYear, viewMonth);
@@ -53,31 +56,18 @@ export default function DigestCalendar({
     });
   }, [viewYear, viewMonth, countsByDate]);
 
-  // 오늘 월을 보면 오늘 셀로 스크롤, 아니면 처음으로
+  // 선택 일자가 보는 월에 있으면 그 셀로 스크롤, 아니면 처음으로
   useEffect(() => {
     const el = stripRef.current;
     if (!el) return;
-    if (viewYear === ty && viewMonth === tm && todayCellRef.current) {
-      todayCellRef.current.scrollIntoView({ inline: 'center', block: 'nearest' });
+    const [sy, sm] = selected.split('-').map(Number);
+    if (sy === viewYear && sm === viewMonth && selectedCellRef.current) {
+      selectedCellRef.current.scrollIntoView({ inline: 'center', block: 'nearest' });
     } else {
       el.scrollTo({ left: 0 });
     }
-  }, [viewYear, viewMonth, ty, tm]);
+  }, [viewYear, viewMonth, selected]);
 
-  function prevMonth() {
-    setPickerOpen(false);
-    if (viewMonth === 1) {
-      setViewYear((y) => y - 1);
-      setViewMonth(12);
-    } else setViewMonth((m) => m - 1);
-  }
-  function nextMonth() {
-    setPickerOpen(false);
-    if (viewMonth === 12) {
-      setViewYear((y) => y + 1);
-      setViewMonth(1);
-    } else setViewMonth((m) => m + 1);
-  }
   function pageStrip(dir: number) {
     const el = stripRef.current;
     if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' });
@@ -87,17 +77,9 @@ export default function DigestCalendar({
     active ? '' : wd === 0 ? 'text-red-500' : wd === 6 ? 'text-blue-500' : '';
 
   return (
-    <Card className="p-4">
-      {/* 년/월 네비 */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={prevMonth}
-          aria-label="이전 달"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <Chevron dir="left" />
-        </button>
+    <Card className="p-3">
+      {/* 년/월 (클릭 → 선택 패널) */}
+      <div className="flex items-center justify-center">
         <button
           type="button"
           onClick={() => setPickerOpen((o) => !o)}
@@ -105,14 +87,6 @@ export default function DigestCalendar({
           className="rounded-lg px-3 py-1 text-sm font-semibold transition-colors hover:bg-muted"
         >
           {viewYear}.{viewMonth}월
-        </button>
-        <button
-          type="button"
-          onClick={nextMonth}
-          aria-label="다음 달"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <Chevron dir="right" />
         </button>
       </div>
 
@@ -161,12 +135,12 @@ export default function DigestCalendar({
       )}
 
       {/* 날짜 스트립 */}
-      <div className="mt-3 flex items-center gap-1">
+      <div className="mt-2 flex items-center gap-1">
         <button
           type="button"
           onClick={() => pageStrip(-1)}
           aria-label="이전 날짜"
-          className="inline-flex h-8 w-6 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex h-9 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Chevron dir="left" />
         </button>
@@ -177,23 +151,28 @@ export default function DigestCalendar({
           className="flex snap-x scroll-smooth gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {days.map((d) => {
-            const isToday = d.dateStr === todayKst;
             const isSelected = d.dateStr === selected;
             return (
               <button
                 key={d.dateStr}
                 type="button"
-                ref={isToday ? todayCellRef : undefined}
-                onClick={() => setSelected(d.dateStr)}
-                data-testid={isToday ? 'calendar-today' : undefined}
-                className={`flex w-12 shrink-0 snap-start flex-col items-center gap-0.5 rounded-lg py-2 transition-colors ${
+                ref={isSelected ? selectedCellRef : undefined}
+                onClick={() => onSelect(d.dateStr)}
+                data-testid={d.dateStr === todayKst ? 'calendar-today' : undefined}
+                className={`flex w-11 shrink-0 snap-start flex-col items-center rounded-lg py-1.5 transition-colors ${
                   isSelected ? 'bg-foreground text-background' : 'hover:bg-muted'
-                } ${isToday && !isSelected ? 'ring-1 ring-inset ring-accent' : ''}`}
+                }`}
               >
-                <span className={`text-[10px] ${weekendColor(d.wd, isSelected)}`}>{d.weekday}</span>
-                <span className={`text-sm font-semibold ${weekendColor(d.wd, isSelected)}`}>{d.day}</span>
+                <span className={`text-[10px] leading-tight ${weekendColor(d.wd, isSelected)}`}>
+                  {d.weekday}
+                </span>
                 <span
-                  className={`text-[11px] font-medium ${
+                  className={`text-sm font-semibold leading-tight ${weekendColor(d.wd, isSelected)}`}
+                >
+                  {d.day}
+                </span>
+                <span
+                  className={`text-[10px] leading-tight ${
                     isSelected
                       ? 'text-background/90'
                       : d.count > 0
@@ -212,7 +191,7 @@ export default function DigestCalendar({
           type="button"
           onClick={() => pageStrip(1)}
           aria-label="다음 날짜"
-          className="inline-flex h-8 w-6 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="inline-flex h-9 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Chevron dir="right" />
         </button>
