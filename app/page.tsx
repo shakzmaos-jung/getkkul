@@ -1,54 +1,79 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
-import { Card } from '@/components/ui/Card';
+import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
+import { nextSendSlot, KST_TIME_ZONE } from '@/lib/time';
 
 /**
- * 홈. proxy 가 1차로 가드하지만, 서버 액션/직접 접근을 대비해
- * 서버 컴포넌트에서도 인증을 재확인한다 (Next.js 16 proxy 가이드 권장).
+ * 홈 = notification-first 관제판. 콘텐츠 리더가 아니라 설정·상태 확인용.
+ * 데이터는 현재 로그인 사용자 기준(RLS)으로 조회한다.
  */
 export default async function Home() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-  if (!user) {
-    redirect('/login');
+  const { data: subs } = await supabase
+    .from('subscriptions')
+    .select('channel_id, channel_title')
+    .eq('user_id', user.id);
+  const subsList = subs ?? [];
+  const subscriptionCount = subsList.length;
+  const channelIds = [...new Set(subsList.map((s) => s.channel_id))];
+  const titleById = new Map(subsList.map((s) => [s.channel_id, s.channel_title ?? '']));
+
+  const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
+  const kstShort = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: KST_TIME_ZONE,
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const todayKst = kstDate.format(new Date());
+
+  let todayDigestCount = 0;
+  let recent: HomeRecentItem[] = [];
+
+  if (channelIds.length > 0) {
+    const { data: videos } = await supabase
+      .from('videos')
+      .select('id, title, url, channel_id, published_at')
+      .eq('status', 'done')
+      .in('channel_id', channelIds)
+      .order('published_at', { ascending: false })
+      .limit(50);
+    const rows = videos ?? [];
+    for (const v of rows) {
+      if (v.published_at && kstDate.format(new Date(v.published_at)) === todayKst) {
+        todayDigestCount++;
+      }
+    }
+    recent = rows.slice(0, 5).map((v) => ({
+      id: v.id,
+      title: v.title ?? '',
+      channelTitle: titleById.get(v.channel_id) ?? '',
+      time: v.published_at ? kstShort.format(new Date(v.published_at)) : '',
+      url: v.url ?? '',
+    }));
   }
+
+  const nextSlot = nextSendSlot(new Date());
 
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">안녕하세요 👋</h1>
-          <p className="mt-1 text-sm text-muted-foreground" data-testid="user-email">
-            {user.email}
-          </p>
-        </header>
-
-        <Card className="flex flex-col gap-4 p-6">
-          <p className="text-sm text-muted-foreground">
-            구독한 채널의 새 영상 요약을 확인하세요.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/feed"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
-            >
-              다이제스트 보기
-            </Link>
-            <Link
-              href="/subscriptions"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              채널 구독 관리
-            </Link>
-          </div>
-        </Card>
+        <HomeDashboard
+          subscriptionCount={subscriptionCount}
+          todayDigestCount={todayDigestCount}
+          nextSlot={nextSlot}
+          recent={recent}
+        />
       </main>
       <AppFooter />
     </div>

@@ -21,6 +21,21 @@ export function slotToCode(slot: SendSlot): SlotCode {
 }
 
 /**
+ * 현재 시각(UTC Date) 기준, KST 발송 슬롯 중 "다음"(현재 시각 이후 가장 이른) 슬롯을 반환한다.
+ * 정각(슬롯 시각과 동일)은 그 슬롯 발송이 진행되는 시점으로 보고 다음 슬롯을 반환한다.
+ * 모든 슬롯이 지났으면 익일 07:30.
+ */
+export function nextSendSlot(now: Date): SendSlot {
+  const kstMinutes = (now.getUTCHours() * 60 + now.getUTCMinutes() + 540) % 1440;
+  const slotMinutes = SEND_SLOTS_KST.map((s) => {
+    const [h, m] = s.split(':').map(Number);
+    return h * 60 + m;
+  });
+  const idx = slotMinutes.findIndex((mins) => mins > kstMinutes);
+  return SEND_SLOTS_KST[idx === -1 ? 0 : idx];
+}
+
+/**
  * UTC ISO 문자열을 KST 표시 문자열로 변환한다.
  * @example formatKst('2026-07-05T00:30:00Z') // "2026. 7. 5. 오전 9:30"
  */

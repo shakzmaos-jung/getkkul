@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SEND_SLOTS_KST, SLOT_CODES, slotToCode, formatKst } from './time';
+import { SEND_SLOTS_KST, SLOT_CODES, slotToCode, formatKst, nextSendSlot } from './time';
 
 describe('time util (H1 타임존)', () => {
   it('발송 슬롯은 KST 07:30 / 11:30 / 17:30 3개다', () => {
@@ -27,5 +27,30 @@ describe('time util (H1 타임존)', () => {
     // 2026-07-04T20:00Z -> 2026-07-05 05:00 KST (다음 날)
     const formatted = formatKst('2026-07-04T20:00:00Z');
     expect(formatted).toContain('7. 5.');
+  });
+});
+
+describe('nextSendSlot (다음 발송 시각, KST)', () => {
+  // KST = UTC + 9. 슬롯 이후(strictly after) 가장 이른 슬롯을 반환한다.
+  const cases: [string, string, string][] = [
+    ['KST 00:00 → 07:30', '2026-07-04T15:00:00Z', '07:30'],
+    ['KST 06:00 → 07:30', '2026-07-04T21:00:00Z', '07:30'],
+    ['KST 07:29 → 07:30', '2026-07-04T22:29:00Z', '07:30'],
+    ['KST 07:30 정각 → 11:30', '2026-07-04T22:30:00Z', '11:30'],
+    ['KST 09:00 → 11:30', '2026-07-05T00:00:00Z', '11:30'],
+    ['KST 11:30 정각 → 17:30', '2026-07-05T02:30:00Z', '17:30'],
+    ['KST 12:00 → 17:30', '2026-07-05T03:00:00Z', '17:30'],
+    ['KST 17:30 정각 → 07:30(익일)', '2026-07-05T08:30:00Z', '07:30'],
+    ['KST 20:00 → 07:30(익일)', '2026-07-05T11:00:00Z', '07:30'],
+  ];
+
+  for (const [label, iso, expected] of cases) {
+    it(label, () => {
+      expect(nextSendSlot(new Date(iso))).toBe(expected);
+    });
+  }
+
+  it('반환값은 정의된 슬롯 중 하나다', () => {
+    expect(SEND_SLOTS_KST).toContain(nextSendSlot(new Date('2026-07-05T00:00:00Z')));
   });
 });
