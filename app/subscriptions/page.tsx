@@ -5,11 +5,16 @@ import { Card } from '@/components/ui/Card';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
 import { removeSubscription } from './actions';
 
-/** 구독 시작일(created_at, UTC) 을 KST 날짜로 표시. */
-function formatSubscribedDate(iso: string): string {
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'medium',
+/** 구독시작일시(created_at, UTC) 를 KST yyyy-mm-dd hh:mm 으로 표시(sv-SE=ISO 형식). */
+function formatSubscribedDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   }).format(new Date(iso));
 }
 
@@ -61,7 +66,7 @@ export default async function SubscriptionsPage() {
                     {s.channel_title ?? s.channel_id}
                   </a>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    구독 시작일 {formatSubscribedDate(s.created_at)}
+                    구독시작일시 {formatSubscribedDateTime(s.created_at)}
                   </p>
                 </div>
                 <form action={removeSubscription}>
