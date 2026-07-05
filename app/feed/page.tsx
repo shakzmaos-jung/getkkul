@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SummaryCard from '@/components/feed/SummaryCard';
+import DigestCalendar from '@/components/feed/DigestCalendar';
 import AppHeader from '@/components/layout/AppHeader';
 import type { LengthMode } from '@/lib/summary/format';
 
@@ -29,6 +30,10 @@ export default async function FeedPage() {
     .maybeSingle();
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
 
+  // 캘린더: 오늘(KST) 기본값 + 일자별 다이제스트 수
+  const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+  const countsByDate: Record<string, number> = {};
+
   const items: {
     id: string;
     title: string;
@@ -40,6 +45,19 @@ export default async function FeedPage() {
   }[] = [];
 
   if (channelIds.length > 0) {
+    // 일자별 다이제스트 수 (모든 done 영상, published_at KST 기준)
+    const { data: allDone } = await supabase
+      .from('videos')
+      .select('published_at')
+      .eq('status', 'done')
+      .in('channel_id', channelIds);
+    const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
+    for (const r of allDone ?? []) {
+      if (!r.published_at) continue;
+      const key = kstFmt.format(new Date(r.published_at));
+      countsByDate[key] = (countsByDate[key] ?? 0) + 1;
+    }
+
     const { data: videos } = await supabase
       .from('videos')
       .select('id, title, url, channel_id, published_at')
@@ -113,6 +131,10 @@ export default async function FeedPage() {
             구독한 채널의 새 영상 요약입니다. 카드마다 요약 길이를 바꿀 수 있어요.
           </p>
         </header>
+
+        <div className="mb-6">
+          <DigestCalendar todayKst={todayKst} countsByDate={countsByDate} />
+        </div>
 
         {items.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
