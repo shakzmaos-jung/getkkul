@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SummaryCard from '@/components/feed/SummaryCard';
-import LengthSelector from '@/components/feed/LengthSelector';
 import AppHeader from '@/components/layout/AppHeader';
 import type { LengthMode } from '@/lib/summary/format';
 
-/** 요약 열람 피드. 본인 구독 채널의 요약된 영상(선택한 요약 길이 모드). */
+type ModeSummary = { coreText: string; bullets: string[] };
+
+/** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
 export default async function FeedPage() {
   const supabase = await createClient();
   const {
@@ -26,7 +27,7 @@ export default async function FeedPage() {
     .select('summary_length')
     .eq('user_id', user.id)
     .maybeSingle();
-  const mode = (setting?.summary_length ?? 'normal') as LengthMode;
+  const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
 
   const items: {
     id: string;
@@ -34,8 +35,8 @@ export default async function FeedPage() {
     url: string;
     channelTitle: string;
     publishedAt: string | null;
-    coreText: string;
-    bullets: string[];
+    initialMode: LengthMode;
+    summaries: Partial<Record<LengthMode, ModeSummary>>;
   }[] = [];
 
   if (channelIds.length > 0) {
@@ -50,29 +51,53 @@ export default async function FeedPage() {
     const videoIds = videoRows.map((v) => v.id);
 
     if (videoIds.length > 0) {
+      // 영상별 저장된 길이 선택
+      const { data: prefs } = await supabase
+        .from('user_video_prefs')
+        .select('video_id, length_mode')
+        .in('video_id', videoIds);
+      const prefByVideo = new Map(
+        (prefs ?? []).map((p) => [p.video_id, p.length_mode as LengthMode]),
+      );
+
+      // 모든 길이 모드 요약(ko) — 카드별 전환이 즉시 되도록 3개 모드 모두 로드
       const { data: sums } = await supabase
         .from('summaries')
-        .select('video_id, core_text, body')
-        .eq('length_mode', mode)
+        .select('video_id, length_mode, core_text, body')
         .eq('language', 'ko')
         .in('video_id', videoIds);
-      const sumMap = new Map((sums ?? []).map((s) => [s.video_id, s]));
-
-      for (const v of videoRows) {
-        const s = sumMap.get(v.id);
-        if (!s) continue;
+      const byVideo = new Map<string, Partial<Record<LengthMode, ModeSummary>>>();
+      for (const s of sums ?? []) {
         const bullets =
           s.body && typeof s.body === 'object' && 'bullets' in s.body
             ? ((s.body as { bullets?: unknown }).bullets as string[]) ?? []
             : [];
+        const rec = byVideo.get(s.video_id) ?? {};
+        rec[s.length_mode as LengthMode] = {
+          coreText: s.core_text ?? '',
+          bullets: Array.isArray(bullets) ? bullets : [],
+        };
+        byVideo.set(s.video_id, rec);
+      }
+
+      for (const v of videoRows) {
+        const summaries = byVideo.get(v.id);
+        if (!summaries || Object.keys(summaries).length === 0) continue;
+        const pref = prefByVideo.get(v.id);
+        const initialMode: LengthMode =
+          pref && summaries[pref]
+            ? pref
+            : summaries[globalMode]
+              ? globalMode
+              : (Object.keys(summaries)[0] as LengthMode);
         items.push({
           id: v.id,
           title: v.title ?? '',
           url: v.url ?? '',
           channelTitle: channelTitleById.get(v.channel_id) ?? '',
           publishedAt: v.published_at,
-          coreText: s.core_text ?? '',
-          bullets: Array.isArray(bullets) ? bullets : [],
+          initialMode,
+          summaries,
         });
       }
     }
@@ -82,12 +107,11 @@ export default async function FeedPage() {
     <div className="min-h-screen">
       <AppHeader />
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
-            <p className="mt-1 text-sm text-muted-foreground">구독한 채널의 새 영상 요약입니다.</p>
-          </div>
-          <LengthSelector current={mode} />
+        <header className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            구독한 채널의 새 영상 요약입니다. 카드마다 요약 길이를 바꿀 수 있어요.
+          </p>
         </header>
 
         {items.length === 0 ? (
@@ -105,12 +129,13 @@ export default async function FeedPage() {
             {items.map((it) => (
               <SummaryCard
                 key={it.id}
+                videoId={it.id}
                 channelTitle={it.channelTitle}
                 title={it.title}
                 url={it.url}
                 publishedAt={it.publishedAt}
-                coreText={it.coreText}
-                bullets={it.bullets}
+                initialMode={it.initialMode}
+                summaries={it.summaries}
               />
             ))}
           </div>

@@ -191,6 +191,35 @@ export type Database = {
           },
         ]
       }
+      user_video_prefs: {
+        Row: {
+          length_mode: Database["public"]["Enums"]["summary_length"]
+          updated_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          length_mode: Database["public"]["Enums"]["summary_length"]
+          updated_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          length_mode?: Database["public"]["Enums"]["summary_length"]
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_video_prefs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           channel_id: string
