@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -23,6 +24,8 @@ export default function AppHeader() {
           <NavLink href="/feed">다이제스트</NavLink>
           <NavLink href="/subscriptions">구독</NavLink>
           <NavLink href="/settings">설정</NavLink>
+          <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+          <ThemeToggle />
         </nav>
       </div>
     </header>

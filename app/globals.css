@@ -11,8 +11,9 @@
   --danger: #e5484d;
 }
 
+/* 다크 토큰 (재사용). 수동 토글([data-theme=dark]) 또는 시스템(설정 없을 때) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #0a0a0a;
     --foreground: #ededed;
     --card: #0f0f10;
@@ -22,6 +23,17 @@
     --accent: #4a9eff;
     --danger: #f2555a;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #0f0f10;
+  --muted: #18181b;
+  --muted-foreground: #9a9aa2;
+  --border: #27272a;
+  --accent: #4a9eff;
+  --danger: #f2555a;
 }
 
 @theme inline {
