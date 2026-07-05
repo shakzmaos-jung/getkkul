@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import { Card } from '@/components/ui/Card';
+import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
 import { removeSubscription } from './actions';
 
@@ -28,7 +29,7 @@ export default async function SubscriptionsPage() {
 
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('id, channel_id, channel_title, channel_url, created_at')
+    .select('id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at')
     .order('created_at', { ascending: false });
 
   const list = subs ?? [];
@@ -56,18 +57,32 @@ export default async function SubscriptionsPage() {
                 data-testid="subscription-item"
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
-                <div className="min-w-0">
-                  <a
-                    href={s.channel_url ?? undefined}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block truncate text-sm font-medium hover:underline"
-                  >
-                    {s.channel_title ?? s.channel_id}
-                  </a>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    구독시작일시 {formatSubscribedDateTime(s.created_at)}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <ChannelAvatar
+                    src={s.channel_thumbnail}
+                    title={s.channel_title ?? s.channel_id}
+                    size={36}
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-baseline gap-1.5">
+                      <a
+                        href={s.channel_url ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate text-sm font-medium hover:underline"
+                      >
+                        {s.channel_title ?? s.channel_id}
+                      </a>
+                      {s.channel_handle && (
+                        <span className="shrink-0 text-xs text-muted-foreground/70">
+                          {s.channel_handle}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      구독시작일시 {formatSubscribedDateTime(s.created_at)}
+                    </p>
+                  </div>
                 </div>
                 <form action={removeSubscription}>
                   <input type="hidden" name="id" value={s.id} />

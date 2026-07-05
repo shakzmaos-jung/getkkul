@@ -41,6 +41,8 @@ export async function addSubscription(
     channel_id: channel.channelId,
     channel_title: channel.title,
     channel_url: channel.url,
+    channel_thumbnail: channel.thumbnail,
+    channel_handle: channel.handle,
   });
 
   if (error) {

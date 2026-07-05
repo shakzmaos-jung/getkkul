@@ -28,13 +28,35 @@ export interface ResolvedChannel {
   channelId: string;
   title: string;
   url: string;
+  thumbnail: string | null;
+  handle: string | null;
 }
 
+interface YtThumbnails {
+  default?: { url?: string };
+  medium?: { url?: string };
+  high?: { url?: string };
+}
+interface YtChannelSnippet {
+  title: string;
+  customUrl?: string;
+  thumbnails?: YtThumbnails;
+}
 interface YtChannelsResponse {
-  items?: { id: string; snippet: { title: string } }[];
+  items?: { id: string; snippet: YtChannelSnippet }[];
 }
 interface YtSearchResponse {
-  items?: { id: { channelId?: string }; snippet: { title: string } }[];
+  items?: { id: { channelId?: string }; snippet: { title: string; thumbnails?: YtThumbnails } }[];
+}
+
+/** customUrl(@핸들) 정규화 — @ 접두어 보장, 없으면 null. */
+function normalizeHandle(customUrl?: string): string | null {
+  if (!customUrl) return null;
+  return customUrl.startsWith('@') ? customUrl : `@${customUrl}`;
+}
+
+function pickThumbnail(t?: YtThumbnails): string | null {
+  return t?.medium?.url ?? t?.default?.url ?? t?.high?.url ?? null;
 }
 
 const API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -105,6 +127,8 @@ export async function resolveChannel(input: string): Promise<ResolvedChannel> {
         channelId: item.id.channelId,
         title: item.snippet.title,
         url: `https://www.youtube.com/channel/${item.id.channelId}`,
+        thumbnail: pickThumbnail(item.snippet.thumbnails),
+        handle: null,
       };
     }
   }
@@ -119,5 +143,7 @@ function finalizeFromChannels(data: YtChannelsResponse): ResolvedChannel {
     channelId: item.id,
     title: item.snippet.title,
     url: `https://www.youtube.com/channel/${item.id}`,
+    thumbnail: pickThumbnail(item.snippet.thumbnails),
+    handle: normalizeHandle(item.snippet.customUrl),
   };
 }

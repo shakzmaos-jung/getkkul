@@ -17,10 +17,12 @@ export default async function FeedPage() {
 
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('channel_id, channel_title')
+    .select('channel_id, channel_title, channel_thumbnail, channel_handle')
     .eq('user_id', user.id);
   const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
   const channelTitleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
+  const channelThumbById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_thumbnail]));
+  const channelHandleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_handle]));
 
   const { data: setting } = await supabase
     .from('user_settings')
@@ -104,6 +106,8 @@ export default async function FeedPage() {
           title: v.title ?? '',
           url: v.url ?? '',
           channelTitle: channelTitleById.get(v.channel_id) ?? '',
+          channelThumbnail: channelThumbById.get(v.channel_id) ?? null,
+          channelHandle: channelHandleById.get(v.channel_id) ?? null,
           publishedAt: v.published_at,
           dateKst: v.published_at ? kstFmt.format(new Date(v.published_at)) : '',
           initialMode,

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
+import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { setVideoLength } from '@/app/feed/actions';
 import type { LengthMode } from '@/lib/summary/format';
 
@@ -10,6 +11,8 @@ type ModeSummary = { coreText: string; bullets: string[] };
 interface Props {
   videoId: string;
   channelTitle: string;
+  channelThumbnail: string | null;
+  channelHandle: string | null;
   title: string;
   url: string;
   publishedAt: string | null;
@@ -40,6 +43,8 @@ function formatKstDateTime(iso: string | null): string {
 export default function SummaryCard({
   videoId,
   channelTitle,
+  channelThumbnail,
+  channelHandle,
   title,
   url,
   publishedAt,
@@ -68,11 +73,18 @@ export default function SummaryCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {channelTitle && (
-            <div className="flex items-center gap-1.5">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />
-              <p data-testid="channel-label" className="text-xs font-medium text-muted-foreground">
-                {channelTitle}
-              </p>
+            <div className="flex items-center gap-2">
+              <ChannelAvatar src={channelThumbnail} title={channelTitle} size={20} />
+              <div className="flex min-w-0 items-baseline gap-1.5">
+                <p data-testid="channel-label" className="truncate text-xs font-medium text-muted-foreground">
+                  {channelTitle}
+                </p>
+                {channelHandle && (
+                  <span className="truncate text-[11px] text-muted-foreground/60">
+                    {channelHandle}
+                  </span>
+                )}
+              </div>
             </div>
           )}
           <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight">{title}</h3>

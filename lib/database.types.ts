@@ -82,7 +82,9 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          channel_handle: string | null
           channel_id: string
+          channel_thumbnail: string | null
           channel_title: string | null
           channel_url: string | null
           created_at: string
@@ -90,7 +92,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          channel_handle?: string | null
           channel_id: string
+          channel_thumbnail?: string | null
           channel_title?: string | null
           channel_url?: string | null
           created_at?: string
@@ -98,7 +102,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          channel_handle?: string | null
           channel_id?: string
+          channel_thumbnail?: string | null
           channel_title?: string | null
           channel_url?: string | null
           created_at?: string

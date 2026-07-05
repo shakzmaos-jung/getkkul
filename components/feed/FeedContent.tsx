@@ -12,6 +12,8 @@ export type FeedItem = {
   title: string;
   url: string;
   channelTitle: string;
+  channelThumbnail: string | null;
+  channelHandle: string | null;
   publishedAt: string | null;
   dateKst: string;
   initialMode: LengthMode;
@@ -53,6 +55,8 @@ export default function FeedContent({
               key={it.id}
               videoId={it.id}
               channelTitle={it.channelTitle}
+              channelThumbnail={it.channelThumbnail}
+              channelHandle={it.channelHandle}
               title={it.title}
               url={it.url}
               publishedAt={it.publishedAt}
