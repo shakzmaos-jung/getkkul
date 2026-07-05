@@ -17,7 +17,7 @@ export default function AppHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:px-6">
-        <Link href="/feed" className="text-base font-semibold tracking-tight">
+        <Link href="/" className="text-base font-semibold tracking-tight">
           🍯 겟꿀
         </Link>
         <nav className="flex items-center gap-0.5">
