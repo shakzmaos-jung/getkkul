@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SummaryCard from '@/components/feed/SummaryCard';
+import AppHeader from '@/components/layout/AppHeader';
 import type { LengthMode } from '@/lib/summary/format';
 
 /** 요약 열람 피드 (SSR REQ-D3 열람 + 언어 전환). 본인 구독 채널의 요약된 영상. */
@@ -77,36 +78,42 @@ export default async function FeedPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">다이제스트</h1>
-        <Link href="/" className="text-sm underline">
-          홈
-        </Link>
-      </div>
+    <div className="min-h-screen">
+      <AppHeader />
+      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <header className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            구독한 채널의 새 영상 요약입니다.
+          </p>
+        </header>
 
-      {items.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          아직 요약된 영상이 없습니다.{' '}
-          <Link href="/subscriptions" className="underline">
-            채널 구독하기
-          </Link>
-        </p>
-      ) : (
-        <div data-testid="feed-list">
-          {items.map((it) => (
-            <SummaryCard
-              key={it.id}
-              videoId={it.id}
-              mode={mode}
-              title={it.title}
-              url={it.url}
-              channelTitle={it.channelTitle}
-              ko={it.ko}
-            />
-          ))}
-        </div>
-      )}
-    </main>
+        {items.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
+            <p className="text-sm text-muted-foreground">아직 요약된 영상이 없습니다.</p>
+            <Link
+              href="/subscriptions"
+              className="mt-2 inline-block text-sm font-medium text-accent hover:underline"
+            >
+              채널 구독하기 →
+            </Link>
+          </div>
+        ) : (
+          <div data-testid="feed-list" className="flex flex-col gap-4">
+            {items.map((it) => (
+              <SummaryCard
+                key={it.id}
+                videoId={it.id}
+                mode={mode}
+                title={it.title}
+                url={it.url}
+                channelTitle={it.channelTitle}
+                ko={it.ko}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
   );
 }

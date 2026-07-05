@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { translateSummary, type TranslatedSummary } from '@/app/feed/actions';
 import type { LengthMode } from '@/lib/summary/format';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   videoId: string;
@@ -44,37 +46,59 @@ export default function SummaryCard({ videoId, mode, title, url, channelTitle, k
   }
 
   return (
-    <article data-testid="summary-card" className="border-b py-4">
+    <Card data-testid="summary-card" className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {channelTitle && (
-            <p data-testid="channel-label" className="text-xs font-medium text-gray-500">
-              {channelTitle}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />
+              <p data-testid="channel-label" className="text-xs font-medium text-muted-foreground">
+                {channelTitle}
+              </p>
+            </div>
           )}
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:underline">
-            {title}
-          </a>
+          <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight">
+            {shown.headline}
+          </h3>
         </div>
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={toggle}
           disabled={loading}
           data-testid="toggle-language"
-          className="shrink-0 rounded border px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+          className="shrink-0"
         >
-          {loading ? '…' : lang === 'en' ? '한국어' : 'English'}
-        </button>
+          {loading ? '…' : lang === 'en' ? '한국어' : 'EN'}
+        </Button>
       </div>
 
-      <h3 className="mt-1 font-semibold">{shown.headline}</h3>
-      <p className="mt-1 text-sm text-gray-700">{shown.coreText}</p>
-      <ul className="mt-2 list-disc pl-5 text-sm text-gray-600">
+      <p className="mt-2 text-sm leading-relaxed text-foreground/80">{shown.coreText}</p>
+
+      <ul className="mt-3 flex flex-col gap-1.5">
         {shown.bullets.map((b, i) => (
-          <li key={i}>{b}</li>
+          <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+            <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-border" />
+            <span className="leading-relaxed">{b}</span>
+          </li>
         ))}
       </ul>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </article>
+
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+
+      <div className="mt-4 border-t border-border pt-3">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          title={title}
+        >
+          원본 영상
+          <span aria-hidden>↗</span>
+        </a>
+      </div>
+    </Card>
   );
 }
