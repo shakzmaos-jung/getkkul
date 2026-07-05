@@ -14,9 +14,10 @@ export default async function FeedPage() {
 
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('channel_id')
+    .select('channel_id, channel_title')
     .eq('user_id', user.id);
   const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
+  const channelTitleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
 
   const { data: setting } = await supabase
     .from('user_settings')
@@ -29,13 +30,14 @@ export default async function FeedPage() {
     id: string;
     title: string;
     url: string;
+    channelTitle: string;
     ko: { headline: string; coreText: string; bullets: string[] };
   }[] = [];
 
   if (channelIds.length > 0) {
     const { data: videos } = await supabase
       .from('videos')
-      .select('id, title, url')
+      .select('id, title, url, channel_id')
       .eq('status', 'done')
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false })
@@ -63,6 +65,7 @@ export default async function FeedPage() {
           id: v.id,
           title: v.title ?? '',
           url: v.url ?? '',
+          channelTitle: channelTitleById.get(v.channel_id) ?? '',
           ko: {
             headline: s.headline ?? '',
             coreText: s.core_text ?? '',
@@ -98,6 +101,7 @@ export default async function FeedPage() {
               mode={mode}
               title={it.title}
               url={it.url}
+              channelTitle={it.channelTitle}
               ko={it.ko}
             />
           ))}

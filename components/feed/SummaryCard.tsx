@@ -9,10 +9,11 @@ interface Props {
   mode: LengthMode;
   title: string;
   url: string;
+  channelTitle: string;
   ko: TranslatedSummary;
 }
 
-export default function SummaryCard({ videoId, mode, title, url, ko }: Props) {
+export default function SummaryCard({ videoId, mode, title, url, channelTitle, ko }: Props) {
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const [en, setEn] = useState<TranslatedSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,9 +46,16 @@ export default function SummaryCard({ videoId, mode, title, url, ko }: Props) {
   return (
     <article data-testid="summary-card" className="border-b py-4">
       <div className="flex items-start justify-between gap-3">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:underline">
-          {title}
-        </a>
+        <div className="min-w-0">
+          {channelTitle && (
+            <p data-testid="channel-label" className="text-xs font-medium text-gray-500">
+              {channelTitle}
+            </p>
+          )}
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:underline">
+            {title}
+          </a>
+        </div>
         <button
           type="button"
           onClick={toggle}
