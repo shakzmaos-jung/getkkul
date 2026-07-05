@@ -5,7 +5,15 @@ import { Card } from '@/components/ui/Card';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
 import { removeSubscription } from './actions';
 
-/** 채널 구독 관리 (SSR REQ-B2). 본인 구독만 최신순 표시(AC-B2.1). */
+/** 구독 시작일(created_at, UTC) 을 KST 날짜로 표시. */
+function formatSubscribedDate(iso: string): string {
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeZone: 'Asia/Seoul',
+  }).format(new Date(iso));
+}
+
+/** 채널 구독 관리 (SSR REQ-B2). 본인 구독만 최신순(구독 시작일 내림차순) 표시(AC-B2.1). */
 export default async function SubscriptionsPage() {
   const supabase = await createClient();
   const {
@@ -43,14 +51,19 @@ export default async function SubscriptionsPage() {
                 data-testid="subscription-item"
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
-                <a
-                  href={s.channel_url ?? undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="truncate text-sm font-medium hover:underline"
-                >
-                  {s.channel_title ?? s.channel_id}
-                </a>
+                <div className="min-w-0">
+                  <a
+                    href={s.channel_url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-sm font-medium hover:underline"
+                  >
+                    {s.channel_title ?? s.channel_id}
+                  </a>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    구독 시작일 {formatSubscribedDate(s.created_at)}
+                  </p>
+                </div>
                 <form action={removeSubscription}>
                   <input type="hidden" name="id" value={s.id} />
                   <button
