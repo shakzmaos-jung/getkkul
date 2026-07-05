@@ -158,14 +158,26 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          delivery_email: string | null
+          otp_expires_at: string | null
+          otp_hash: string | null
+          pending_email: string | null
           summary_length: Database["public"]["Enums"]["summary_length"]
           user_id: string
         }
         Insert: {
+          delivery_email?: string | null
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          pending_email?: string | null
           summary_length?: Database["public"]["Enums"]["summary_length"]
           user_id: string
         }
         Update: {
+          delivery_email?: string | null
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          pending_email?: string | null
           summary_length?: Database["public"]["Enums"]["summary_length"]
           user_id?: string
         }

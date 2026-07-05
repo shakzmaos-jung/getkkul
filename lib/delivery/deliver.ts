@@ -36,12 +36,21 @@ export async function deliverAll(
   const { data: users, error } = await supabase.from('profiles').select('id, email');
   if (error) throw new Error(`사용자 조회 실패: ${error.message}`);
 
+  // 검증된 수신 이메일(delivery_email) 매핑. 없으면 구글 이메일(profiles.email) 사용.
+  const { data: settingsRows } = await supabase
+    .from('user_settings')
+    .select('user_id, delivery_email');
+  const deliveryEmailByUser = new Map(
+    (settingsRows ?? []).map((s) => [s.user_id, s.delivery_email]),
+  );
+
   let sent = 0;
   let empty = 0;
   let failed = 0;
 
   for (const user of users ?? []) {
-    if (!user.email) continue;
+    const recipient = deliveryEmailByUser.get(user.id) ?? user.email;
+    if (!recipient) continue;
     let selection: DigestSelection | null = null;
     try {
       const candidates = await candidateVideos(supabase, user.id);
@@ -49,12 +58,12 @@ export async function deliverAll(
       const message = renderDigest(selection, { appBaseUrl });
 
       if (selection.items.length === 0) {
-        await notifier.send({ email: user.email }, message); // 항상 발송(E2.3)
+        await notifier.send({ email: recipient }, message); // 항상 발송(E2.3)
         empty++;
         continue;
       }
 
-      await notifier.send({ email: user.email }, message);
+      await notifier.send({ email: recipient }, message);
       await supabase.from('deliveries').upsert(
         selection.items.map((v) => ({
           user_id: user.id,
