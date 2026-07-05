@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SummaryCard from '@/components/feed/SummaryCard';
+import LengthSelector from '@/components/feed/LengthSelector';
 import AppHeader from '@/components/layout/AppHeader';
 import type { LengthMode } from '@/lib/summary/format';
 
-/** 요약 열람 피드 (SSR REQ-D3 열람 + 언어 전환). 본인 구독 채널의 요약된 영상. */
+/** 요약 열람 피드. 본인 구독 채널의 요약된 영상(선택한 요약 길이 모드). */
 export default async function FeedPage() {
   const supabase = await createClient();
   const {
@@ -32,13 +33,15 @@ export default async function FeedPage() {
     title: string;
     url: string;
     channelTitle: string;
-    ko: { headline: string; coreText: string; bullets: string[] };
+    publishedAt: string | null;
+    coreText: string;
+    bullets: string[];
   }[] = [];
 
   if (channelIds.length > 0) {
     const { data: videos } = await supabase
       .from('videos')
-      .select('id, title, url, channel_id')
+      .select('id, title, url, channel_id, published_at')
       .eq('status', 'done')
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false })
@@ -49,7 +52,7 @@ export default async function FeedPage() {
     if (videoIds.length > 0) {
       const { data: sums } = await supabase
         .from('summaries')
-        .select('video_id, headline, core_text, body')
+        .select('video_id, core_text, body')
         .eq('length_mode', mode)
         .eq('language', 'ko')
         .in('video_id', videoIds);
@@ -67,11 +70,9 @@ export default async function FeedPage() {
           title: v.title ?? '',
           url: v.url ?? '',
           channelTitle: channelTitleById.get(v.channel_id) ?? '',
-          ko: {
-            headline: s.headline ?? '',
-            coreText: s.core_text ?? '',
-            bullets: Array.isArray(bullets) ? bullets : [],
-          },
+          publishedAt: v.published_at,
+          coreText: s.core_text ?? '',
+          bullets: Array.isArray(bullets) ? bullets : [],
         });
       }
     }
@@ -81,11 +82,12 @@ export default async function FeedPage() {
     <div className="min-h-screen">
       <AppHeader />
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            구독한 채널의 새 영상 요약입니다.
-          </p>
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
+            <p className="mt-1 text-sm text-muted-foreground">구독한 채널의 새 영상 요약입니다.</p>
+          </div>
+          <LengthSelector current={mode} />
         </header>
 
         {items.length === 0 ? (
@@ -103,12 +105,12 @@ export default async function FeedPage() {
             {items.map((it) => (
               <SummaryCard
                 key={it.id}
-                videoId={it.id}
-                mode={mode}
+                channelTitle={it.channelTitle}
                 title={it.title}
                 url={it.url}
-                channelTitle={it.channelTitle}
-                ko={it.ko}
+                publishedAt={it.publishedAt}
+                coreText={it.coreText}
+                bullets={it.bullets}
               />
             ))}
           </div>

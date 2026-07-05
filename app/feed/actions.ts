@@ -1,26 +1,16 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { getOrCreateSummary } from '@/lib/summary/get-or-create-summary';
 import { isLengthMode } from '@/lib/summary/format';
 
-export interface TranslatedSummary {
-  headline: string;
-  coreText: string;
-  bullets: string[];
-}
-
 /**
- * 요약 영어 전환 (SSR REQ-D3). 온디맨드 생성·캐시(language='en').
- * 인증 + 구독 채널 접근 검증 후, service_role(admin)로 생성/조회.
+ * 다이제스트에서 요약 길이 모드 변경 (SSR REQ-D2). user_settings.summary_length 갱신.
+ * RLS + 컬럼 권한으로 사용자는 summary_length 만 직접 수정 가능.
  */
-export async function translateSummary(
-  videoId: string,
-  mode: string,
-): Promise<TranslatedSummary> {
-  if (!isLengthMode(mode)) throw new Error('유효하지 않은 길이 모드입니다.');
+export async function setSummaryLength(mode: string): Promise<void> {
+  if (!isLengthMode(mode)) return;
 
   const supabase = await createClient();
   const {
@@ -28,22 +18,6 @@ export async function translateSummary(
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // 접근 검증: 사용자가 이 영상의 채널을 구독 중인지
-  const { data: video } = await supabase
-    .from('videos')
-    .select('channel_id')
-    .eq('id', videoId)
-    .single();
-  if (!video) throw new Error('영상을 찾을 수 없습니다.');
-
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('channel_id', video.channel_id)
-    .maybeSingle();
-  if (!sub) throw new Error('접근 권한이 없습니다.');
-
-  const en = await getOrCreateSummary(createAdminClient(), videoId, mode, 'en');
-  return { headline: en.headline, coreText: en.coreText, bullets: en.bullets };
+  await supabase.from('user_settings').update({ summary_length: mode }).eq('user_id', user.id);
+  revalidatePath('/feed');
 }
