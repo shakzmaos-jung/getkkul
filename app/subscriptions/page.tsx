@@ -23,10 +23,12 @@ function formatSubscribedDateTime(iso: string): string {
 /** 채널 구독 관리 (SSR REQ-B2). 본인 구독만 최신순(구독 시작일 내림차순) 표시(AC-B2.1). */
 export default async function SubscriptionsPage() {
   const supabase = await createClient();
+  // proxy 가 이미 세션을 검증했으므로 getSession(네트워크 없음)으로 인증만 확인.
+  // 목록 쿼리는 RLS(user_id = auth.uid())로 본인 행만 반환된다.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) redirect('/login');
 
   const { data: subs } = await supabase
     .from('subscriptions')

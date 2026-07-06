@@ -19,15 +19,26 @@ export default async function FeedPage({
     typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : undefined;
 
   const supabase = await createClient();
+  // proxy 가 이미 세션을 검증했으므로 getSession(네트워크 없음)으로 사용자 id 만 읽는다.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) redirect('/login');
 
-  const { data: subs } = await supabase
-    .from('subscriptions')
-    .select('channel_id, channel_title, channel_thumbnail, channel_handle')
-    .eq('user_id', user.id);
+  // 서로 독립적인 두 쿼리는 병렬로 (직렬 왕복 제거).
+  const [{ data: subs }, { data: setting }] = await Promise.all([
+    supabase
+      .from('subscriptions')
+      .select('channel_id, channel_title, channel_thumbnail, channel_handle')
+      .eq('user_id', user.id),
+    supabase
+      .from('user_settings')
+      .select('summary_length')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ]);
+  const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
   const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
   const channelTitleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
   const channelThumbById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_thumbnail]));
@@ -38,13 +49,6 @@ export default async function FeedPage({
     thumbnail: s.channel_thumbnail,
   }));
 
-  const { data: setting } = await supabase
-    .from('user_settings')
-    .select('summary_length')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
-
   // 캘린더: 오늘(KST) 기본값. 일자별 수는 채널 필터에 따라 클라이언트에서 재집계하도록 원본 전달.
   const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
   const digestDates: { c: string; d: string }[] = [];
@@ -52,44 +56,42 @@ export default async function FeedPage({
   const items: FeedItem[] = [];
 
   if (channelIds.length > 0) {
-    // 모든 done 영상의 (채널, KST 일자) — 채널 멀티체크 재집계 원본
-    const { data: allDone } = await supabase
-      .from('videos')
-      .select('published_at, channel_id')
-      .eq('status', 'done')
-      .in('channel_id', channelIds);
+    // done 영상 전체를 한 번에 조회 — 캘린더 집계(digestDates)와 최근 50개 표시를 겸한다.
+    // (기존의 allDone/videos 두 쿼리를 병합해 왕복 1회 제거.)
     const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
-    for (const r of allDone ?? []) {
-      if (!r.published_at) continue;
-      digestDates.push({ c: r.channel_id, d: kstFmt.format(new Date(r.published_at)) });
-    }
-
-    const { data: videos } = await supabase
+    const { data: doneVideos } = await supabase
       .from('videos')
       .select('id, title, url, channel_id, published_at')
       .eq('status', 'done')
       .in('channel_id', channelIds)
-      .order('published_at', { ascending: false })
-      .limit(50);
-    const videoRows = videos ?? [];
+      .order('published_at', { ascending: false });
+    const doneRows = doneVideos ?? [];
+    for (const r of doneRows) {
+      if (!r.published_at) continue;
+      digestDates.push({ c: r.channel_id, d: kstFmt.format(new Date(r.published_at)) });
+    }
+
+    // 표시는 최신 50개만 (캘린더는 위에서 전체 집계 완료).
+    const videoRows = doneRows.slice(0, 50);
     const videoIds = videoRows.map((v) => v.id);
 
     if (videoIds.length > 0) {
-      // 영상별 저장된 길이 선택
-      const { data: prefs } = await supabase
-        .from('user_video_prefs')
-        .select('video_id, length_mode')
-        .in('video_id', videoIds);
+      // 영상별 길이 선택 + 요약(ko) — 서로 독립이라 병렬로 조회.
+      const [{ data: prefs }, { data: sums }] = await Promise.all([
+        supabase
+          .from('user_video_prefs')
+          .select('video_id, length_mode')
+          .in('video_id', videoIds),
+        // 모든 길이 모드 요약(ko) — 카드별 전환이 즉시 되도록 3개 모드 모두 로드
+        supabase
+          .from('summaries')
+          .select('video_id, length_mode, core_text, body')
+          .eq('language', 'ko')
+          .in('video_id', videoIds),
+      ]);
       const prefByVideo = new Map(
         (prefs ?? []).map((p) => [p.video_id, p.length_mode as LengthMode]),
       );
-
-      // 모든 길이 모드 요약(ko) — 카드별 전환이 즉시 되도록 3개 모드 모두 로드
-      const { data: sums } = await supabase
-        .from('summaries')
-        .select('video_id, length_mode, core_text, body')
-        .eq('language', 'ko')
-        .in('video_id', videoIds);
       const byVideo = new Map<string, Partial<Record<LengthMode, ModeSummary>>>();
       for (const s of sums ?? []) {
         const bullets =

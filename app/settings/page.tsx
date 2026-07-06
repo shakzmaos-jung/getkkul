@@ -12,9 +12,11 @@ import type { LengthMode } from '@/lib/summary/format';
 /** 설정 (요약 길이 / 수신 이메일). */
 export default async function SettingsPage() {
   const supabase = await createClient();
+  // proxy 가 이미 세션을 검증했으므로 getSession(네트워크 없음)으로 사용자 정보만 읽는다.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) redirect('/login');
 
   const { data: setting } = await supabase

@@ -11,9 +11,12 @@ import { nextSendSlot, KST_TIME_ZONE } from '@/lib/time';
  */
 export default async function Home() {
   const supabase = await createClient();
+  // proxy(updateSession)가 요청마다 getUser 로 세션을 이미 검증·갱신하므로
+  // 여기서는 네트워크 왕복 없는 getSession 으로 사용자 id 만 읽는다.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) redirect('/login');
 
   const { data: subs } = await supabase
