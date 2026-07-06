@@ -60,3 +60,53 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+/* 겟꿀 로더: 🍯 픽토그램이 흑백→컬러로 바닥부터 차오르는 애니메이션 (페이지 이동 시).
+   흑백 베이스 위에 컬러 사본을 겹치고, clip-path 로 아래에서 위로 색을 채운 뒤 사라지고 반복. */
+.gk-loader {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+.gk-loader span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  line-height: 1;
+}
+.gk-loader__base {
+  filter: grayscale(1);
+  opacity: 0.3;
+}
+.gk-loader__fill {
+  animation: gk-fill 1.4s ease-in-out infinite;
+  will-change: clip-path, opacity;
+}
+@keyframes gk-fill {
+  0% {
+    clip-path: inset(100% 0 0 0);
+    opacity: 1;
+  }
+  65% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  85% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gk-loader__fill {
+    animation: none;
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
