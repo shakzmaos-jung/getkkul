@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import type OpenAI from 'openai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 import { summarize } from '@/lib/summary/summarize';
@@ -20,7 +20,7 @@ export async function getOrCreateSummary(
   videoId: string,
   mode: LengthMode,
   language: SummaryLanguage,
-  deps: { client?: Anthropic } = {},
+  deps: { client?: OpenAI } = {},
 ): Promise<CachedSummary> {
   // 1) 캐시 조회
   const existing = await supabase
