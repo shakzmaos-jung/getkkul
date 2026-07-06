@@ -1,4 +1,22 @@
 const REPO_URL = 'https://github.com/shakzmaos-jung/getkkul';
+const REMEMBER_URL = 'https://link.rmbr.in/79cmk2';
+
+function MailIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
+      <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+    </svg>
+  );
+}
+
+// TODO: 리멤버 공식 로고(SVG/PNG)로 교체 예정 — 현재는 명함형 플레이스홀더 아이콘.
+function RememberLogo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
+      <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM8 7.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM12 16H4v-.75c0-1.33 2.67-2 4-2s4 .67 4 2V16zm2-1h6v-1.5h-6V15zm0-3h6v-1.5h-6V12zm0-3h6V7.5h-6V9z" />
+    </svg>
+  );
+}
 
 function GithubIcon() {
   return (
@@ -32,9 +50,19 @@ export default function AppFooter() {
             <p className="text-sm text-foreground/80">프로덕트 빌더 with AI</p>
             <a
               href="mailto:shakzmaos@gmail.com"
-              className="w-fit text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
+              <MailIcon />
               shakzmaos@gmail.com
+            </a>
+            <a
+              href={REMEMBER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RememberLogo />
+              chess.jung@ppoint.kr
             </a>
             <a
               href={REPO_URL}
