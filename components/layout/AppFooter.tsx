@@ -29,7 +29,7 @@ export default function AppFooter() {
           {/* 우: 제작자 */}
           <div className="flex flex-col gap-1.5">
             <div className="text-base font-semibold tracking-tight">정상화</div>
-            <p className="text-sm text-foreground/80">프로덕트 빌더 / Product-led. Agent-built.</p>
+            <p className="text-sm text-foreground/80">프로덕트 빌더 with AI</p>
             <a
               href="mailto:shakzmaos@gmail.com"
               className="w-fit text-xs text-muted-foreground transition-colors hover:text-foreground"
