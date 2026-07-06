@@ -230,6 +230,7 @@ export type Database = {
         Row: {
           channel_id: string
           created_at: string
+          duration_seconds: number | null
           id: string
           published_at: string | null
           status: Database["public"]["Enums"]["video_status"]
@@ -242,6 +243,7 @@ export type Database = {
         Insert: {
           channel_id: string
           created_at?: string
+          duration_seconds?: number | null
           id?: string
           published_at?: string | null
           status?: Database["public"]["Enums"]["video_status"]
@@ -254,6 +256,7 @@ export type Database = {
         Update: {
           channel_id?: string
           created_at?: string
+          duration_seconds?: number | null
           id?: string
           published_at?: string | null
           status?: Database["public"]["Enums"]["video_status"]

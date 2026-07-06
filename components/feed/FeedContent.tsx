@@ -19,6 +19,7 @@ export type FeedItem = {
   channelThumbnail: string | null;
   channelHandle: string | null;
   publishedAt: string | null;
+  durationSeconds: number | null;
   dateKst: string;
   initialMode: LengthMode;
   summaries: Partial<Record<LengthMode, ModeSummary>>;
@@ -87,6 +88,7 @@ export default function FeedContent({
               title={it.title}
               url={it.url}
               publishedAt={it.publishedAt}
+              durationSeconds={it.durationSeconds}
               initialMode={it.initialMode}
               summaries={it.summaries}
             />

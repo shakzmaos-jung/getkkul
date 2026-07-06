@@ -61,7 +61,7 @@ export default async function FeedPage({
     const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
     const { data: doneVideos } = await supabase
       .from('videos')
-      .select('id, title, url, channel_id, published_at')
+      .select('id, title, url, channel_id, published_at, duration_seconds')
       .eq('status', 'done')
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false });
@@ -125,6 +125,7 @@ export default async function FeedPage({
           channelThumbnail: channelThumbById.get(v.channel_id) ?? null,
           channelHandle: channelHandleById.get(v.channel_id) ?? null,
           publishedAt: v.published_at,
+          durationSeconds: v.duration_seconds,
           dateKst: v.published_at ? kstFmt.format(new Date(v.published_at)) : '',
           initialMode,
           summaries,

@@ -1,5 +1,6 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { channelFeedUrl, parseChannelFeed } from '@/lib/pipeline/rss';
+import { fetchVideoDurations } from '@/lib/youtube/fetch-durations';
 
 /**
  * 신규 영상 감지 (SSR REQ-C1). 구독된 distinct channel_id 의 RSS 를 폴링해
@@ -22,6 +23,7 @@ export async function detectNewVideos(
 
   const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
   let registered = 0;
+  const insertedIds: string[] = [];
 
   for (const channelId of channelIds) {
     try {
@@ -52,8 +54,22 @@ export async function detectNewVideos(
         continue;
       }
       registered += inserted?.length ?? 0;
+      for (const r of inserted ?? []) insertedIds.push(r.video_id);
     } catch (e) {
       console.warn(`[detect] ${channelId} 실패: ${(e as Error).message}`);
+    }
+  }
+
+  // 새로 등록된 영상의 길이(초)를 YouTube Data API 로 채운다 (best-effort, 비핵심 데이터).
+  if (insertedIds.length > 0) {
+    try {
+      const durations = await fetchVideoDurations(insertedIds);
+      for (const [videoId, sec] of durations) {
+        await supabase.from('videos').update({ duration_seconds: sec }).eq('video_id', videoId);
+      }
+      console.log(`[detect] duration 채움 ${durations.size}/${insertedIds.length}`);
+    } catch (e) {
+      console.warn(`[detect] duration 채우기 실패: ${(e as Error).message}`);
     }
   }
 

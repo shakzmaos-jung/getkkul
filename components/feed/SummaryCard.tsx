@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { setVideoLength } from '@/app/feed/actions';
+import { formatDuration } from '@/lib/youtube/duration';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -16,6 +17,7 @@ interface Props {
   title: string;
   url: string;
   publishedAt: string | null;
+  durationSeconds: number | null;
   initialMode: LengthMode;
   summaries: Partial<Record<LengthMode, ModeSummary>>;
 }
@@ -48,9 +50,11 @@ export default function SummaryCard({
   title,
   url,
   publishedAt,
+  durationSeconds,
   initialMode,
   summaries,
 }: Props) {
+  const duration = formatDuration(durationSeconds);
   const [mode, setMode] = useState<LengthMode>(initialMode);
   const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
@@ -149,7 +153,7 @@ export default function SummaryCard({
         </>
       )}
 
-      <div className="mt-4 border-t border-border pt-3">
+      <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
         <a
           href={url}
           target="_blank"
@@ -158,6 +162,11 @@ export default function SummaryCard({
         >
           원본 영상 <span aria-hidden>↗</span>
         </a>
+        {duration && (
+          <span className="text-xs tabular-nums text-muted-foreground/70" aria-label="영상 길이">
+            · {duration}
+          </span>
+        )}
       </div>
     </Card>
   );
