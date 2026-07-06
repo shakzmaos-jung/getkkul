@@ -5,7 +5,14 @@ import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { vttToText } from '@/lib/pipeline/vtt';
+import { isBotBlockError } from '@/lib/pipeline/health';
 import type { VideoRef } from '@/lib/pipeline/fetch-content';
+
+// 이번 실행에서 관찰된 유튜브 봇차단(쿠키 만료) 횟수. 파이프라인이 만료 알림 판단에 사용.
+let botBlockCount = 0;
+export function getBotBlockCount(): number {
+  return botBlockCount;
+}
 
 /**
  * fetchContent 의 실제 구현 (ADR-0004). yt-dlp(자막·오디오) + OpenAI Whisper.
@@ -55,7 +62,9 @@ async function captionForLang(video: VideoRef, lang: string): Promise<string | n
     const text = vttToText(await readFile(join(dir, vtt), 'utf8'));
     return text || null;
   } catch (e) {
-    console.warn(`[caption] ${video.videoId} (${lang}): ${(e as Error).message}`);
+    const msg = (e as Error).message;
+    if (isBotBlockError(msg)) botBlockCount++;
+    console.warn(`[caption] ${video.videoId} (${lang}): ${msg}`);
     return null;
   } finally {
     await rm(dir, { recursive: true, force: true });
