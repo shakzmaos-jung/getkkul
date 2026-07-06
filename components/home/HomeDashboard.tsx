@@ -13,17 +13,8 @@ export interface HomeRecentItem {
 interface Props {
   subscriptionCount: number;
   todayDigestCount: number;
-  nextSlot: string;
+  totalDigestCount: number;
   recent: HomeRecentItem[];
-}
-
-function Stat({ label, value, testId }: { label: string; value: string; testId: string }) {
-  return (
-    <div data-testid={testId} className="rounded-xl border border-border bg-card p-4 text-center">
-      <div className="text-2xl font-semibold tracking-tight">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
-    </div>
-  );
 }
 
 /** 클릭 시 관련 화면으로 이동하는 통계 카드(우상단 화살표 + hover). */
@@ -72,7 +63,7 @@ function StatLink({
 export default function HomeDashboard({
   subscriptionCount,
   todayDigestCount,
-  nextSlot,
+  totalDigestCount,
   recent,
 }: Props) {
   const isEmpty = subscriptionCount === 0;
@@ -109,7 +100,7 @@ export default function HomeDashboard({
         </Card>
       ) : (
         <>
-          {/* 3. 통계 3종 (구독 채널→관리, 오늘 다이제스트→다이제스트) */}
+          {/* 3. 통계 3종 (구독 채널→관리, 오늘/누적 다이제스트→다이제스트) */}
           <div data-testid="home-stats" className="grid grid-cols-3 gap-3">
             <StatLink
               href="/subscriptions"
@@ -123,7 +114,12 @@ export default function HomeDashboard({
               label="오늘 다이제스트"
               value={String(todayDigestCount)}
             />
-            <Stat testId="stat-next-slot" label="다음 발송" value={nextSlot} />
+            <StatLink
+              href="/feed"
+              testId="stat-total"
+              label="누적 다이제스트"
+              value={String(totalDigestCount)}
+            />
           </div>
 
           {/* 4. 최근 다이제스트 미리보기 → 앱 내 다이제스트 카드로 이동 */}

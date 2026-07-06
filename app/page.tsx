@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
-import { nextSendSlot, KST_TIME_ZONE } from '@/lib/time';
+import { KST_TIME_ZONE } from '@/lib/time';
 
 /**
  * 홈 = notification-first 관제판. 콘텐츠 리더가 아니라 설정·상태 확인용.
@@ -41,16 +41,26 @@ export default async function Home() {
   const todayKst = kstDate.format(new Date());
 
   let todayDigestCount = 0;
+  let totalDigestCount = 0;
   let recent: HomeRecentItem[] = [];
 
   if (channelIds.length > 0) {
-    const { data: videos } = await supabase
-      .from('videos')
-      .select('id, title, url, channel_id, published_at')
-      .eq('status', 'done')
-      .in('channel_id', channelIds)
-      .order('published_at', { ascending: false })
-      .limit(50);
+    // 최근 50개(오늘 집계·미리보기용)와 전체 누적 수(count)를 병렬 조회.
+    const [{ data: videos }, { count }] = await Promise.all([
+      supabase
+        .from('videos')
+        .select('id, title, url, channel_id, published_at')
+        .eq('status', 'done')
+        .in('channel_id', channelIds)
+        .order('published_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('videos')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'done')
+        .in('channel_id', channelIds),
+    ]);
+    totalDigestCount = count ?? 0;
     const rows = videos ?? [];
     for (const v of rows) {
       if (v.published_at && kstDate.format(new Date(v.published_at)) === todayKst) {
@@ -66,8 +76,6 @@ export default async function Home() {
     }));
   }
 
-  const nextSlot = nextSendSlot(new Date());
-
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
@@ -75,7 +83,7 @@ export default async function Home() {
         <HomeDashboard
           subscriptionCount={subscriptionCount}
           todayDigestCount={todayDigestCount}
-          nextSlot={nextSlot}
+          totalDigestCount={totalDigestCount}
           recent={recent}
         />
       </main>
