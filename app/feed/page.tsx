@@ -9,6 +9,9 @@ import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
 
+// 캘린더·표시용 done 조회 상한(최신순). 데이터 증가 시 서버시간 상한 유지(오래된 다이제스트는 제외).
+const FEED_DONE_LIMIT = 500;
+
 /** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
 export default async function FeedPage({
   searchParams,
@@ -60,15 +63,16 @@ export default async function FeedPage({
   const items: FeedItem[] = [];
 
   if (channelIds.length > 0) {
-    // done 영상 전체를 한 번에 조회 — 캘린더 집계(digestDates)와 최근 50개 표시를 겸한다.
-    // (기존의 allDone/videos 두 쿼리를 병합해 왕복 1회 제거.)
+    // done 영상을 최신순으로 조회 — 캘린더 집계(digestDates)와 최근 50개 표시를 겸한다.
+    // 데이터 증가 대비 상한(FEED_DONE_LIMIT): 최근 N개까지만(캘린더는 그 범위, 표시는 상위 50).
     const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
     const { data: doneVideos } = await supabase
       .from('videos')
       .select('id, title, url, channel_id, published_at, duration_seconds, created_at')
       .eq('status', 'done')
       .in('channel_id', channelIds)
-      .order('published_at', { ascending: false });
+      .order('published_at', { ascending: false })
+      .limit(FEED_DONE_LIMIT);
     // 정지해제 기준선(active_since) 이후 감지된 영상만 — 일시정지 동안 밀린 콘텐츠 제외.
     const doneRows = (doneVideos ?? []).filter((v) =>
       isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
