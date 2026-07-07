@@ -25,8 +25,10 @@ export default function CreditLedgerCard({ ledger }: { ledger: CreditLedger }) {
       </div>
 
       <p className="mb-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-        크레딧은 친구추천으로 최대 {formatWon(PER_USER_CAP)}까지 적립할 수 있어요. 향후 유료 결제 시
-        결제액의 50%까지 할인에 사용할 수 있고, 현금 환급·양도는 되지 않아요.
+        크레딧은 친구추천으로 <span className="font-medium text-foreground">최대 {formatWon(PER_USER_CAP)}</span>까지
+        적립할 수 있어요. 향후{' '}
+        <span className="font-medium text-foreground">유료 결제 시 결제액의 50%까지 할인</span>에 사용할 수
+        있고, 현금 환급·양도는 되지 않아요.
       </p>
 
       {transactions.length === 0 ? (
