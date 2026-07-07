@@ -89,8 +89,8 @@ export default async function FeedPage({
     const videoIds = videoRows.map((v) => v.id);
 
     if (videoIds.length > 0) {
-      // 영상별 길이 선택 + 요약(ko) — 서로 독립이라 병렬로 조회.
-      const [{ data: prefs }, { data: sums }] = await Promise.all([
+      // 영상별 길이 선택 + 요약(ko) + 북마크 — 서로 독립이라 병렬로 조회.
+      const [{ data: prefs }, { data: sums }, { data: bms }] = await Promise.all([
         supabase
           .from('user_video_prefs')
           .select('video_id, length_mode')
@@ -101,7 +101,9 @@ export default async function FeedPage({
           .select('video_id, length_mode, core_text, body')
           .eq('language', 'ko')
           .in('video_id', videoIds),
+        supabase.from('bookmarks').select('video_id').in('video_id', videoIds),
       ]);
+      const bookmarkedIds = new Set((bms ?? []).map((b) => b.video_id));
       const prefByVideo = new Map(
         (prefs ?? []).map((p) => [p.video_id, p.length_mode as LengthMode]),
       );
@@ -142,6 +144,7 @@ export default async function FeedPage({
           dateKst: v.published_at ? kstFmt.format(new Date(v.published_at)) : '',
           initialMode,
           summaries,
+          bookmarked: bookmarkedIds.has(v.id),
         });
       }
     }
