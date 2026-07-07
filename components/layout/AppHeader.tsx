@@ -24,7 +24,7 @@ export default function AppHeader() {
         </Link>
         <nav className="flex items-center gap-0.5">
           <NavLink href="/feed">다이제스트</NavLink>
-          <NavLink href="/subscriptions">구독채널</NavLink>
+          <NavLink href="/subscriptions">채널</NavLink>
           <NavLink href="/settings">설정</NavLink>
           <span className="mx-1 h-4 w-px bg-border" aria-hidden />
           <ThemeToggle />
