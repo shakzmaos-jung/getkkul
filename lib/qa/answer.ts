@@ -17,19 +17,28 @@ export const MAX_CONTEXT_LEN = 12000;
 /** 추출 용어 칩 최대 개수. */
 export const MAX_TERMS = 6;
 
-export interface QAAnswer {
-  short: string; // 80자 내외
-  normal: string; // 200자 내외
-  long: string; // 800자 내외
+/** 한 길이의 답변: 용어 정의 + 이 콘텐츠에서의 의미/인사이트(각 없으면 빈 문자열). */
+export interface QASection {
+  definition: string; // 용어 정의
+  insight: string; // 이 콘텐츠에서의 의미와 인사이트
 }
+
+export interface QAAnswer {
+  short: QASection; // 80자 내외
+  normal: QASection; // 200자 내외
+  long: QASection; // 800자 내외
+}
+
+const SECTION_SCHEMA = {
+  type: 'object',
+  properties: { definition: { type: 'string' }, insight: { type: 'string' } },
+  required: ['definition', 'insight'],
+  additionalProperties: false,
+} as const;
 
 const ANSWER_SCHEMA = {
   type: 'object',
-  properties: {
-    short: { type: 'string' },
-    normal: { type: 'string' },
-    long: { type: 'string' },
-  },
+  properties: { short: SECTION_SCHEMA, normal: SECTION_SCHEMA, long: SECTION_SCHEMA },
   required: ['short', 'normal', 'long'],
   additionalProperties: false,
 } as const;
@@ -49,8 +58,11 @@ function systemPrompt(): string {
     '너는 주어진 유튜브 콘텐츠의 맥락에 근거해 사용자 질문에 답하는 도우미다.',
     '반드시 제공된 맥락에 근거해서 답하고, 맥락에서 알 수 없는 내용이면 모른다고 솔직히 답하라.',
     '답변은 한국어로 작성한다.',
+    '답변은 두 부분으로 나눈다:',
+    '- definition: 질문 대상(용어/개념)의 일반적인 정의. 질문이 특정 용어 정의를 요구하지 않으면 빈 문자열.',
+    '- insight: 이 콘텐츠에서 그것이 갖는 의미와 인사이트. 콘텐츠 맥락에 근거해 정리. 해당 내용이 없으면 빈 문자열.',
     '같은 답을 세 가지 길이로 정리하라: short(80자 내외), normal(200자 내외), long(800자 내외).',
-    '각 길이는 자연스럽게 완결된 문장으로 작성한다.',
+    '각 길이의 definition/insight 합이 대략 그 분량이 되도록 하고, 자연스럽게 완결된 문장으로 쓴다.',
   ].join('\n');
 }
 
@@ -85,12 +97,12 @@ export async function answerAboutContent(
   });
   const content = res.choices[0]?.message?.content;
   if (!content || !content.trim()) throw new Error('답변 응답이 비어 있습니다.');
-  const parsed = JSON.parse(content) as Partial<QAAnswer>;
-  return {
-    short: parsed.short ?? '',
-    normal: parsed.normal ?? '',
-    long: parsed.long ?? '',
-  };
+  const parsed = JSON.parse(content) as Partial<Record<keyof QAAnswer, Partial<QASection>>>;
+  const sec = (s?: Partial<QASection>): QASection => ({
+    definition: s?.definition ?? '',
+    insight: s?.insight ?? '',
+  });
+  return { short: sec(parsed.short), normal: sec(parsed.normal), long: sec(parsed.long) };
 }
 
 const TERMS_SCHEMA = {

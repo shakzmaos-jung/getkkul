@@ -50,6 +50,32 @@ export type Database = {
           },
         ]
       }
+      content_terms: {
+        Row: {
+          created_at: string
+          terms: string[]
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          terms?: string[]
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          terms?: string[]
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_terms_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: true
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       abuse_guard: {
         Row: {
           created_at: string
