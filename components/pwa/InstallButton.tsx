@@ -133,8 +133,24 @@ function InstallDialog({
           ) : (
             <ol className="flex flex-col gap-2 text-muted-foreground">
               <li>
-                1. 하단(사파리) <b className="text-foreground">공유 버튼</b>{' '}
-                <span aria-hidden>􀈂 ↑</span> 을 누릅니다.
+                1. 하단(사파리)의 <b className="text-foreground">공유 버튼</b>{' '}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="inline-block align-text-bottom text-foreground"
+                  aria-hidden
+                >
+                  <path d="M12 3v12" />
+                  <path d="m8 7 4-4 4 4" />
+                  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+                </svg>{' '}
+                을 누릅니다.
               </li>
               <li>
                 2. 메뉴에서 <b className="text-foreground">홈 화면에 추가</b>를 선택합니다.

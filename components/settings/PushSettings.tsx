@@ -5,11 +5,11 @@ import {
   subscribePush,
   unsubscribePush,
   updatePushSlots,
-  updateSkipEmpty,
   type SettingsState,
 } from '@/app/settings/actions';
 import { Button } from '@/components/ui/Button';
-import { AutoSaveStatus } from '@/components/settings/AutoSaveStatus';
+import { Spinner } from '@/components/ui/Spinner';
+import { useToast } from '@/components/ui/ToastProvider';
 import { detectOS, isStandaloneNow, canSubscribePush, type OS } from '@/lib/pwa/platform';
 import { subscribeToPush, getExistingSubscription, unsubscribeFromPush } from '@/lib/pwa/push-client';
 import { InstallIcon } from '@/components/pwa/InstallIcon';
@@ -19,11 +19,11 @@ const initial: SettingsState = {};
 interface Props {
   vapidPublicKey: string;
   pushSlots: { s0730: boolean; s1130: boolean; s1730: boolean };
-  skip: { push: boolean; email: boolean };
 }
 
-/** 푸시 구독 켜기/끄기 + 슬롯별 발송(멀티체크) + 빈 슬롯 생략 토글(REQ-C/D). */
-export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props) {
+/** 푸시 구독 켜기/끄기 + 슬롯별 발송(멀티, 카드 선택 즉시 저장). */
+export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
+  const showToast = useToast();
   const [ready, setReady] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [env, setEnv] = useState<{ os: OS; standalone: boolean; supported: boolean }>({
@@ -33,9 +33,14 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
-  const [slotState, slotAction, slotPending] = useActionState(updatePushSlots, initial);
-  const [skipState, skipAction, skipPending] = useActionState(updateSkipEmpty, initial);
+  const [, slotAction] = useActionState(async (prev: SettingsState, fd: FormData) => {
+    const r = await updatePushSlots(prev, fd);
+    showToast(r.ok ? '저장 완료되었습니다' : (r.error ?? '저장에 실패했습니다'));
+    setSavingKey(null);
+    return r;
+  }, initial);
 
   useEffect(() => {
     const detected = {
@@ -66,6 +71,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
         return;
       }
       setSubscribed(true);
+      showToast('푸시 알림이 켜졌습니다');
     } catch {
       setErr('푸시 구독에 실패했습니다.');
     } finally {
@@ -80,6 +86,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
       const endpoint = await unsubscribeFromPush();
       if (endpoint) await unsubscribePush(endpoint);
       setSubscribed(false);
+      showToast('푸시 알림이 꺼졌습니다');
     } catch {
       setErr('푸시 해제에 실패했습니다.');
     } finally {
@@ -88,10 +95,15 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
   }
 
   const canPush = env.supported && canSubscribePush(env.os, env.standalone);
+  const slots = [
+    ['push_0730', '07:30', pushSlots.s0730],
+    ['push_1130', '11:30', pushSlots.s1130],
+    ['push_1730', '17:30', pushSlots.s1730],
+  ] as const;
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* 1) 구독 켜기/끄기 */}
+    <div className="flex flex-col gap-4">
+      {/* 구독 켜기/끄기 */}
       <div>
         {!ready ? (
           <p className="text-xs text-muted-foreground">확인 중…</p>
@@ -126,20 +138,14 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
         {err && <p className="mt-2 text-xs text-danger">{err}</p>}
       </div>
 
-      {/* 2) 슬롯별 푸시(멀티체크) — 구독 없으면 비활성(AC-D1.3) */}
+      {/* 슬롯별 푸시(멀티) — 구독 없으면 비활성(AC-D1.3) */}
       <form action={slotAction} className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">받을 시각(푸시)</p>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {(
-            [
-              ['push_0730', '07:30', pushSlots.s0730],
-              ['push_1130', '11:30', pushSlots.s1130],
-              ['push_1730', '17:30', pushSlots.s1730],
-            ] as const
-          ).map(([name, label, checked]) => (
+        <div className="flex flex-col gap-2">
+          {slots.map(([name, label, checked]) => (
             <label
               key={name}
-              className={`flex items-center justify-center rounded-lg border border-border p-3 ${
+              className={`relative flex items-center justify-center rounded-lg border border-border p-3 ${
                 subscribed
                   ? 'cursor-pointer transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10'
                   : 'cursor-not-allowed opacity-50'
@@ -150,45 +156,20 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
                 name={name}
                 defaultChecked={checked}
                 disabled={!subscribed}
-                onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                onChange={(e) => {
+                  setSavingKey(name);
+                  e.currentTarget.form?.requestSubmit();
+                }}
                 data-testid={`slot-${name}`}
                 className="sr-only"
               />
               <span className="text-sm font-medium">{label}</span>
+              {savingKey === name && (
+                <Spinner className="absolute right-2 top-2 text-muted-foreground" />
+              )}
             </label>
           ))}
         </div>
-        {subscribed && (
-          <AutoSaveStatus pending={slotPending} ok={slotState.ok} error={slotState.error} />
-        )}
-      </form>
-
-      {/* 3) 빈 슬롯 생략(REQ-D2) */}
-      <form action={skipAction} className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-muted-foreground">새 소식 없을 때</p>
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
-          <input
-            type="checkbox"
-            name="skip_empty_push"
-            defaultChecked={skip.push}
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            data-testid="skip-empty-push"
-            className="sr-only"
-          />
-          <span className="text-sm font-medium">새 항목 없으면 푸시 생략</span>
-        </label>
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
-          <input
-            type="checkbox"
-            name="skip_empty_email"
-            defaultChecked={skip.email}
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            data-testid="skip-empty-email"
-            className="sr-only"
-          />
-          <span className="text-sm font-medium">새 항목 없으면 이메일 생략</span>
-        </label>
-        <AutoSaveStatus pending={skipPending} ok={skipState.ok} error={skipState.error} />
       </form>
     </div>
   );

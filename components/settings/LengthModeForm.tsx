@@ -1,15 +1,12 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { updateSummaryLength, type SettingsState } from '@/app/settings/actions';
-import { AutoSaveStatus } from '@/components/settings/AutoSaveStatus';
+import { useToast } from '@/components/ui/ToastProvider';
+import { Spinner } from '@/components/ui/Spinner';
 import type { LengthMode } from '@/lib/summary/format';
 
-const LABELS: Record<LengthMode, string> = {
-  short: '짧게',
-  normal: '보통',
-  long: '길게',
-};
+const LABELS: Record<LengthMode, string> = { short: '짧게', normal: '보통', long: '길게' };
 const DESC: Record<LengthMode, string> = {
   short: '핵심 1~3문장',
   normal: '핵심 1~7문장',
@@ -19,31 +16,41 @@ const DESC: Record<LengthMode, string> = {
 const initial: SettingsState = {};
 
 export default function LengthModeForm({ current }: { current: LengthMode }) {
-  const [state, formAction, pending] = useActionState(updateSummaryLength, initial);
+  const showToast = useToast();
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [, formAction] = useActionState(async (prev: SettingsState, fd: FormData) => {
+    const r = await updateSummaryLength(prev, fd);
+    showToast(r.ok ? '저장 완료되었습니다' : (r.error ?? '저장에 실패했습니다'));
+    setSavingKey(null);
+    return r;
+  }, initial);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <div className="grid gap-2 sm:grid-cols-3">
-        {(Object.keys(LABELS) as LengthMode[]).map((mode) => (
-          <label
-            key={mode}
-            className="flex cursor-pointer flex-col gap-1 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
-          >
-            <input
-              type="radio"
-              name="summary_length"
-              value={mode}
-              defaultChecked={current === mode}
-              onChange={(e) => e.currentTarget.form?.requestSubmit()}
-              data-testid={`length-${mode}`}
-              className="sr-only"
-            />
-            <span className="text-sm font-medium">{LABELS[mode]}</span>
-            <span className="text-xs text-muted-foreground">{DESC[mode]}</span>
-          </label>
-        ))}
-      </div>
-      <AutoSaveStatus pending={pending} ok={state.ok} error={state.error} />
+    <form action={formAction} className="flex flex-col gap-2">
+      {(Object.keys(LABELS) as LengthMode[]).map((mode) => (
+        <label
+          key={mode}
+          className="relative flex cursor-pointer flex-col gap-1 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+        >
+          <input
+            type="radio"
+            name="summary_length"
+            value={mode}
+            defaultChecked={current === mode}
+            onChange={(e) => {
+              setSavingKey(mode);
+              e.currentTarget.form?.requestSubmit();
+            }}
+            data-testid={`length-${mode}`}
+            className="sr-only"
+          />
+          <span className="text-sm font-medium">{LABELS[mode]}</span>
+          <span className="text-xs text-muted-foreground">{DESC[mode]}</span>
+          {savingKey === mode && (
+            <Spinner className="absolute right-2 top-2 text-muted-foreground" />
+          )}
+        </label>
+      ))}
     </form>
   );
 }

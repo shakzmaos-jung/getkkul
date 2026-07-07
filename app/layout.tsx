@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +48,7 @@ export default function RootLayout({
           }}
         />
         <ServiceWorkerRegister />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
