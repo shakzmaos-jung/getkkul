@@ -20,8 +20,12 @@ export default function ReferralStatusCard({
     <div>
       <ReferralShareButton link={link} />
       <p className="mt-2 mb-4 text-xs text-muted-foreground">
-        친구가 이 링크로 가입해 채널 {ACTIVATION_MIN_CHANNELS}개 구독 + 다이제스트 {ACTIVATION_MIN_SUMMARIES}개를
-        받으면, 친구와 나 모두 크레딧 2,000원을 받아요.
+        친구가{' '}
+        <span className="font-medium text-foreground">
+          이 링크로 가입해 채널 {ACTIVATION_MIN_CHANNELS}개 구독 + 다이제스트 {ACTIVATION_MIN_SUMMARIES}개
+        </span>
+        를 받으면, 친구와 나 모두 <span className="font-medium text-foreground">크레딧 2,000원</span>을
+        받아요.
       </p>
 
       {visible.length === 0 ? (
