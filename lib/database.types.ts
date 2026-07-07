@@ -171,6 +171,7 @@ export type Database = {
       user_settings: {
         Row: {
           delivery_email: string | null
+          delivery_slots: Database["public"]["Enums"]["delivery_slot"][]
           otp_expires_at: string | null
           otp_hash: string | null
           pending_email: string | null
@@ -179,6 +180,7 @@ export type Database = {
         }
         Insert: {
           delivery_email?: string | null
+          delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           otp_expires_at?: string | null
           otp_hash?: string | null
           pending_email?: string | null
@@ -187,6 +189,7 @@ export type Database = {
         }
         Update: {
           delivery_email?: string | null
+          delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           otp_expires_at?: string | null
           otp_hash?: string | null
           pending_email?: string | null

@@ -5,11 +5,13 @@ import AppFooter from '@/components/layout/AppFooter';
 import { Card } from '@/components/ui/Card';
 import LengthModeForm from '@/components/settings/LengthModeForm';
 import DeliveryEmailForm from '@/components/settings/DeliveryEmailForm';
+import DeliverySlotsForm from '@/components/settings/DeliverySlotsForm';
 import SignOutButton from '@/components/auth/SignOutButton';
 import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 import type { LengthMode } from '@/lib/summary/format';
+import { SLOT_CODES, type SlotCode } from '@/lib/time';
 
-/** 설정 (요약 길이 / 수신 이메일). */
+/** 설정 (요약 길이 / 수신 이메일 / 발송 시각). */
 export default async function SettingsPage() {
   const supabase = await createClient();
   // proxy 가 이미 세션을 검증했으므로 getSession(네트워크 없음)으로 사용자 정보만 읽는다.
@@ -21,12 +23,13 @@ export default async function SettingsPage() {
 
   const { data: setting } = await supabase
     .from('user_settings')
-    .select('summary_length, delivery_email')
+    .select('summary_length, delivery_email, delivery_slots')
     .eq('user_id', user.id)
     .maybeSingle();
   const current = (setting?.summary_length ?? 'normal') as LengthMode;
   const deliveryEmail = setting?.delivery_email ?? user.email ?? '';
   const isDefaultEmail = !setting?.delivery_email;
+  const deliverySlots = (setting?.delivery_slots ?? SLOT_CODES) as SlotCode[];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -45,6 +48,14 @@ export default async function SettingsPage() {
           <Card className="p-6">
             <h2 className="mb-4 text-sm font-semibold">수신 이메일</h2>
             <DeliveryEmailForm current={deliveryEmail} isDefault={isDefaultEmail} />
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="mb-1 text-sm font-semibold">발송 시각</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              하루 3회(07:30 / 11:30 / 17:30) 중 받을 시각을 고르세요.
+            </p>
+            <DeliverySlotsForm current={deliverySlots} />
           </Card>
         </div>
 

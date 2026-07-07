@@ -3,7 +3,7 @@ import { createNotifier } from '@/lib/notify/create-notifier';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import type { Notifier } from '@/lib/notify/notify';
 import type { LengthMode } from '@/lib/summary/format';
-import type { SlotCode } from '@/lib/time';
+import { SLOT_CODES, type SlotCode } from '@/lib/time';
 import {
   selectDigestVideos,
   renderDigest,
@@ -37,12 +37,15 @@ export async function deliverAll(
   const { data: users, error } = await supabase.from('profiles').select('id, email');
   if (error) throw new Error(`사용자 조회 실패: ${error.message}`);
 
-  // 검증된 수신 이메일(delivery_email) 매핑. 없으면 구글 이메일(profiles.email) 사용.
+  // 검증된 수신 이메일(delivery_email) + 수신 슬롯(delivery_slots) 매핑.
   const { data: settingsRows } = await supabase
     .from('user_settings')
-    .select('user_id, delivery_email');
+    .select('user_id, delivery_email, delivery_slots');
   const deliveryEmailByUser = new Map(
     (settingsRows ?? []).map((s) => [s.user_id, s.delivery_email]),
+  );
+  const slotsByUser = new Map(
+    (settingsRows ?? []).map((s) => [s.user_id, s.delivery_slots]),
   );
 
   let sent = 0;
@@ -50,6 +53,10 @@ export async function deliverAll(
   let failed = 0;
 
   for (const user of users ?? []) {
+    // 현재 슬롯을 수신하도록 선택한 사용자에게만 발송. 설정 행이 없으면 3회 전체 수신(기존 동작).
+    const userSlots = slotsByUser.get(user.id) ?? SLOT_CODES;
+    if (!userSlots.includes(slot)) continue;
+
     const recipient = deliveryEmailByUser.get(user.id) ?? user.email;
     if (!recipient) continue;
     let selection: DigestSelection | null = null;
