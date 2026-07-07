@@ -31,23 +31,23 @@ async function alertCookieExpiry(acq: AcquireResult, botBlocks: number) {
   }
 }
 
-/** RSS 감지가 다수 실패(데이터센터 IP 차단 404/429·쿠키만료)하면 운영자에게 알린다. */
-async function alertRssBlocked(det: DetectResult) {
+/** 감지 이중화(RSS→API 폴백)가 뚫려 일부 채널을 못 잡으면 운영자에게 알린다(콘텐츠 누락 위험). */
+async function alertDetectFailure(det: DetectResult) {
   const to = process.env.OPERATOR_ALERT_EMAIL || process.env.GMAIL_USER;
   if (!to) {
-    console.warn('[alert] 운영자 이메일 미설정 — RSS 차단 알림 생략');
+    console.warn('[alert] 운영자 이메일 미설정 — 감지 실패 알림 생략');
     return;
   }
   try {
     await createNotifier().send(
       { email: to },
       {
-        subject: '⚠️ 겟꿀: RSS 감지 차단 의심 — 신규 콘텐츠 미갱신',
-        text: `유튜브 RSS 폴링이 다수 실패했습니다 (${det.rssFailures}/${det.channels} 채널 실패, 신규 감지 0).\n\n데이터센터 IP 차단(404/429) 또는 쿠키 만료 가능성입니다. GitHub 시크릿 YOUTUBE_COOKIES 갱신을 확인하고, 지속되면 residential 실행환경 전환을 검토해 주세요.`,
-        html: `<div style="font-family:sans-serif"><p><b>겟꿀 파이프라인 알림</b></p><p>유튜브 <b>RSS 감지가 차단</b>돼 신규 콘텐츠가 갱신되지 않고 있습니다. (${det.rssFailures}/${det.channels} 채널 실패 · 신규 감지 0)</p><p>데이터센터 IP 차단(404/429) 또는 쿠키 만료 가능성. <code>YOUTUBE_COOKIES</code> 갱신 확인, 지속 시 residential 실행환경 검토.</p></div>`,
+        subject: '🔴 겟꿀: 채널 감지 실패 — 다이제스트 누락 위험',
+        text: `${det.detectFailures}/${det.channels} 채널에서 RSS·API 폴백이 모두 실패했습니다.\n\n해당 채널의 신규 영상이 누락될 수 있습니다. 원인: 쿠키 만료(RSS 404) + YouTube API 키/쿼터 문제일 수 있습니다.\nGitHub 시크릿 YOUTUBE_COOKIES / YOUTUBE_API_KEY 를 확인해 주세요.`,
+        html: `<div style="font-family:sans-serif"><p><b>겟꿀 파이프라인 알림</b></p><p><b>${det.detectFailures}/${det.channels} 채널</b>에서 RSS·API 폴백이 <b>모두 실패</b>했습니다 → 해당 채널 신규 영상 <b>누락 위험</b>.</p><p>원인: 쿠키 만료(RSS 404) + YouTube API 키/쿼터. <code>YOUTUBE_COOKIES</code> / <code>YOUTUBE_API_KEY</code> 확인 요망.</p></div>`,
       },
     );
-    console.log(`[alert] RSS 차단 알림 발송 → ${to}`);
+    console.log(`[alert] 감지 실패 알림 발송 → ${to}`);
   } catch (e) {
     console.warn(`[alert] 발송 실패: ${(e as Error).message}`);
   }
@@ -57,11 +57,13 @@ async function main() {
   console.log('[pipeline] start');
 
   const det = await detectNewVideos();
-  console.log(`[detect] channels=${det.channels} registered=${det.registered} rssFailures=${det.rssFailures}`);
+  console.log(
+    `[detect] channels=${det.channels} registered=${det.registered} detectFailures=${det.detectFailures}`,
+  );
 
-  // RSS 절반 이상 실패 + 신규 감지 0 이면 IP 차단/쿠키만료로 보고 알림(일부 일시적 404 는 무시).
-  if (det.channels > 0 && det.rssFailures >= Math.ceil(det.channels * 0.5) && det.registered === 0) {
-    await alertRssBlocked(det);
+  // RSS·API 폴백 둘 다 실패한 채널이 하나라도 있으면 알림(감지 이중화가 뚫린 것 = 누락 위험).
+  if (det.detectFailures > 0) {
+    await alertDetectFailure(det);
   }
 
   const acq = await acquireTranscripts();
