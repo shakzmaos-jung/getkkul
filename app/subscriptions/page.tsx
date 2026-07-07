@@ -56,7 +56,9 @@ export default async function SubscriptionsPage() {
             <p className="text-sm text-muted-foreground">아직 구독한 채널이 없습니다.</p>
           </div>
         ) : (
-          <Card data-testid="subscription-list" className="mt-6 divide-y divide-border">
+          <>
+            <p className="mb-2 mt-6 text-xs text-muted-foreground">총 {list.length}개 채널</p>
+            <Card data-testid="subscription-list" className="mt-2 divide-y divide-border">
             {list.map((s) => (
               <div
                 key={s.id}
@@ -102,7 +104,8 @@ export default async function SubscriptionsPage() {
                 />
               </div>
             ))}
-          </Card>
+            </Card>
+          </>
         )}
       </main>
       <AppFooter />
