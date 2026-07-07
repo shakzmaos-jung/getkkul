@@ -110,3 +110,18 @@ body {
     opacity: 1;
   }
 }
+
+/* 꿀벌 컨시어지: 말하는 듯한 가벼운 바운스 + 안테나 흔들림 */
+@keyframes gk-bee-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+.gk-bee { animation: gk-bee-bob 1.6s ease-in-out infinite; transform-origin: center bottom; }
+@keyframes gk-bee-talk {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.55); }
+}
+.gk-bee-mouth { animation: gk-bee-talk 0.5s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@media (prefers-reduced-motion: reduce) {
+  .gk-bee, .gk-bee-mouth { animation: none; }
+}
