@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import LengthModeForm from '@/components/settings/LengthModeForm';
 import DeliveryEmailForm from '@/components/settings/DeliveryEmailForm';
 import DeliverySlotsForm from '@/components/settings/DeliverySlotsForm';
+import VideoDurationFilterForm from '@/components/settings/VideoDurationFilterForm';
 import SignOutButton from '@/components/auth/SignOutButton';
 import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 import type { LengthMode } from '@/lib/summary/format';
@@ -23,13 +24,14 @@ export default async function SettingsPage() {
 
   const { data: setting } = await supabase
     .from('user_settings')
-    .select('summary_length, delivery_email, delivery_slots')
+    .select('summary_length, delivery_email, delivery_slots, exclude_over_2h')
     .eq('user_id', user.id)
     .maybeSingle();
   const current = (setting?.summary_length ?? 'normal') as LengthMode;
   const deliveryEmail = setting?.delivery_email ?? user.email ?? '';
   const isDefaultEmail = !setting?.delivery_email;
   const deliverySlots = (setting?.delivery_slots ?? SLOT_CODES) as SlotCode[];
+  const excludeOver2h = setting?.exclude_over_2h ?? true;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -54,6 +56,14 @@ export default async function SettingsPage() {
               하루 3회(07:30 / 11:30 / 17:30) 중 받을 시각을 고르세요.
             </p>
             <DeliverySlotsForm current={deliverySlots} />
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="mb-1 text-sm font-semibold">영상 길이 필터</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              너무 짧거나 긴 영상을 다이제스트에서 제외합니다.
+            </p>
+            <VideoDurationFilterForm excludeOver2h={excludeOver2h} />
           </Card>
 
           <Card className="p-6">

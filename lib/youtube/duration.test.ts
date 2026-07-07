@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseIso8601Duration, formatDuration } from './duration';
+import { parseIso8601Duration, formatDuration, passesDurationFilters } from './duration';
 
 describe('parseIso8601Duration', () => {
   it('분·초를 초로 변환', () => {
@@ -37,5 +37,21 @@ describe('formatDuration', () => {
     expect(formatDuration(0)).toBe('');
     expect(formatDuration(-5)).toBe('');
     expect(formatDuration(Number.NaN)).toBe('');
+  });
+});
+
+describe('passesDurationFilters', () => {
+  it('1분 미만은 항상 제외(설정 무관)', () => {
+    expect(passesDurationFilters(59, false)).toBe(false);
+    expect(passesDurationFilters(59, true)).toBe(false);
+    expect(passesDurationFilters(60, true)).toBe(true); // 정확히 1분은 통과
+  });
+  it('2시간 이상은 excludeOver2h 일 때만 제외', () => {
+    expect(passesDurationFilters(7200, true)).toBe(false); // 2시간
+    expect(passesDurationFilters(7200, false)).toBe(true); // 옵션 끄면 통과
+    expect(passesDurationFilters(7199, true)).toBe(true); // 2시간 미만 통과
+  });
+  it('길이 미상(null)은 통과', () => {
+    expect(passesDurationFilters(null, true)).toBe(true);
   });
 });

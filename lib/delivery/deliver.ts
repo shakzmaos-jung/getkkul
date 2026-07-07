@@ -1,6 +1,7 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { createNotifier } from '@/lib/notify/create-notifier';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
+import { passesDurationFilters } from '@/lib/youtube/duration';
 import type { Notifier } from '@/lib/notify/notify';
 import type { LengthMode } from '@/lib/summary/format';
 import { SLOT_CODES, type SlotCode } from '@/lib/time';
@@ -114,10 +115,11 @@ async function candidateVideos(
 ): Promise<DigestVideo[]> {
   const { data: setting } = await supabase
     .from('user_settings')
-    .select('summary_length')
+    .select('summary_length, exclude_over_2h')
     .eq('user_id', userId)
     .maybeSingle();
   const mode = (setting?.summary_length ?? 'normal') as LengthMode;
+  const excludeOver2h = setting?.exclude_over_2h ?? true;
 
   const { data: subs } = await supabase
     .from('subscriptions')
@@ -131,14 +133,14 @@ async function candidateVideos(
 
   const { data: videos } = await supabase
     .from('videos')
-    .select('id, title, url, channel_id, created_at')
+    .select('id, title, url, channel_id, created_at, duration_seconds')
     .eq('status', 'done')
     .in('channel_id', channelIds)
     .order('published_at', { ascending: true });
-  // 정지해제 기준선 이후 감지된 영상만 — 일시정지 동안 밀린 분이 한꺼번에 발송되지 않도록.
-  const videoRows = (videos ?? []).filter((v) =>
-    isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
-  );
+  // 정지해제 기준선 이후 + 영상 길이 필터(1분미만 항상 제외, 2시간이상 옵션).
+  const videoRows = (videos ?? [])
+    .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
+    .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
   if (videoRows.length === 0) return [];
   const videoIds = videoRows.map((v) => v.id);
 

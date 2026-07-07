@@ -62,3 +62,32 @@ export async function updateDeliverySlots(
   revalidatePath('/settings');
   return { ok: true };
 }
+
+/**
+ * 영상 길이 필터. "2시간 이상 제외"(exclude_over_2h) 토글만 저장한다.
+ * "1분 미만 제외"는 항상 적용되는 정책이라 저장하지 않는다(코드 상수). RLS 로 본인 행만 수정.
+ */
+export async function updateExcludeLong(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const excludeOver2h = formData.get('exclude_over_2h') != null; // 체크 시에만 전송됨
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase
+    .from('user_settings')
+    .update({ exclude_over_2h: excludeOver2h })
+    .eq('user_id', user.id);
+
+  if (error) return { error: '설정 저장에 실패했습니다.' };
+
+  revalidatePath('/settings');
+  revalidatePath('/feed');
+  revalidatePath('/');
+  return { ok: true };
+}

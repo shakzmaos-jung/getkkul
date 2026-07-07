@@ -25,3 +25,22 @@ export function formatDuration(seconds: number | null | undefined): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
+
+// 다이제스트 영상 길이 필터 정책.
+export const MIN_DIGEST_DURATION_SEC = 60; // 1분 미만(Shorts) — 항상 제외(설정 불가)
+export const LONG_DIGEST_DURATION_SEC = 7200; // 2시간 이상 — excludeOver2h 옵션(기본 제외)
+
+/**
+ * 다이제스트 노출 대상 판정.
+ * - 1분 미만: 항상 제외. - 2시간 이상: excludeOver2h 일 때 제외.
+ * - 길이 미상(null): 이 필터로는 통과(라이브/미취득은 요약 단계에서 별도 제외됨).
+ */
+export function passesDurationFilters(
+  durationSeconds: number | null,
+  excludeOver2h: boolean,
+): boolean {
+  if (durationSeconds == null) return true;
+  if (durationSeconds < MIN_DIGEST_DURATION_SEC) return false;
+  if (excludeOver2h && durationSeconds >= LONG_DIGEST_DURATION_SEC) return false;
+  return true;
+}

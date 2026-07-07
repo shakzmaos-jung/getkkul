@@ -4,6 +4,7 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
+import { passesDurationFilters } from '@/lib/youtube/duration';
 import { KST_TIME_ZONE } from '@/lib/time';
 
 /**
@@ -20,10 +21,14 @@ export default async function Home() {
   const user = session?.user;
   if (!user) redirect('/login');
 
-  const { data: subs } = await supabase
-    .from('subscriptions')
-    .select('channel_id, channel_title, paused, active_since')
-    .eq('user_id', user.id);
+  const [{ data: subs }, { data: setting }] = await Promise.all([
+    supabase
+      .from('subscriptions')
+      .select('channel_id, channel_title, paused, active_since')
+      .eq('user_id', user.id),
+    supabase.from('user_settings').select('exclude_over_2h').eq('user_id', user.id).maybeSingle(),
+  ]);
+  const excludeOver2h = setting?.exclude_over_2h ?? true;
   const subsList = subs ?? [];
   const subscriptionCount = subsList.length; // 구독 수는 일시정지 포함 전체
   // 다이제스트(오늘/누적/최근)는 일시정지 채널 제외 + 정지해제 기준선 이후만.
@@ -53,13 +58,13 @@ export default async function Home() {
     // (기준선은 채널별이라 count 쿼리로 못 걸러 애플리케이션에서 필터·집계한다. 개인 규모라 부담 적음.)
     const { data: videos } = await supabase
       .from('videos')
-      .select('id, title, url, channel_id, published_at, created_at')
+      .select('id, title, url, channel_id, published_at, created_at, duration_seconds')
       .eq('status', 'done')
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false });
-    const activeRows = (videos ?? []).filter((v) =>
-      isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
-    );
+    const activeRows = (videos ?? [])
+      .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
+      .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
     // 다이제스트 = 요약이 있는 영상만(피드 표시 기준과 일치) → 카운트와 실제 노출 일치.
     const { data: sums } = await supabase
       .from('summaries')

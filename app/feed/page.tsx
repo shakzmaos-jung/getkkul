@@ -5,6 +5,7 @@ import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
+import { passesDurationFilters } from '@/lib/youtube/duration';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -38,11 +39,12 @@ export default async function FeedPage({
       .eq('user_id', user.id),
     supabase
       .from('user_settings')
-      .select('summary_length')
+      .select('summary_length, exclude_over_2h')
       .eq('user_id', user.id)
       .maybeSingle(),
   ]);
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
+  const excludeOver2h = setting?.exclude_over_2h ?? true;
   // 일시정지된 채널은 다이제스트에서 제외(피드·캘린더·채널필터 모두).
   const activeSubs = (subs ?? []).filter((s) => !s.paused);
   const sinceByChannel = activeSinceByChannel(activeSubs);
@@ -73,10 +75,10 @@ export default async function FeedPage({
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false })
       .limit(FEED_DONE_LIMIT);
-    // 정지해제 기준선(active_since) 이후 감지된 영상만 — 일시정지 동안 밀린 콘텐츠 제외.
-    const doneRows = (doneVideos ?? []).filter((v) =>
-      isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
-    );
+    // 정지해제 기준선(active_since) 이후 + 영상 길이 필터(1분미만 항상 제외, 2시간이상 옵션).
+    const doneRows = (doneVideos ?? [])
+      .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
+      .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
     for (const r of doneRows) {
       if (!r.published_at) continue;
       digestDates.push({ c: r.channel_id, d: kstFmt.format(new Date(r.published_at)) });
