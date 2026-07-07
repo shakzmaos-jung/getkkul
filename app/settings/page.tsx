@@ -41,13 +41,11 @@ export default async function SettingsPage() {
 
         <div className="flex flex-col gap-6">
           <Card className="p-6">
-            <h2 className="mb-4 text-sm font-semibold">요약 길이</h2>
+            <h2 className="mb-1 text-sm font-semibold">요약 길이</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              다이제스트 카드에 보여줄 요약 분량(짧게/보통/길게)을 정합니다.
+            </p>
             <LengthModeForm current={current} />
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="mb-4 text-sm font-semibold">수신 이메일</h2>
-            <DeliveryEmailForm current={deliveryEmail} isDefault={isDefaultEmail} />
           </Card>
 
           <Card className="p-6">
@@ -56,6 +54,14 @@ export default async function SettingsPage() {
               하루 3회(07:30 / 11:30 / 17:30) 중 받을 시각을 고르세요.
             </p>
             <DeliverySlotsForm current={deliverySlots} />
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="mb-1 text-sm font-semibold">수신 이메일</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              다이제스트를 받을 이메일 주소입니다. 미설정 시 로그인 이메일로 발송됩니다.
+            </p>
+            <DeliveryEmailForm current={deliveryEmail} isDefault={isDefaultEmail} />
           </Card>
         </div>
 
