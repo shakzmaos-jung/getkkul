@@ -48,19 +48,19 @@ export default async function ReferralPage() {
 
         <div className="flex flex-col gap-4">
           <Card className="p-5">
-            <h2 className="mb-1 text-sm font-semibold">친구 초대</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              링크로 친구를 초대하고, 친구가 활성화하면 둘 다 크레딧을 받아요.
-            </p>
-            <ReferralStatusCard link={referralHref} rows={referralProgress} />
-          </Card>
-
-          <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">내 크레딧</h2>
             <p className="mb-3 text-xs text-muted-foreground">
               적립·사용·만료 내역과 사용 가능한 잔액입니다.
             </p>
             <CreditLedgerCard ledger={ledger} />
+          </Card>
+
+          <Card className="p-5">
+            <h2 className="mb-1 text-sm font-semibold">친구 초대</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              링크로 친구를 초대하고, 친구가 활성화하면 둘 다 크레딧을 받아요.
+            </p>
+            <ReferralStatusCard link={referralHref} rows={referralProgress} />
           </Card>
         </div>
       </main>
