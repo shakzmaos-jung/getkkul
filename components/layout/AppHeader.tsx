@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import InstallButton from '@/components/pwa/InstallButton';
-import ShareButton from '@/components/pwa/ShareButton';
+// ShareButton(링크 공유 아이콘) 현재 숨김 — 필요 시 아래 nav 에서 다시 노출.
 
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -50,15 +50,15 @@ export default function AppHeader() {
         <Link href="/" className="text-base font-semibold tracking-tight">
           🍯 겟꿀
         </Link>
-        {/* 순서: 다이제스트 › 채널 › 설정(아이콘) › 라이트/다크 › 공유. 설치버튼은 조건부라 아이콘군 앞에. */}
-        <nav className="flex items-center gap-0.5">
+        {/* 순서: 다이제스트 › 채널 › 설정(아이콘) › 라이트/다크 토글. 설치버튼은 조건부라 아이콘군 앞에.
+            공유(ShareButton)는 현재 숨김 — 복구하려면 <ThemeToggle /> 뒤에 <ShareButton /> 추가. */}
+        <nav className="flex items-center gap-1.5">
           <NavLink href="/feed">다이제스트</NavLink>
           <NavLink href="/subscriptions">채널</NavLink>
           <span className="mx-1 h-4 w-px bg-border" aria-hidden />
           <InstallButton />
           <SettingsIconLink />
           <ThemeToggle />
-          <ShareButton />
         </nav>
       </div>
     </header>
