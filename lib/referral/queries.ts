@@ -84,6 +84,7 @@ export async function getCreditLedger(
 
 export interface ReferralProgressRow {
   referral_id: string;
+  referee_email: string | null;
   channel_count: number;
   summary_count: number;
   status: Database['public']['Enums']['referral_status'];

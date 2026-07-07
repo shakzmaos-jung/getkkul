@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'idle' | 'sent'>('idle');
@@ -62,8 +60,9 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push('/');
-    router.refresh();
+    // 추천 귀속 공용 지점(route handler)을 거쳐 홈으로. 하드 내비게이션이라야
+    // route handler 의 리디렉션이 정상 동작한다(soft push 는 RSC 를 기대해 깨짐). REQ-B.
+    window.location.assign('/auth/claim');
   }
 
   return (
