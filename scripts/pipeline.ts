@@ -1,6 +1,7 @@
 import { detectNewVideos } from '@/lib/pipeline/detect';
 import { acquireTranscripts, type AcquireResult } from '@/lib/pipeline/acquire';
 import { summarizePending } from '@/lib/pipeline/summarize-pending';
+import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
 import { getBotBlockCount } from '@/lib/pipeline/youtube-content';
 import { createNotifier } from '@/lib/notify/create-notifier';
 
@@ -47,6 +48,9 @@ async function main() {
 
   const sum = await summarizePending();
   console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
+
+  const dur = await fillMissingDurations();
+  console.log(`[duration] filled=${dur.filled}/${dur.targets}`);
 
   console.log('[pipeline] done');
 }

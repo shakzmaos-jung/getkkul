@@ -57,9 +57,16 @@ export default async function Home() {
       .eq('status', 'done')
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false });
-    const rows = (videos ?? []).filter((v) =>
+    const activeRows = (videos ?? []).filter((v) =>
       isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
     );
+    // 다이제스트 = 요약이 있는 영상만(피드 표시 기준과 일치) → 카운트와 실제 노출 일치.
+    const { data: sums } = await supabase
+      .from('summaries')
+      .select('video_id')
+      .eq('language', 'ko');
+    const summarized = new Set((sums ?? []).map((s) => s.video_id));
+    const rows = activeRows.filter((v) => summarized.has(v.id));
     totalDigestCount = rows.length;
     for (const v of rows) {
       if (v.published_at && kstDate.format(new Date(v.published_at)) === todayKst) {

@@ -20,24 +20,48 @@ export async function summarizePending(
   const supabase = deps.supabase ?? createPipelineClient();
   const limit = deps.limit ?? 50;
 
+  // done 영상 전체(최신순)와 이미 있는 ko 요약(video_id, mode)을 조회.
   const { data: videos, error } = await supabase
     .from('videos')
     .select('id')
     .eq('status', 'done')
-    .limit(limit);
+    .order('created_at', { ascending: false });
   if (error) throw new Error(`done 영상 조회 실패: ${error.message}`);
+  const doneList = videos ?? [];
+  if (doneList.length === 0) return { videos: 0, generated: 0 };
 
-  let generated = 0;
-  for (const v of videos ?? []) {
-    for (const mode of LENGTH_MODES) {
-      try {
-        const r = await getOrCreateSummary(supabase, v.id, mode, 'ko');
-        if (!r.cached) generated++;
-      } catch (e) {
-        console.warn(`[summarize] ${v.id} (${mode}) 실패: ${(e as Error).message}`);
-      }
-    }
+  const { data: sums } = await supabase
+    .from('summaries')
+    .select('video_id, length_mode')
+    .eq('language', 'ko');
+  const modesByVideo = new Map<string, Set<string>>();
+  for (const s of sums ?? []) {
+    const set = modesByVideo.get(s.video_id) ?? new Set<string>();
+    set.add(s.length_mode);
+    modesByVideo.set(s.video_id, set);
   }
 
-  return { videos: (videos ?? []).length, generated };
+  // 3개 모드가 다 채워지지 않은(=미요약/부분요약) done 영상만 대상. 최신 우선, 배치 limit.
+  const targets = doneList
+    .filter((v) => (modesByVideo.get(v.id)?.size ?? 0) < LENGTH_MODES.length)
+    .slice(0, limit);
+
+  let generated = 0;
+  for (const v of targets) {
+    // 한 영상의 3개 모드는 서로 독립이라 병렬 생성(모드당 UNIQUE라 충돌 없음).
+    const results = await Promise.all(
+      LENGTH_MODES.map(async (mode) => {
+        try {
+          const r = await getOrCreateSummary(supabase, v.id, mode, 'ko');
+          return !r.cached; // 새로 생성했으면 true
+        } catch (e) {
+          console.warn(`[summarize] ${v.id} (${mode}) 실패: ${(e as Error).message}`);
+          return false;
+        }
+      }),
+    );
+    generated += results.filter(Boolean).length;
+  }
+
+  return { videos: targets.length, generated };
 }
