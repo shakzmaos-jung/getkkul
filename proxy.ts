@@ -9,8 +9,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * 정적 자산·이미지·favicon 을 제외한 모든 경로에서 세션 갱신 + 인증 가드 실행.
+     * 정적 자산·이미지·favicon·PWA 파일(manifest/sw)을 제외한 모든 경로에서
+     * 세션 갱신 + 인증 가드 실행. manifest.json·sw.js 는 공개 접근 필수(인증 리다이렉트 금지).
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
