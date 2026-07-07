@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { updateSkipEmpty, type SettingsState } from '@/app/settings/actions';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Spinner } from '@/components/ui/Spinner';
+import { CheckIcon } from '@/components/ui/CheckIcon';
 
 const initial: SettingsState = {};
 
@@ -19,16 +20,16 @@ export default function SkipEmptyForm({ skip }: { skip: { push: boolean; email: 
   }, initial);
 
   const rows = [
-    ['skip_empty_push', '새 항목 없으면 푸시 생략', skip.push],
-    ['skip_empty_email', '새 항목 없으면 이메일 생략', skip.email],
+    ['skip_empty_push', '푸시 생략', skip.push],
+    ['skip_empty_email', '이메일 생략', skip.email],
   ] as const;
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} className="grid grid-cols-2 gap-2">
       {rows.map(([name, label, checked]) => (
         <label
           key={name}
-          className="relative flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+          className="relative flex cursor-pointer flex-col gap-0.5 rounded-lg border border-border p-3 pr-7 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20"
         >
           <input
             type="checkbox"
@@ -39,11 +40,13 @@ export default function SkipEmptyForm({ skip }: { skip: { push: boolean; email: 
               e.currentTarget.form?.requestSubmit();
             }}
             data-testid={name}
-            className="sr-only"
+            className="peer sr-only"
           />
+          <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
           <span className="text-sm font-medium">{label}</span>
+          <span className="text-xs text-muted-foreground">새 항목 없을 때</span>
           {savingKey === name && (
-            <Spinner className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Spinner className="absolute right-2 top-2 text-muted-foreground" />
           )}
         </label>
       ))}

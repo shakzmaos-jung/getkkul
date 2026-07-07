@@ -9,6 +9,7 @@ import {
 } from '@/app/settings/actions';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { CheckIcon } from '@/components/ui/CheckIcon';
 import { useToast } from '@/components/ui/ToastProvider';
 import { detectOS, isStandaloneNow, canSubscribePush, type OS } from '@/lib/pwa/platform';
 import { subscribeToPush, getExistingSubscription, unsubscribeFromPush } from '@/lib/pwa/push-client';
@@ -141,13 +142,13 @@ export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
       {/* 슬롯별 푸시(멀티) — 구독 없으면 비활성(AC-D1.3) */}
       <form action={slotAction} className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">받을 시각(푸시)</p>
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {slots.map(([name, label, checked]) => (
             <label
               key={name}
               className={`relative flex items-center justify-center rounded-lg border border-border p-3 ${
                 subscribed
-                  ? 'cursor-pointer transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10'
+                  ? 'cursor-pointer transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20'
                   : 'cursor-not-allowed opacity-50'
               }`}
             >
@@ -161,11 +162,12 @@ export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
                   e.currentTarget.form?.requestSubmit();
                 }}
                 data-testid={`slot-${name}`}
-                className="sr-only"
+                className="peer sr-only"
               />
+              <CheckIcon className="pointer-events-none absolute right-1.5 top-1.5 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
               <span className="text-sm font-medium">{label}</span>
               {savingKey === name && (
-                <Spinner className="absolute right-2 top-2 text-muted-foreground" />
+                <Spinner className="absolute right-1.5 top-1.5 text-muted-foreground" />
               )}
             </label>
           ))}

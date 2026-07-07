@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { updateSummaryLength, type SettingsState } from '@/app/settings/actions';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Spinner } from '@/components/ui/Spinner';
+import { CheckIcon } from '@/components/ui/CheckIcon';
 import type { LengthMode } from '@/lib/summary/format';
 
 const LABELS: Record<LengthMode, string> = { short: '짧게', normal: '보통', long: '길게' };
@@ -26,11 +27,11 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
   }, initial);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} className="grid grid-cols-3 gap-2">
       {(Object.keys(LABELS) as LengthMode[]).map((mode) => (
         <label
           key={mode}
-          className="relative flex cursor-pointer flex-col gap-1 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+          className="relative flex cursor-pointer flex-col gap-1 rounded-lg border border-border p-3 pr-7 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20"
         >
           <input
             type="radio"
@@ -42,8 +43,9 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
               e.currentTarget.form?.requestSubmit();
             }}
             data-testid={`length-${mode}`}
-            className="sr-only"
+            className="peer sr-only"
           />
+          <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
           <span className="text-sm font-medium">{LABELS[mode]}</span>
           <span className="text-xs text-muted-foreground">{DESC[mode]}</span>
           {savingKey === mode && (

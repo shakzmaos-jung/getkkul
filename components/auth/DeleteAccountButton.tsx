@@ -24,7 +24,7 @@ export default function DeleteAccountButton() {
         size="sm"
         onClick={() => setOpen(true)}
         data-testid="delete-account"
-        className="text-danger hover:bg-danger/10 hover:text-danger"
+        className="text-danger/80 hover:bg-danger/10 hover:text-danger"
       >
         계정 삭제
       </Button>

@@ -23,7 +23,7 @@ export default function SignOutButton() {
     <>
       <Button
         type="button"
-        variant="secondary"
+        variant="ghost"
         size="sm"
         onClick={() => setOpen(true)}
         data-testid="signout"

@@ -21,7 +21,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!show) return;
-    const t = setTimeout(() => setShow(false), 2500);
+    const t = setTimeout(() => setShow(false), 2000);
     return () => clearTimeout(t);
   }, [show]);
 

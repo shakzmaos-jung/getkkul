@@ -55,32 +55,22 @@ export default async function SettingsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">설정</h1>
         </header>
 
-        <div className="grid grid-cols-2 items-start gap-3">
-          <Card className="p-4">
+        <div className="flex flex-col gap-4">
+          <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">요약 길이</h2>
-            <p className="mb-3 text-xs text-muted-foreground">요약 분량(짧게/보통/길게).</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              다이제스트 카드에 보여줄 요약 분량을 정합니다.
+            </p>
             <LengthModeForm current={current} />
           </Card>
 
-          <Card className="p-4">
-            <h2 className="mb-1 text-sm font-semibold">발송 시각</h2>
-            <p className="mb-3 text-xs text-muted-foreground">받을 시각(07:30/11:30/17:30).</p>
+          <Card className="p-5">
+            <h2 className="mb-1 text-sm font-semibold">이메일 알림</h2>
+            <p className="mb-3 text-xs text-muted-foreground">선택한 시간에만 이메일을 받습니다.</p>
             <DeliverySlotsForm current={deliverySlots} />
           </Card>
 
-          <Card className="p-4">
-            <h2 className="mb-1 text-sm font-semibold">영상 길이 필터</h2>
-            <p className="mb-3 text-xs text-muted-foreground">너무 짧거나 긴 영상 제외.</p>
-            <VideoDurationFilterForm excludeOver2h={excludeOver2h} />
-          </Card>
-
-          <Card className="p-4">
-            <h2 className="mb-1 text-sm font-semibold">새 소식 없을 때</h2>
-            <p className="mb-3 text-xs text-muted-foreground">빈 슬롯 발송 생략 여부.</p>
-            <SkipEmptyForm skip={skip} />
-          </Card>
-
-          <Card className="col-span-2 p-4">
+          <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">푸시 알림</h2>
             <p className="mb-3 text-xs text-muted-foreground">
               앱 설치 후 모바일 푸시로 다이제스트를 받습니다. 슬롯별로 켜고 끌 수 있어요.
@@ -94,7 +84,23 @@ export default async function SettingsPage() {
             )}
           </Card>
 
-          <Card className="col-span-2 p-4">
+          <Card className="p-5">
+            <h2 className="mb-1 text-sm font-semibold">새 소식 없을 때</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              담을 새 영상이 없는 시간대의 발송을 생략할지 정합니다.
+            </p>
+            <SkipEmptyForm skip={skip} />
+          </Card>
+
+          <Card className="p-5">
+            <h2 className="mb-1 text-sm font-semibold">영상 길이 필터</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              너무 짧거나 긴 영상을 다이제스트에서 제외합니다.
+            </p>
+            <VideoDurationFilterForm excludeOver2h={excludeOver2h} />
+          </Card>
+
+          <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">수신 이메일</h2>
             <p className="mb-3 text-xs text-muted-foreground">
               다이제스트를 받을 이메일 주소입니다. 미설정 시 로그인 이메일로 발송됩니다.

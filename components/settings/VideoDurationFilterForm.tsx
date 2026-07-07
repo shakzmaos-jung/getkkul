@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { updateExcludeLong, type SettingsState } from '@/app/settings/actions';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Spinner } from '@/components/ui/Spinner';
+import { CheckIcon } from '@/components/ui/CheckIcon';
 
 const initial: SettingsState = {};
 
@@ -19,16 +20,15 @@ export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver
   }, initial);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
-      {/* 1분 미만: 항상 적용(변경 불가) */}
-      <label className="flex cursor-not-allowed items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3 opacity-60">
-        <input type="checkbox" defaultChecked disabled className="sr-only" />
-        <span className="text-sm font-medium">1분 미만 영상 제외</span>
-        <span className="ml-auto text-xs text-muted-foreground">항상 적용</span>
-      </label>
+    <form action={formAction} className="grid grid-cols-2 gap-2">
+      {/* 1분 미만: 항상 적용(잠금) */}
+      <div className="flex cursor-not-allowed flex-col gap-0.5 rounded-lg border border-accent/30 bg-accent/10 p-3 opacity-70">
+        <span className="text-sm font-medium">1분 미만 제외</span>
+        <span className="text-xs text-muted-foreground">항상 적용</span>
+      </div>
 
       {/* 2시간 이상: 사용자 토글 */}
-      <label className="relative flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
+      <label className="relative flex cursor-pointer flex-col gap-0.5 rounded-lg border border-border p-3 pr-7 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20">
         <input
           type="checkbox"
           name="exclude_over_2h"
@@ -38,10 +38,12 @@ export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver
             e.currentTarget.form?.requestSubmit();
           }}
           data-testid="exclude-over-2h"
-          className="sr-only"
+          className="peer sr-only"
         />
-        <span className="text-sm font-medium">2시간 이상 영상 제외</span>
-        {saving && <Spinner className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />}
+        <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
+        <span className="text-sm font-medium">2시간 이상 제외</span>
+        <span className="text-xs text-muted-foreground">긴 영상 숨김</span>
+        {saving && <Spinner className="absolute right-2 top-2 text-muted-foreground" />}
       </label>
     </form>
   );
