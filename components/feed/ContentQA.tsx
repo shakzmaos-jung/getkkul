@@ -14,56 +14,31 @@ const LENGTHS: { key: keyof QAAnswer; label: string }[] = [
 
 type Mode = 'choose' | 'chips' | 'manual';
 
-/** 트리거 아이콘: 그라데이션 스파클(AI 느낌). */
-function AiSparkIcon() {
+/**
+ * 컬러풀한 "AI" 배지. trigger(카드 상단, 눈에 띄게) / hero(다이얼로그 헤더, 꿀벌 대체) 두 크기.
+ */
+function AiBadge({ variant }: { variant: 'trigger' | 'hero' }) {
+  if (variant === 'hero') {
+    return (
+      <span className="relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 via-pink-500 to-violet-500 text-xl font-extrabold tracking-wide text-white shadow-md">
+        AI
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          className="absolute -right-1 -top-1 text-amber-300 drop-shadow"
+          fill="currentColor"
+          aria-hidden
+        >
+          <path d="M12 2l1.7 5 5 1.7-5 1.7L12 15l-1.7-5-5-1.7 5-1.7z" />
+        </svg>
+      </span>
+    );
+  }
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden>
-      <defs>
-        <linearGradient id="gk-ai-spark" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#F59E0B" />
-          <stop offset="0.55" stopColor="#F472B6" />
-          <stop offset="1" stopColor="#8B5CF6" />
-        </linearGradient>
-      </defs>
-      <path d="M12 2.5l1.8 5.2 5.2 1.8-5.2 1.8L12 16.5l-1.8-5.2L5 9.5l5.2-1.8z" fill="url(#gk-ai-spark)" />
-      <path d="M18.6 14l.85 2.5 2.5.85-2.5.85-.85 2.5-.85-2.5-2.5-.85 2.5-.85z" fill="url(#gk-ai-spark)" />
-    </svg>
-  );
-}
-
-/** 컨시어지 꿀벌: 동글동글 + 안경 + 말하는 애니메이션. */
-function BeeMascot({ size = 56 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" className="gk-bee shrink-0" aria-hidden>
-      <defs>
-        <clipPath id="gk-bee-body">
-          <ellipse cx="32" cy="37" rx="19" ry="17" />
-        </clipPath>
-        <linearGradient id="gk-bee-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FCD34D" />
-          <stop offset="1" stopColor="#F59E0B" />
-        </linearGradient>
-      </defs>
-      <ellipse cx="21" cy="20" rx="9" ry="12" fill="#ffffff" opacity="0.75" transform="rotate(-22 21 20)" />
-      <ellipse cx="43" cy="20" rx="9" ry="12" fill="#ffffff" opacity="0.75" transform="rotate(22 43 20)" />
-      <path d="M26 13 Q23 6 19 5" stroke="#4b3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <path d="M38 13 Q41 6 45 5" stroke="#4b3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <circle cx="18.5" cy="4.5" r="2.3" fill="#4b3b2a" />
-      <circle cx="45.5" cy="4.5" r="2.3" fill="#4b3b2a" />
-      <ellipse cx="32" cy="37" rx="19" ry="17" fill="url(#gk-bee-grad)" />
-      <g clipPath="url(#gk-bee-body)">
-        <rect x="11" y="41" width="42" height="6" fill="#4b3b2a" opacity="0.85" />
-        <rect x="11" y="51" width="42" height="6" fill="#4b3b2a" opacity="0.85" />
-      </g>
-      <circle cx="20" cy="39" r="3" fill="#FB7185" opacity="0.55" />
-      <circle cx="44" cy="39" r="3" fill="#FB7185" opacity="0.55" />
-      <path d="M30 31 Q32 29.5 34 31" stroke="#4b3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <circle cx="25" cy="32" r="6" fill="#ffffff" stroke="#4b3b2a" strokeWidth="2" />
-      <circle cx="39" cy="32" r="6" fill="#ffffff" stroke="#4b3b2a" strokeWidth="2" />
-      <circle cx="25" cy="32" r="2.1" fill="#3b2f24" />
-      <circle cx="39" cy="32" r="2.1" fill="#3b2f24" />
-      <ellipse className="gk-bee-mouth" cx="32" cy="43" rx="2.4" ry="1.7" fill="#7a3b2e" />
-    </svg>
+    <span className="inline-flex h-6 items-center rounded-lg bg-gradient-to-br from-amber-400 via-pink-500 to-violet-500 px-2 text-xs font-bold tracking-wide text-white shadow-sm">
+      AI
+    </span>
   );
 }
 
@@ -140,9 +115,9 @@ export default function ContentQA({ videoId }: { videoId: string }) {
         aria-label="이 콘텐츠에 질문하기"
         title="AI에게 질문하기"
         data-testid="content-qa"
-        className="inline-flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-muted"
+        className="inline-flex items-center rounded-lg transition-transform hover:scale-110"
       >
-        <AiSparkIcon />
+        <AiBadge variant="trigger" />
       </button>
 
       {open && (
@@ -170,7 +145,7 @@ export default function ContentQA({ videoId }: { videoId: string }) {
                 </svg>
               </button>
               <div className="flex items-start gap-3 pr-6">
-                <BeeMascot size={56} />
+                <AiBadge variant="hero" />
                 <div className="rounded-2xl rounded-tl-sm border border-border bg-background px-3.5 py-2.5">
                   <p className="text-sm font-medium leading-relaxed">
                     이 콘텐츠에서 더 알고싶은 내용이 있으신가요? 이 콘텐츠의 맥락을 파악해서 답변
