@@ -50,14 +50,14 @@ export default function AppHeader() {
         <Link href="/" className="text-base font-semibold tracking-tight">
           🍯 겟꿀
         </Link>
-        {/* 순서: 다이제스트 › 채널 › 라이트/다크 › 설정(아이콘) › 공유. 설치버튼은 조건부라 아이콘군 앞에. */}
+        {/* 순서: 다이제스트 › 채널 › 설정(아이콘) › 라이트/다크 › 공유. 설치버튼은 조건부라 아이콘군 앞에. */}
         <nav className="flex items-center gap-0.5">
           <NavLink href="/feed">다이제스트</NavLink>
           <NavLink href="/subscriptions">채널</NavLink>
           <span className="mx-1 h-4 w-px bg-border" aria-hidden />
           <InstallButton />
-          <ThemeToggle />
           <SettingsIconLink />
+          <ThemeToggle />
           <ShareButton />
         </nav>
       </div>

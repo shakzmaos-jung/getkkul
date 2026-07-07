@@ -16,7 +16,7 @@ export default function ReferralBanner() {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">친구 추천하고 크레딧 받아보세요</p>
         <p className="text-xs text-muted-foreground">
-          친구와 나 모두 2,000원씩 · 링크 공유하고 현황 확인하기
+          친구와 나 모두 2,000원씩, 최대 50,000원 보상받기
         </p>
       </div>
       <svg
