@@ -44,7 +44,7 @@ export default function ReferralShareButton({ link }: { link: string }) {
         className="min-w-0 flex-1 truncate rounded-lg border border-border bg-muted px-3 py-2 text-xs text-muted-foreground"
       />
       <Button type="button" variant="primary" size="md" onClick={share} data-testid="share-referral">
-        {copied ? '복사됨' : '공유'}
+        {copied ? '복사됨' : '초대하기'}
       </Button>
     </div>
   );
