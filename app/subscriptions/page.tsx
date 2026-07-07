@@ -58,14 +58,16 @@ export default async function SubscriptionsPage() {
         ) : (
           <>
             <p className="mb-2 mt-6 text-xs text-muted-foreground">총 {list.length}개 채널</p>
-            <Card data-testid="subscription-list" className="mt-2 divide-y divide-border">
+            <Card data-testid="subscription-list" className="mt-2 divide-y divide-border overflow-hidden">
             {list.map((s) => (
               <div
                 key={s.id}
                 data-testid="subscription-item"
-                className="flex items-center justify-between gap-3 px-4 py-3"
+                className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors ${
+                  s.paused ? 'bg-muted' : ''
+                }`}
               >
-                <div className={`flex min-w-0 items-center gap-3 ${s.paused ? 'opacity-50' : ''}`}>
+                <div className={`flex min-w-0 items-center gap-3 ${s.paused ? 'opacity-55' : ''}`}>
                   <ChannelAvatar
                     src={s.channel_thumbnail}
                     title={s.channel_title ?? s.channel_id}
@@ -87,8 +89,8 @@ export default async function SubscriptionsPage() {
                         </span>
                       )}
                       {s.paused && (
-                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          일시정지됨
+                        <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
+                          ⏸ 일시정지됨
                         </span>
                       )}
                     </div>
