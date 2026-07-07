@@ -37,7 +37,8 @@ export default async function SubscriptionsPage() {
     )
     .order('created_at', { ascending: false });
 
-  const list = subs ?? [];
+  // 활성 채널 먼저, 일시정지 채널을 하단으로. stable sort 라 그룹 내 최신순(created_at desc) 유지.
+  const list = [...(subs ?? [])].sort((a, b) => Number(a.paused) - Number(b.paused));
 
   return (
     <div className="flex min-h-screen flex-col">

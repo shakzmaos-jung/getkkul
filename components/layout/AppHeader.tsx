@@ -26,8 +26,8 @@ export default function AppHeader() {
           <NavLink href="/subscriptions">구독채널</NavLink>
           <NavLink href="/settings">설정</NavLink>
           <span className="mx-1 h-4 w-px bg-border" aria-hidden />
-          <InstallButton />
           <ThemeToggle />
+          <InstallButton />
         </nav>
       </div>
     </header>

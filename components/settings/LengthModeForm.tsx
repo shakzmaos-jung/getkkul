@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react';
 import { updateSummaryLength, type SettingsState } from '@/app/settings/actions';
-import { Button } from '@/components/ui/Button';
+import { AutoSaveStatus } from '@/components/settings/AutoSaveStatus';
 import type { LengthMode } from '@/lib/summary/format';
 
 const LABELS: Record<LengthMode, string> = {
@@ -22,7 +22,7 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
   const [state, formAction, pending] = useActionState(updateSummaryLength, initial);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-3">
       <div className="grid gap-2 sm:grid-cols-3">
         {(Object.keys(LABELS) as LengthMode[]).map((mode) => (
           <label
@@ -35,6 +35,7 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
                 name="summary_length"
                 value={mode}
                 defaultChecked={current === mode}
+                onChange={(e) => e.currentTarget.form?.requestSubmit()}
                 data-testid={`length-${mode}`}
                 className="accent-foreground"
               />
@@ -44,13 +45,7 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
           </label>
         ))}
       </div>
-      <div className="flex items-center gap-3">
-        <Button type="submit" variant="primary" disabled={pending} data-testid="save-settings">
-          {pending ? '저장 중…' : '저장'}
-        </Button>
-        {state.error && <p className="text-sm text-danger">{state.error}</p>}
-        {state.ok && <p className="text-sm text-accent">저장되었습니다.</p>}
-      </div>
+      <AutoSaveStatus pending={pending} ok={state.ok} error={state.error} />
     </form>
   );
 }

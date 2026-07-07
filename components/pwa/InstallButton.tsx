@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { detectOS, isStandaloneNow, type OS } from '@/lib/pwa/platform';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -36,18 +37,22 @@ export default function InstallButton() {
         type="button"
         onClick={() => setOpen(true)}
         data-testid="install-app"
-        className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        aria-label="앱 설치"
+        title="앱 설치"
+        className="inline-flex items-center justify-center rounded-lg bg-accent/15 p-1.5 text-accent ring-1 ring-accent/40 transition-colors hover:bg-accent/25"
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M12 3v12" />
           <path d="m7 10 5 5 5-5" />
           <path d="M5 21h14" />
         </svg>
-        앱 설치
       </button>
-      {open && (
-        <InstallDialog os={env.os} deferred={deferred} onClose={() => setOpen(false)} />
-      )}
+      {open &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <InstallDialog os={env.os} deferred={deferred} onClose={() => setOpen(false)} />,
+          document.body,
+        )}
     </>
   );
 }
@@ -85,7 +90,7 @@ function InstallDialog({
         role="dialog"
         aria-modal="true"
         aria-label="앱 설치"
-        className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl"
+        className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-sm font-semibold">겟꿀 앱 설치</h2>

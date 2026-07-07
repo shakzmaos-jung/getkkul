@@ -9,6 +9,7 @@ import {
   type SettingsState,
 } from '@/app/settings/actions';
 import { Button } from '@/components/ui/Button';
+import { AutoSaveStatus } from '@/components/settings/AutoSaveStatus';
 import { detectOS, isStandaloneNow, canSubscribePush, type OS } from '@/lib/pwa/platform';
 import { subscribeToPush, getExistingSubscription, unsubscribeFromPush } from '@/lib/pwa/push-client';
 
@@ -147,6 +148,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
                 name={name}
                 defaultChecked={checked}
                 disabled={!subscribed}
+                onChange={(e) => e.currentTarget.form?.requestSubmit()}
                 data-testid={`slot-${name}`}
                 className="accent-foreground"
               />
@@ -154,13 +156,9 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
             </label>
           ))}
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="secondary" size="sm" disabled={!subscribed || slotPending}>
-            {slotPending ? '저장 중…' : '푸시 시각 저장'}
-          </Button>
-          {slotState.ok && <p className="text-sm text-accent">저장되었습니다.</p>}
-          {slotState.error && <p className="text-sm text-danger">{slotState.error}</p>}
-        </div>
+        {subscribed && (
+          <AutoSaveStatus pending={slotPending} ok={slotState.ok} error={slotState.error} />
+        )}
       </form>
 
       {/* 3) 빈 슬롯 생략(REQ-D2) */}
@@ -171,6 +169,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
             type="checkbox"
             name="skip_empty_push"
             defaultChecked={skip.push}
+            onChange={(e) => e.currentTarget.form?.requestSubmit()}
             data-testid="skip-empty-push"
             className="accent-foreground"
           />
@@ -181,18 +180,13 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
             type="checkbox"
             name="skip_empty_email"
             defaultChecked={skip.email}
+            onChange={(e) => e.currentTarget.form?.requestSubmit()}
             data-testid="skip-empty-email"
             className="accent-foreground"
           />
           <span className="text-sm font-medium">새 항목 없으면 이메일 생략</span>
         </label>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="secondary" size="sm" disabled={skipPending}>
-            {skipPending ? '저장 중…' : '저장'}
-          </Button>
-          {skipState.ok && <p className="text-sm text-accent">저장되었습니다.</p>}
-          {skipState.error && <p className="text-sm text-danger">{skipState.error}</p>}
-        </div>
+        <AutoSaveStatus pending={skipPending} ok={skipState.ok} error={skipState.error} />
       </form>
     </div>
   );

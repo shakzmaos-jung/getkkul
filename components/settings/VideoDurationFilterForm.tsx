@@ -2,11 +2,11 @@
 
 import { useActionState } from 'react';
 import { updateExcludeLong, type SettingsState } from '@/app/settings/actions';
-import { Button } from '@/components/ui/Button';
+import { AutoSaveStatus } from '@/components/settings/AutoSaveStatus';
 
 const initial: SettingsState = {};
 
-/** 영상 길이 필터. 1분 미만=항상 제외(비활성), 2시간 이상=토글(기본 제외). */
+/** 영상 길이 필터. 1분 미만=항상 제외(비활성), 2시간 이상=토글(선택 즉시 자동 저장). */
 export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver2h: boolean }) {
   const [state, formAction, pending] = useActionState(updateExcludeLong, initial);
 
@@ -19,24 +19,21 @@ export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver
         <span className="ml-auto text-xs text-muted-foreground">항상 적용</span>
       </label>
 
-      {/* 2시간 이상: 사용자 토글 */}
+      {/* 2시간 이상: 사용자 토글(선택 즉시 저장) */}
       <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted">
         <input
           type="checkbox"
           name="exclude_over_2h"
           defaultChecked={excludeOver2h}
+          onChange={(e) => e.currentTarget.form?.requestSubmit()}
           data-testid="exclude-over-2h"
           className="accent-foreground"
         />
         <span className="text-sm font-medium">2시간 이상 영상 제외</span>
       </label>
 
-      <div className="mt-2 flex items-center gap-3">
-        <Button type="submit" variant="primary" disabled={pending} data-testid="save-duration-filter">
-          {pending ? '저장 중…' : '저장'}
-        </Button>
-        {state.error && <p className="text-sm text-danger">{state.error}</p>}
-        {state.ok && <p className="text-sm text-accent">저장되었습니다.</p>}
+      <div className="mt-1">
+        <AutoSaveStatus pending={pending} ok={state.ok} error={state.error} />
       </div>
     </form>
   );
