@@ -80,6 +80,44 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           active_since: string | null
@@ -173,6 +211,11 @@ export type Database = {
           delivery_email: string | null
           delivery_slots: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h: boolean
+          push_slot_0730: boolean
+          push_slot_1130: boolean
+          push_slot_1730: boolean
+          skip_empty_email: boolean
+          skip_empty_push: boolean
           otp_expires_at: string | null
           otp_hash: string | null
           pending_email: string | null
@@ -183,6 +226,11 @@ export type Database = {
           delivery_email?: string | null
           delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h?: boolean
+          push_slot_0730?: boolean
+          push_slot_1130?: boolean
+          push_slot_1730?: boolean
+          skip_empty_email?: boolean
+          skip_empty_push?: boolean
           otp_expires_at?: string | null
           otp_hash?: string | null
           pending_email?: string | null
@@ -193,6 +241,11 @@ export type Database = {
           delivery_email?: string | null
           delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h?: boolean
+          push_slot_0730?: boolean
+          push_slot_1130?: boolean
+          push_slot_1730?: boolean
+          skip_empty_email?: boolean
+          skip_empty_push?: boolean
           otp_expires_at?: string | null
           otp_hash?: string | null
           pending_email?: string | null
@@ -288,7 +341,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      delivery_channel: "email"
+      delivery_channel: "email" | "push"
       delivery_slot: "0730" | "1130" | "1730"
       delivery_status: "pending" | "sent" | "failed"
       summary_language: "ko" | "en"
@@ -422,7 +475,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      delivery_channel: ["email"],
+      delivery_channel: ["email", "push"],
       delivery_slot: ["0730", "1130", "1730"],
       delivery_status: ["pending", "sent", "failed"],
       summary_language: ["ko", "en"],

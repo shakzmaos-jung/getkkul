@@ -7,6 +7,7 @@ import LengthModeForm from '@/components/settings/LengthModeForm';
 import DeliveryEmailForm from '@/components/settings/DeliveryEmailForm';
 import DeliverySlotsForm from '@/components/settings/DeliverySlotsForm';
 import VideoDurationFilterForm from '@/components/settings/VideoDurationFilterForm';
+import PushSettings from '@/components/settings/PushSettings';
 import SignOutButton from '@/components/auth/SignOutButton';
 import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 import type { LengthMode } from '@/lib/summary/format';
@@ -24,7 +25,9 @@ export default async function SettingsPage() {
 
   const { data: setting } = await supabase
     .from('user_settings')
-    .select('summary_length, delivery_email, delivery_slots, exclude_over_2h')
+    .select(
+      'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, skip_empty_push, skip_empty_email',
+    )
     .eq('user_id', user.id)
     .maybeSingle();
   const current = (setting?.summary_length ?? 'normal') as LengthMode;
@@ -32,6 +35,16 @@ export default async function SettingsPage() {
   const isDefaultEmail = !setting?.delivery_email;
   const deliverySlots = (setting?.delivery_slots ?? SLOT_CODES) as SlotCode[];
   const excludeOver2h = setting?.exclude_over_2h ?? true;
+  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY ?? '';
+  const pushSlots = {
+    s0730: setting?.push_slot_0730 ?? false,
+    s1130: setting?.push_slot_1130 ?? false,
+    s1730: setting?.push_slot_1730 ?? false,
+  };
+  const skip = {
+    push: setting?.skip_empty_push ?? true,
+    email: setting?.skip_empty_email ?? true,
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -56,6 +69,20 @@ export default async function SettingsPage() {
               하루 3회(07:30 / 11:30 / 17:30) 중 받을 시각을 고르세요.
             </p>
             <DeliverySlotsForm current={deliverySlots} />
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="mb-1 text-sm font-semibold">푸시 알림</h2>
+            <p className="mb-4 text-xs text-muted-foreground">
+              앱 설치 후 모바일 푸시로 다이제스트를 받습니다. 슬롯별로 켜고 끌 수 있어요.
+            </p>
+            {vapidPublicKey ? (
+              <PushSettings vapidPublicKey={vapidPublicKey} pushSlots={pushSlots} skip={skip} />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                푸시 알림 준비 중입니다(서버 키 등록 후 활성화).
+              </p>
+            )}
           </Card>
 
           <Card className="p-6">

@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isLengthMode, type LengthMode } from '@/lib/summary/format';
 import { SLOT_CODES } from '@/lib/time';
+import { savePushSubscription, deletePushSubscription } from '@/lib/pwa/subscriptions';
+import type { PushKeys } from '@/lib/pwa/push-client';
 
 export type SettingsState = { ok?: boolean; error?: string };
 
@@ -89,5 +91,79 @@ export async function updateExcludeLong(
   revalidatePath('/settings');
   revalidatePath('/feed');
   revalidatePath('/');
+  return { ok: true };
+}
+
+/** 푸시 구독 저장(클라이언트가 subscribe 후 직접 호출, AC-C1.3). */
+export async function subscribePush(
+  sub: PushKeys,
+  userAgent: string | null,
+): Promise<SettingsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const r = await savePushSubscription(supabase, user.id, sub, userAgent);
+  if (!r.ok) return { error: '구독 저장에 실패했습니다.' };
+  revalidatePath('/settings');
+  return { ok: true };
+}
+
+/** 푸시 구독 해제(AC-C1.4). */
+export async function unsubscribePush(endpoint: string): Promise<SettingsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const r = await deletePushSubscription(supabase, user.id, endpoint);
+  if (!r.ok) return { error: '구독 해제에 실패했습니다.' };
+  revalidatePath('/settings');
+  return { ok: true };
+}
+
+/** 슬롯별 푸시 on/off 저장(AC-D1.2). */
+export async function updatePushSlots(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const { error } = await supabase
+    .from('user_settings')
+    .update({
+      push_slot_0730: formData.get('push_0730') != null,
+      push_slot_1130: formData.get('push_1130') != null,
+      push_slot_1730: formData.get('push_1730') != null,
+    })
+    .eq('user_id', user.id);
+  if (error) return { error: '설정 저장에 실패했습니다.' };
+  revalidatePath('/settings');
+  return { ok: true };
+}
+
+/** 빈 슬롯 생략 토글 저장(AC-D2.2). */
+export async function updateSkipEmpty(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const { error } = await supabase
+    .from('user_settings')
+    .update({
+      skip_empty_push: formData.get('skip_empty_push') != null,
+      skip_empty_email: formData.get('skip_empty_email') != null,
+    })
+    .eq('user_id', user.id);
+  if (error) return { error: '설정 저장에 실패했습니다.' };
+  revalidatePath('/settings');
   return { ok: true };
 }

@@ -1,0 +1,199 @@
+'use client';
+
+import { useActionState, useEffect, useState } from 'react';
+import {
+  subscribePush,
+  unsubscribePush,
+  updatePushSlots,
+  updateSkipEmpty,
+  type SettingsState,
+} from '@/app/settings/actions';
+import { Button } from '@/components/ui/Button';
+import { detectOS, isStandaloneNow, canSubscribePush, type OS } from '@/lib/pwa/platform';
+import { subscribeToPush, getExistingSubscription, unsubscribeFromPush } from '@/lib/pwa/push-client';
+
+const initial: SettingsState = {};
+
+interface Props {
+  vapidPublicKey: string;
+  pushSlots: { s0730: boolean; s1130: boolean; s1730: boolean };
+  skip: { push: boolean; email: boolean };
+}
+
+/** 푸시 구독 켜기/끄기 + 슬롯별 발송(멀티체크) + 빈 슬롯 생략 토글(REQ-C/D). */
+export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props) {
+  const [ready, setReady] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+  const [env, setEnv] = useState<{ os: OS; standalone: boolean; supported: boolean }>({
+    os: 'other',
+    standalone: false,
+    supported: false,
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const [slotState, slotAction, slotPending] = useActionState(updatePushSlots, initial);
+  const [skipState, skipAction, skipPending] = useActionState(updateSkipEmpty, initial);
+
+  useEffect(() => {
+    const detected = {
+      os: detectOS(navigator.userAgent),
+      standalone: isStandaloneNow(),
+      supported: 'serviceWorker' in navigator && 'PushManager' in window,
+    };
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 1회 브라우저 환경 감지
+    setEnv(detected);
+    getExistingSubscription()
+      .then((s) => setSubscribed(!!s))
+      .finally(() => setReady(true));
+  }, []);
+
+  async function enable() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        setErr('알림 권한이 거부되었습니다. 브라우저/OS 설정에서 허용해 주세요.');
+        return;
+      }
+      const keys = await subscribeToPush(vapidPublicKey);
+      const r = await subscribePush(keys, navigator.userAgent);
+      if (r.error) {
+        setErr(r.error);
+        return;
+      }
+      setSubscribed(true);
+    } catch {
+      setErr('푸시 구독에 실패했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function disable() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const endpoint = await unsubscribeFromPush();
+      if (endpoint) await unsubscribePush(endpoint);
+      setSubscribed(false);
+    } catch {
+      setErr('푸시 해제에 실패했습니다.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canPush = env.supported && canSubscribePush(env.os, env.standalone);
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* 1) 구독 켜기/끄기 */}
+      <div>
+        {!ready ? (
+          <p className="text-xs text-muted-foreground">확인 중…</p>
+        ) : env.os === 'ios' && !env.standalone ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            iPhone/iPad는 먼저 <b className="text-foreground">홈 화면에 추가</b>(상단 &quot;앱 설치&quot;
+            → iPhone 안내)한 뒤, 홈 화면 아이콘으로 열면 푸시를 켤 수 있어요.
+          </p>
+        ) : !canPush ? (
+          <p className="text-xs text-muted-foreground">이 브라우저는 웹 푸시를 지원하지 않습니다.</p>
+        ) : subscribed ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">
+              푸시 알림 <b className="text-accent">켜짐</b>
+            </span>
+            <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={disable}>
+              {busy ? '처리 중…' : '끄기'}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="primary"
+            disabled={busy}
+            onClick={enable}
+            data-testid="enable-push"
+          >
+            {busy ? '처리 중…' : '푸시 알림 켜기'}
+          </Button>
+        )}
+        {err && <p className="mt-2 text-xs text-danger">{err}</p>}
+      </div>
+
+      {/* 2) 슬롯별 푸시(멀티체크) — 구독 없으면 비활성(AC-D1.3) */}
+      <form action={slotAction} className="flex flex-col gap-2">
+        <p className="text-xs font-medium text-muted-foreground">받을 시각(푸시)</p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {(
+            [
+              ['push_0730', '07:30', pushSlots.s0730],
+              ['push_1130', '11:30', pushSlots.s1130],
+              ['push_1730', '17:30', pushSlots.s1730],
+            ] as const
+          ).map(([name, label, checked]) => (
+            <label
+              key={name}
+              className={`flex items-center gap-2 rounded-lg border border-border p-3 ${
+                subscribed
+                  ? 'cursor-pointer transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted'
+                  : 'cursor-not-allowed opacity-50'
+              }`}
+            >
+              <input
+                type="checkbox"
+                name={name}
+                defaultChecked={checked}
+                disabled={!subscribed}
+                data-testid={`slot-${name}`}
+                className="accent-foreground"
+              />
+              <span className="text-sm font-medium">{label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button type="submit" variant="secondary" size="sm" disabled={!subscribed || slotPending}>
+            {slotPending ? '저장 중…' : '푸시 시각 저장'}
+          </Button>
+          {slotState.ok && <p className="text-sm text-accent">저장되었습니다.</p>}
+          {slotState.error && <p className="text-sm text-danger">{slotState.error}</p>}
+        </div>
+      </form>
+
+      {/* 3) 빈 슬롯 생략(REQ-D2) */}
+      <form action={skipAction} className="flex flex-col gap-2">
+        <p className="text-xs font-medium text-muted-foreground">새 소식 없을 때</p>
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted">
+          <input
+            type="checkbox"
+            name="skip_empty_push"
+            defaultChecked={skip.push}
+            data-testid="skip-empty-push"
+            className="accent-foreground"
+          />
+          <span className="text-sm font-medium">새 항목 없으면 푸시 생략</span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted">
+          <input
+            type="checkbox"
+            name="skip_empty_email"
+            defaultChecked={skip.email}
+            data-testid="skip-empty-email"
+            className="accent-foreground"
+          />
+          <span className="text-sm font-medium">새 항목 없으면 이메일 생략</span>
+        </label>
+        <div className="flex items-center gap-3">
+          <Button type="submit" variant="secondary" size="sm" disabled={skipPending}>
+            {skipPending ? '저장 중…' : '저장'}
+          </Button>
+          {skipState.ok && <p className="text-sm text-accent">저장되었습니다.</p>}
+          {skipState.error && <p className="text-sm text-danger">{skipState.error}</p>}
+        </div>
+      </form>
+    </div>
+  );
+}

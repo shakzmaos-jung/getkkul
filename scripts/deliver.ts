@@ -17,7 +17,9 @@ async function main() {
   console.log(`[deliver] KST ${kstHour}시 → slot=${slot}`);
 
   const r = await deliverAll(slot);
-  console.log(`[deliver] users=${r.users} sent=${r.sent} empty=${r.empty} failed=${r.failed}`);
+  console.log(
+    `[deliver] users=${r.users} sent=${r.sent} push=${r.pushSent} empty=${r.empty} failed=${r.failed}`,
+  );
 }
 
 main().catch((e) => {
