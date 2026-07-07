@@ -1,6 +1,11 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { channelFeedUrl, parseChannelFeed } from '@/lib/pipeline/rss';
 import { fetchVideoDurations } from '@/lib/youtube/fetch-durations';
+import { youtubeCookieHeader } from '@/lib/pipeline/youtube-cookies';
+
+// RSS 요청에 로그인 세션(쿠키)+브라우저 UA 를 붙여 데이터센터 IP 차단(404) 우회 시도.
+const RSS_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
 /**
  * 신규 영상 감지 (SSR REQ-C1). 구독된 distinct channel_id 의 RSS 를 폴링해
@@ -25,9 +30,15 @@ export async function detectNewVideos(
   let registered = 0;
   const insertedIds: string[] = [];
 
+  // 로그인 쿠키를 RSS 요청에 붙인다(IP 차단 우회 시도). 파일 없으면 UA 만.
+  const cookie = youtubeCookieHeader();
+  const rssHeaders: Record<string, string> = { 'user-agent': RSS_UA };
+  if (cookie) rssHeaders.cookie = cookie;
+  console.log(`[detect] rss cookie=${cookie ? 'yes' : 'no'}`);
+
   for (const channelId of channelIds) {
     try {
-      const res = await fetchFn(channelFeedUrl(channelId));
+      const res = await fetchFn(channelFeedUrl(channelId), { headers: rssHeaders });
       if (!res.ok) {
         console.warn(`[detect] RSS ${channelId} → ${res.status}`);
         continue;
