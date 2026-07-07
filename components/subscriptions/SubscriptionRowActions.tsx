@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { removeSubscription, setSubscriptionPause } from '@/app/subscriptions/actions';
+import { Button } from '@/components/ui/Button';
 
 /**
  * 구독 행 액션: [일시정지/정지해제] [삭제].
@@ -29,29 +30,31 @@ export default function SubscriptionRowActions({
   }, [confirmOpen]);
 
   return (
-    <div className="flex shrink-0 items-center gap-3">
+    <div className="flex shrink-0 items-center gap-2">
       {/* 일시정지 / 정지해제 */}
       <form action={setSubscriptionPause}>
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="paused" value={paused ? 'false' : 'true'} />
-        <button
+        <Button
           type="submit"
+          variant="secondary"
+          size="sm"
           data-testid="toggle-pause-subscription"
-          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           {paused ? '정지해제' : '일시정지'}
-        </button>
+        </Button>
       </form>
 
       {/* 삭제(모달 확인) */}
-      <button
+      <Button
         type="button"
+        variant="danger"
+        size="sm"
         data-testid="open-remove-modal"
         onClick={() => setConfirmOpen(true)}
-        className="text-xs text-muted-foreground transition-colors hover:text-danger"
       >
         삭제
-      </button>
+      </Button>
 
       {confirmOpen && (
         <div
