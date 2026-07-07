@@ -7,6 +7,7 @@ describe('route-access (AC-A1.1 보호 라우트)', () => {
     expect(isPublicPath('/auth/callback')).toBe(true);
     expect(isPublicPath('/auth/auth-code-error')).toBe(true);
     expect(isPublicPath('/r/ABCDE23456')).toBe(true); // 추천 링크(AC-A2.1)
+    expect(isPublicPath('/opengraph-image')).toBe(true); // 공유 미리보기 이미지
   });
 
   it('그 외 경로는 보호 경로로 판정한다', () => {

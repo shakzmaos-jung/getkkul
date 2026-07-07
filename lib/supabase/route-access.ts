@@ -3,8 +3,12 @@
  * 인증 없이 접근 가능한 공개 경로를 판정하는 순수 함수 — proxy 에서 사용, 단위 테스트 대상.
  */
 
-/** 로그인 없이 접근 가능한 경로 접두사. `/r`=추천 링크(코드 쿠키 저장 후 리디렉션, AC-A2.1). */
-export const PUBLIC_PATH_PREFIXES = ['/login', '/auth', '/r'] as const;
+/**
+ * 로그인 없이 접근 가능한 경로 접두사.
+ * `/r`=추천 링크(코드 쿠키 저장 후 리디렉션, AC-A2.1).
+ * `/opengraph-image`=공유 미리보기 이미지(크롤러가 비로그인으로 가져감).
+ */
+export const PUBLIC_PATH_PREFIXES = ['/login', '/auth', '/r', '/opengraph-image'] as const;
 
 /** 주어진 경로가 공개(비보호) 경로인지 판정한다. */
 export function isPublicPath(pathname: string): boolean {
