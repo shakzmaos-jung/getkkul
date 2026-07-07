@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -56,7 +57,11 @@ export default async function SettingsPage() {
   };
 
   // 친구추천 & 크레딧 (REQ-G). 코드/원장/진행률을 병렬 로드(RLS 본인 스코프).
-  const baseUrl = process.env.APP_BASE_URL ?? '';
+  // 공유 링크는 요청 오리진에서 절대 URL을 만든다(APP_BASE_URL 미설정 환경에서도 동작). 폴백=env.
+  const hdrs = await headers();
+  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host');
+  const proto = hdrs.get('x-forwarded-proto') ?? 'https';
+  const baseUrl = host ? `${proto}://${host}` : (process.env.APP_BASE_URL ?? '');
   const [referralCode, ledger, referralProgress] = await Promise.all([
     getOrCreateReferralCode(supabase, user.id),
     getCreditLedger(supabase, user.id),
