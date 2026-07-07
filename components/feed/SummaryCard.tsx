@@ -29,8 +29,26 @@ const MODES: { mode: LengthMode; label: string }[] = [
   { mode: 'long', label: '길게' },
 ];
 
-// 한국어 평균 독서 속도(자/분). 압축 분량·압축률 산정 기준.
+// 한국어 평균 독서 속도(자/분). 압축 분량·절약 시간·압축률 산정 기준.
 const CHARS_PER_MIN = 500;
+
+/** 초를 10초 단위로 올림(허용 초: 10/20/30/40/50, 최소 10초). 예 73초 → 80초. */
+function ceil10(sec: number): number {
+  return Math.max(10, Math.ceil(sec / 10) * 10);
+}
+
+/** 초 → "N시간 N분 N초"(0 단위 생략). 압축 분량/절약 시간 표시용(10초 단위 올림). */
+function humanizeSec(sec: number): string {
+  const t = ceil10(sec);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h}시간`);
+  if (m > 0) parts.push(`${m}분`);
+  if (s > 0) parts.push(`${s}초`);
+  return parts.length > 0 ? parts.join(' ') : '0초';
+}
 
 /** 영상 업데이트 일시(published_at, UTC)를 KST yyyy-mm-dd hh:mm 으로. */
 function formatKstDateTime(iso: string | null): string {
@@ -57,6 +75,15 @@ function CopyIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <path d="M15 3h6v6M10 14 21 3" />
     </svg>
   );
 }
@@ -97,14 +124,26 @@ export default function SummaryCard({
   const hasBullets = shown.bullets.length > 0;
   const hasBody = shown.coreText.length > 0 || hasBullets;
 
-  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 압축률.
+  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 절약 시간·압축률.
   const bodyPlain = [shown.coreText, ...shown.bullets].join(' ').replace(/\s+/g, '');
   const readSeconds = bodyPlain.length > 0 ? (bodyPlain.length / CHARS_PER_MIN) * 60 : 0;
-  const readMinutes = Math.max(1, Math.round(readSeconds / 60));
+  const savedSeconds = durationSeconds ? Math.max(0, durationSeconds - readSeconds) : 0;
   const compressionPct =
     durationSeconds && durationSeconds > 0 && readSeconds > 0
       ? Math.max(0, Math.min(99, Math.round((1 - readSeconds / durationSeconds) * 100)))
       : null;
+  const readText = humanizeSec(readSeconds);
+  const savedText = humanizeSec(savedSeconds);
+
+  // 복사/표시 공용 메타 한 줄(플레인 텍스트).
+  const metaText = [
+    duration && `영상 길이 ${duration}`,
+    hasBody && `압축 분량 ${readText}`,
+    compressionPct !== null &&
+      `(${savedSeconds > 0 ? `절약 시간 ${savedText}, ` : ''}압축률 ${compressionPct}%)`,
+  ]
+    .filter(Boolean)
+    .join(' | ');
 
   function pick(m: LengthMode) {
     if (m === mode) return;
@@ -114,7 +153,22 @@ export default function SummaryCard({
   }
 
   async function copyBody() {
-    const text = [shown.coreText, ...shown.bullets].filter(Boolean).join('\n');
+    // 상단 메타(채널·제목·업데이트·영상길이·압축분량·절약시간·압축률) + 빈 줄 + 표시 본문.
+    const channelLine = channelTitle
+      ? channelHandle
+        ? `${channelTitle} ${channelHandle}`
+        : channelTitle
+      : '';
+    const header = [
+      channelLine,
+      title,
+      publishedAt ? `업데이트 ${formatKstDateTime(publishedAt)}` : '',
+      metaText,
+    ].filter(Boolean);
+    const body = [shown.coreText, ...shown.bullets.map((b) => `- ${b}`)]
+      .filter(Boolean)
+      .join('\n');
+    const text = `${header.join('\n')}\n\n${body}`;
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -146,9 +200,9 @@ export default function SummaryCard({
 
   return (
     <Card id={`d-${videoId}`} data-testid="summary-card" className="scroll-mt-20 p-5">
-      {/* 1행: 채널명·핸들 + (짧게/보통/길게 + 복사/공유). 세로 빈공간 방지(1열 정렬). */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+      {/* 헤더: 채널정보(좌) + [복사·원본·공유 아이콘] 아래 길이 선택(우측 정렬). */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2 pt-0.5">
           {channelTitle && <ChannelAvatar src={channelThumbnail} title={channelTitle} size={20} />}
           <div className="flex min-w-0 items-baseline gap-1.5">
             {channelTitle && (
@@ -162,7 +216,41 @@ export default function SummaryCard({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={copyBody}
+              aria-label="본문 복사"
+              title="본문 복사"
+              data-testid="copy-body"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <CopyIcon />
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="원본 영상"
+              title="원본 영상"
+              data-testid="original-video"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ExternalLinkIcon />
+            </a>
+            <button
+              type="button"
+              onClick={shareCard}
+              aria-label="카드 공유"
+              title="공유"
+              data-testid="share-card"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ShareIcon />
+            </button>
+          </div>
+
           <div
             role="group"
             aria-label="요약 길이"
@@ -178,7 +266,7 @@ export default function SummaryCard({
                   disabled={disabled}
                   data-testid={`card-length-${o.mode}`}
                   onClick={() => pick(o.mode)}
-                  className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-40 ${
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40 ${
                     active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -187,26 +275,6 @@ export default function SummaryCard({
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={copyBody}
-            aria-label="본문 복사"
-            title="본문 복사"
-            data-testid="copy-body"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <CopyIcon />
-          </button>
-          <button
-            type="button"
-            onClick={shareCard}
-            aria-label="카드 공유"
-            title="공유"
-            data-testid="share-card"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <ShareIcon />
-          </button>
         </div>
       </div>
 
@@ -216,7 +284,7 @@ export default function SummaryCard({
         <p className="mt-1 text-xs text-muted-foreground">업데이트 {formatKstDateTime(publishedAt)}</p>
       )}
 
-      {/* 시간 절약 어필: 영상 길이 | 압축 분량 (압축률) */}
+      {/* 시간 절약 어필: 영상 길이 | 압축 분량 | (절약 시간, 압축률) */}
       {(duration || hasBody) && (
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           {duration && (
@@ -227,12 +295,13 @@ export default function SummaryCard({
           {duration && hasBody && <span aria-hidden>|</span>}
           {hasBody && (
             <span>
-              압축 분량 <span className="tabular-nums text-foreground/70">{readMinutes}분</span>
-              {compressionPct !== null && (
-                <span className="ml-1 font-semibold text-accent" data-testid="compression-rate">
-                  (압축률 {compressionPct}%)
-                </span>
-              )}
+              압축 분량 <span className="tabular-nums text-foreground/70">{readText}</span>
+            </span>
+          )}
+          {compressionPct !== null && <span aria-hidden>|</span>}
+          {compressionPct !== null && (
+            <span className="font-semibold text-accent" data-testid="compression-rate">
+              ({savedSeconds > 0 ? `절약 시간 ${savedText}, ` : ''}압축률 {compressionPct}%)
             </span>
           )}
         </p>
@@ -281,17 +350,6 @@ export default function SummaryCard({
           {expanded ? '접기 ▴' : '상세 보기 ▾'}
         </button>
       )}
-
-      <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          원본 영상 <span aria-hidden>↗</span>
-        </a>
-      </div>
     </Card>
   );
 }
