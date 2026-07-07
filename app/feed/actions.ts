@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { isLengthMode } from '@/lib/summary/format';
 import {
   answerAboutContent,
@@ -125,7 +126,9 @@ export async function askAboutContent(
 }
 
 /**
- * 콘텐츠에서 어려운 용어(칩 후보)를 추출한다. 없으면 빈 배열. 실패해도 빈 배열(칩 없이 진행).
+ * 콘텐츠에서 어려운 용어(칩 후보)를 추출한다. 영상 단위로 캐시(content_terms, 사용자 공유):
+ * 한 번 추출하면 저장해두고 이후엔(다른 사용자 포함) 저장된 결과를 즉시 반환한다.
+ * 없으면 빈 배열, 실패해도 빈 배열(칩 없이 진행).
  */
 export async function extractContentTerms(videoId: string): Promise<string[]> {
   if (!videoId) return [];
@@ -135,12 +138,31 @@ export async function extractContentTerms(videoId: string): Promise<string[]> {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // 캐시 우선(공유). 빈 배열도 캐시된 결과로 취급해 재계산하지 않는다.
+  const { data: cached } = await supabase
+    .from('content_terms')
+    .select('terms')
+    .eq('video_id', videoId)
+    .maybeSingle();
+  if (cached) return cached.terms ?? [];
+
   const ctx = await loadContentContext(supabase, videoId);
   if (!ctx) return [];
+
+  let terms: string[] = [];
   try {
-    return await extractTerms({ context: ctx.context });
+    terms = await extractTerms({ context: ctx.context });
   } catch (e) {
     console.warn(`[qa] 용어 추출 실패: ${(e as Error).message}`);
     return [];
   }
+
+  // 공유 캐시에 저장(서비스 롤). 실패해도 결과는 반환.
+  try {
+    const admin = createAdminClient();
+    await admin.from('content_terms').upsert({ video_id: videoId, terms }, { onConflict: 'video_id' });
+  } catch (e) {
+    console.warn(`[qa] 용어 캐시 저장 실패: ${(e as Error).message}`);
+  }
+  return terms;
 }

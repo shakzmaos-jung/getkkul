@@ -12,6 +12,8 @@ const LENGTHS: { key: keyof QAAnswer; label: string }[] = [
   { key: 'long', label: '길게' },
 ];
 
+type Mode = 'choose' | 'chips' | 'manual';
+
 /** 트리거 아이콘: 그라데이션 스파클(AI 느낌). */
 function AiSparkIcon() {
   return (
@@ -42,61 +44,43 @@ function BeeMascot({ size = 56 }: { size?: number }) {
           <stop offset="1" stopColor="#F59E0B" />
         </linearGradient>
       </defs>
-      {/* 날개 */}
       <ellipse cx="21" cy="20" rx="9" ry="12" fill="#ffffff" opacity="0.75" transform="rotate(-22 21 20)" />
       <ellipse cx="43" cy="20" rx="9" ry="12" fill="#ffffff" opacity="0.75" transform="rotate(22 43 20)" />
-      {/* 더듬이 */}
       <path d="M26 13 Q23 6 19 5" stroke="#4b3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
       <path d="M38 13 Q41 6 45 5" stroke="#4b3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
       <circle cx="18.5" cy="4.5" r="2.3" fill="#4b3b2a" />
       <circle cx="45.5" cy="4.5" r="2.3" fill="#4b3b2a" />
-      {/* 몸통 + 줄무늬 */}
       <ellipse cx="32" cy="37" rx="19" ry="17" fill="url(#gk-bee-grad)" />
       <g clipPath="url(#gk-bee-body)">
         <rect x="11" y="41" width="42" height="6" fill="#4b3b2a" opacity="0.85" />
         <rect x="11" y="51" width="42" height="6" fill="#4b3b2a" opacity="0.85" />
       </g>
-      {/* 볼터치 */}
       <circle cx="20" cy="39" r="3" fill="#FB7185" opacity="0.55" />
       <circle cx="44" cy="39" r="3" fill="#FB7185" opacity="0.55" />
-      {/* 안경 */}
       <path d="M30 31 Q32 29.5 34 31" stroke="#4b3b2a" strokeWidth="2" fill="none" strokeLinecap="round" />
       <circle cx="25" cy="32" r="6" fill="#ffffff" stroke="#4b3b2a" strokeWidth="2" />
       <circle cx="39" cy="32" r="6" fill="#ffffff" stroke="#4b3b2a" strokeWidth="2" />
-      {/* 눈 */}
       <circle cx="25" cy="32" r="2.1" fill="#3b2f24" />
       <circle cx="39" cy="32" r="2.1" fill="#3b2f24" />
-      {/* 입(말하는 애니메이션) */}
       <ellipse className="gk-bee-mouth" cx="32" cy="43" rx="2.4" ry="1.7" fill="#7a3b2e" />
     </svg>
   );
 }
 
 /**
- * 콘텐츠 Q&A 다이얼로그. 컨시어지 꿀벌이 안내하고, 어려운 용어 칩(단일 선택) + 직접 입력.
- * 질문 1개(최대 200자) → nano 답변(짧게/보통/길게). 단일 턴, 화면 안에 담고 내부 스크롤.
+ * 콘텐츠 Q&A 다이얼로그. 컨시어지 꿀벌 안내 → [본문에서 단어 추출 | 직접 입력하기].
+ * 추출은 영상 단위 공유 캐시(빠른 재조회). 답변은 '용어 정의' + '이 콘텐츠에서의 의미와 인사이트'.
  */
 export default function ContentQA({ videoId }: { videoId: string }) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>('choose');
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<QAAnswer | null>(null);
   const [len, setLen] = useState<keyof QAAnswer>('normal');
   const [error, setError] = useState<string | null>(null);
-  const [terms, setTerms] = useState<string[] | null>(null); // null=분석 중
-  const [manual, setManual] = useState(false);
-
-  // 열릴 때 용어 추출(1회). terms 는 열기 전/닫을 때 null(분석 중)로 초기화되어 있다.
-  useEffect(() => {
-    if (!open) return;
-    let alive = true;
-    extractContentTerms(videoId).then((t) => {
-      if (alive) setTerms(t);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [open, videoId]);
+  const [terms, setTerms] = useState<string[]>([]);
+  const [extracting, setExtracting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -109,13 +93,23 @@ export default function ContentQA({ videoId }: { videoId: string }) {
 
   function close() {
     setOpen(false);
+    setMode('choose');
     setQuestion('');
     setAnswer(null);
     setError(null);
     setLoading(false);
     setLen('normal');
-    setTerms(null);
-    setManual(false);
+    setTerms([]);
+    setExtracting(false);
+  }
+
+  async function runExtract() {
+    if (extracting) return;
+    setExtracting(true);
+    const t = await extractContentTerms(videoId);
+    setTerms(t);
+    setExtracting(false);
+    setMode('chips');
   }
 
   async function send(override?: string) {
@@ -126,9 +120,17 @@ export default function ContentQA({ videoId }: { videoId: string }) {
     setError(null);
     const r = await askAboutContent(videoId, q);
     setLoading(false);
-    if (r.ok) setAnswer(r.answer);
-    else setError(r.error);
+    if (r.ok) {
+      setAnswer(r.answer);
+    } else {
+      setError(r.error);
+      setMode('manual'); // 실패 시 입력창 + 오류 노출(재시도 가능)
+    }
   }
+
+  const section = answer ? answer[len] : null;
+  const hasDef = !!section?.definition.trim();
+  const hasIns = !!section?.insight.trim();
 
   return (
     <>
@@ -152,7 +154,7 @@ export default function ContentQA({ videoId }: { videoId: string }) {
             role="dialog"
             aria-modal="true"
             aria-label="콘텐츠 질문"
-            className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-accent/15 via-card to-card shadow-xl"
+            className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더: 꿀벌 + 말풍선 */}
@@ -199,12 +201,31 @@ export default function ContentQA({ videoId }: { videoId: string }) {
                       </button>
                     ))}
                   </div>
-                  <p
-                    data-testid="qa-answer"
-                    className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90"
-                  >
-                    {answer[len]}
-                  </p>
+
+                  <div data-testid="qa-answer" className="flex flex-col gap-3">
+                    {hasDef && (
+                      <div>
+                        <h4 className="mb-1 text-xs font-semibold text-accent">용어 정의</h4>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                          {section!.definition}
+                        </p>
+                      </div>
+                    )}
+                    {hasIns && (
+                      <div>
+                        <h4 className="mb-1 text-xs font-semibold text-accent">
+                          이 콘텐츠에서의 의미와 인사이트
+                        </h4>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                          {section!.insight}
+                        </p>
+                      </div>
+                    )}
+                    {!hasDef && !hasIns && (
+                      <p className="text-sm text-muted-foreground">답변을 생성하지 못했어요.</p>
+                    )}
+                  </div>
+
                   <div className="mt-1 flex justify-end">
                     <Button type="button" variant="secondary" onClick={close}>
                       닫기
@@ -216,45 +237,63 @@ export default function ContentQA({ videoId }: { videoId: string }) {
                   <Spinner size={22} className="text-accent" />
                   <p className="text-sm text-muted-foreground">답변을 준비하고 있어요…</p>
                 </div>
+              ) : mode === 'choose' ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={extracting}
+                    onClick={runExtract}
+                    data-testid="qa-extract"
+                  >
+                    {extracting ? <Spinner size={14} /> : '본문에서 단어 추출'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={extracting}
+                    onClick={() => setMode('manual')}
+                    data-testid="qa-manual-btn"
+                  >
+                    직접 입력하기
+                  </Button>
+                </div>
+              ) : mode === 'chips' ? (
+                <div className="flex flex-col gap-2">
+                  {terms.length === 0 && (
+                    <p className="text-xs text-muted-foreground">추출된 어려운 용어가 없어요.</p>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {terms.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => send(t)}
+                        data-testid="qa-term-chip"
+                        className="rounded-full border border-border bg-background px-3 py-1 text-xs transition-colors hover:bg-muted"
+                      >
+                        {t}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setMode('manual')}
+                      data-testid="qa-manual-chip"
+                      className="rounded-full border border-accent bg-accent/15 px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent/25"
+                    >
+                      직접 입력하기
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
-                  {/* 용어 칩(단일 선택) + 직접 입력 칩 */}
-                  {!manual &&
-                    (terms === null ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Spinner size={12} /> 콘텐츠에서 용어를 찾는 중…
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {terms.map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => send(t)}
-                            data-testid="qa-term-chip"
-                            className="rounded-full border border-border bg-background px-3 py-1 text-xs transition-colors hover:bg-muted"
-                          >
-                            {t}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setManual(true)}
-                          data-testid="qa-manual-chip"
-                          className="rounded-full border border-accent bg-accent/15 px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent/25"
-                        >
-                          직접 입력하기
-                        </button>
-                      </div>
-                    ))}
-
-                  {/* 입력(우하단 내부에 글자수) */}
                   <div className="relative">
                     <textarea
                       value={question}
                       onChange={(e) => setQuestion(e.target.value.slice(0, MAX_QUESTION_LEN))}
                       maxLength={MAX_QUESTION_LEN}
                       rows={4}
+                      autoFocus
                       placeholder="이 콘텐츠에 대해 궁금한 점을 입력하세요."
                       data-testid="qa-input"
                       className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 pb-7 text-sm outline-none focus:border-foreground/40"
@@ -263,7 +302,6 @@ export default function ContentQA({ videoId }: { videoId: string }) {
                       {question.length}/{MAX_QUESTION_LEN}
                     </span>
                   </div>
-
                   <div className="flex justify-end">
                     <Button
                       type="button"
