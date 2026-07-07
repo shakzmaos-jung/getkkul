@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
+import DismissibleBanner from '@/components/ui/DismissibleBanner';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { passesDurationFilters } from '@/lib/youtube/duration';
 import type { LengthMode } from '@/lib/summary/format';
@@ -154,12 +155,13 @@ export default async function FeedPage({
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">다이제스트</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            구독한 채널의 새 영상 요약입니다. 카드마다 요약 길이를 바꿀 수 있어요.
-          </p>
-        </header>
+        <div className="mb-6">
+          <DismissibleBanner
+            storageKey="gk_feed_intro_dismissed"
+            title="다이제스트"
+            description="구독한 채널의 새 영상 요약입니다. 카드마다 요약 길이를 바꿀 수 있어요."
+          />
+        </div>
 
         {items.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">

@@ -48,26 +48,37 @@ describe('shouldSendEmptyAware (빈 슬롯 생략 분기)', () => {
   });
 });
 
-describe('renderPushMessage', () => {
-  const sel = (n: number): DigestSelection =>
+describe('renderPushMessage (압축 완료 + 시간 절약 어필)', () => {
+  const sel = (n: number, durationSeconds = 0, coreText = ''): DigestSelection =>
     ({
       items: Array.from({ length: n }, (_, i) => ({
         videoId: `v${i}`,
         title: `t${i}`,
         url: `u${i}`,
         headline: `헤드${i}`,
-        coreText: '',
+        coreText,
+        durationSeconds,
       })),
     }) as DigestSelection;
+
   it('빈 선택', () => {
     expect(renderPushMessage(sel(0), { appBaseUrl: 'https://x' })).toMatchObject({
       title: '겟꿀',
       url: 'https://x/feed',
     });
   });
-  it('1개/다수', () => {
-    expect(renderPushMessage(sel(1)).body).toBe('헤드0');
-    expect(renderPushMessage(sel(3)).body).toBe('헤드0 외 2개');
-    expect(renderPushMessage(sel(3)).title).toBe('겟꿀 · 새 다이제스트 3개');
+
+  it('건수 + 원본 영상 총 길이 + 흡수 시간', () => {
+    // 2건 × 영상 600초(=총 20분), 본문 500자(=각 60초, 총 2분)
+    const m = renderPushMessage(sel(2, 600, 'a'.repeat(500)));
+    expect(m.title).toBe('유튜브 콘텐츠 2건 압축 완료');
+    expect(m.body).toBe('원본 영상 20분, 흡수하는데 걸리는 시간 2분');
+  });
+
+  it('시/분/초 조합 표시', () => {
+    // 1건 × 3661초 = 1시간 1분 1초
+    const m = renderPushMessage(sel(1, 3661, ''));
+    expect(m.title).toBe('유튜브 콘텐츠 1건 압축 완료');
+    expect(m.body).toContain('원본 영상 1시간 1분 1초');
   });
 });

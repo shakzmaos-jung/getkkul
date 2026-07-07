@@ -1,27 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-const DISMISS_KEY = 'gk_intro_dismissed';
+import { useEffect, useState, type ReactNode } from 'react';
 
 /**
- * 홈 서비스 소개 배너. 끌 수 있고(닫으면 localStorage 로 유지), 아이콘·제목은 유지한다.
+ * 닫을 수 있는 배너(홈 소개/다이제스트/채널 공용). 닫으면 localStorage 로 유지한다.
  * 초기값 확정 전엔 렌더하지 않아 깜빡임(닫힌 배너가 잠깐 보임)을 막는다.
  */
-export default function IntroBanner() {
+export default function DismissibleBanner({
+  storageKey,
+  title,
+  description,
+  icon,
+}: {
+  storageKey: string;
+  title: string;
+  description: string;
+  icon?: ReactNode;
+}) {
   const [dismissed, setDismissed] = useState<boolean | null>(null);
 
   useEffect(() => {
     // 클라이언트 저장값 1회 반영
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDismissed(localStorage.getItem(DISMISS_KEY) === '1');
-  }, []);
+    setDismissed(localStorage.getItem(storageKey) === '1');
+  }, [storageKey]);
 
   if (dismissed !== false) return null;
 
   function close() {
     try {
-      localStorage.setItem(DISMISS_KEY, '1');
+      localStorage.setItem(storageKey, '1');
     } catch {
       /* noop */
     }
@@ -31,20 +39,20 @@ export default function IntroBanner() {
   return (
     <div className="relative rounded-xl border border-accent/30 bg-accent/10 p-4 pr-10">
       <div className="flex items-center gap-2">
-        <span className="text-2xl leading-none" aria-hidden>
-          🍯
-        </span>
-        <h1 className="text-xl font-semibold tracking-tight">겟꿀</h1>
+        {icon && (
+          <span className="text-2xl leading-none" aria-hidden>
+            {icon}
+          </span>
+        )}
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        겟꿀은 유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드리는 서비스입니다.
-      </p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
       <button
         type="button"
         onClick={close}
-        aria-label="소개 배너 닫기"
+        aria-label="배너 닫기"
         title="닫기"
-        data-testid="intro-dismiss"
+        data-testid="banner-dismiss"
         className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/20 hover:text-foreground"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

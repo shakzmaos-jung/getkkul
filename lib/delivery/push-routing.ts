@@ -32,7 +32,32 @@ export function shouldSendEmptyAware(hasItems: boolean, skipEmpty: boolean): boo
   return hasItems || !skipEmpty;
 }
 
-/** 푸시 메시지(title/body/url) 구성. 항목 있으면 대표 헤드라인 + 개수. */
+// 한국어 평균 독서 속도(자/분). "흡수하는데 걸리는 시간" 산정 기준.
+const CHARS_PER_MIN = 500;
+
+/** 요약 본문 글자수 → 읽는(흡수) 시간(초). */
+function readSeconds(text: string): number {
+  const c = (text ?? '').replace(/\s+/g, '').length;
+  return c > 0 ? (c / CHARS_PER_MIN) * 60 : 0;
+}
+
+/** 초 → "N시간 N분 N초"(0 단위 생략). */
+function hmsPush(sec: number): string {
+  const t = Math.max(0, Math.round(sec));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  const parts: string[] = [];
+  if (h > 0) parts.push(`${h}시간`);
+  if (m > 0) parts.push(`${m}분`);
+  if (s > 0) parts.push(`${s}초`);
+  return parts.length > 0 ? parts.join(' ') : '0초';
+}
+
+/**
+ * 푸시 메시지(title/body/url) 구성. 항목이 있으면 "압축 완료 건수 + 원본 영상 총 길이 +
+ * 흡수(읽는)에 걸리는 시간"으로 시간 절약을 어필한다.
+ */
 export function renderPushMessage(
   selection: DigestSelection,
   opts: { appBaseUrl?: string } = {},
@@ -40,8 +65,12 @@ export function renderPushMessage(
   const url = `${opts.appBaseUrl ?? ''}/feed`;
   const n = selection.items.length;
   if (n === 0) return { title: '겟꿀', body: '아직 새 소식이 없어요.', url };
-  const first = selection.items[0];
-  const title = `겟꿀 · 새 다이제스트 ${n}개`;
-  const body = n === 1 ? first.headline : `${first.headline} 외 ${n - 1}개`;
-  return { title, body, url };
+
+  const totalVideoSec = selection.items.reduce((a, v) => a + (v.durationSeconds ?? 0), 0);
+  const totalReadSec = selection.items.reduce((a, v) => a + readSeconds(v.coreText), 0);
+  return {
+    title: `유튜브 콘텐츠 ${n}건 압축 완료`,
+    body: `원본 영상 ${hmsPush(totalVideoSec)}, 흡수하는데 걸리는 시간 ${hmsPush(totalReadSec)}`,
+    url,
+  };
 }
