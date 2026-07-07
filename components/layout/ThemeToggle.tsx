@@ -7,8 +7,8 @@ type Theme = 'light' | 'dark';
 function SunIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="12"
+      height="12"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -26,8 +26,8 @@ function SunIcon() {
 function MoonIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="12"
+      height="12"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -65,16 +65,27 @@ export default function ThemeToggle() {
     }
   }
 
+  const isDark = theme === 'dark';
+
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={isDark}
       onClick={toggle}
       aria-label="테마 전환"
       title="테마 전환"
       data-testid="theme-toggle"
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-border bg-muted transition-colors"
     >
-      {theme === null ? null : theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+      {/* 슬라이딩 노브(현재 테마 아이콘 표시). 초기(하이드레이션 전)엔 라이트로 가정. */}
+      <span
+        className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-foreground shadow-sm transition-transform ${
+          isDark ? 'translate-x-[22px]' : 'translate-x-0.5'
+        }`}
+      >
+        {isDark ? <MoonIcon /> : <SunIcon />}
+      </span>
     </button>
   );
 }
