@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
 import { setVideoLength } from '@/app/feed/actions';
-import { formatDuration } from '@/lib/youtube/duration';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -39,9 +38,9 @@ function ceil10(sec: number): number {
   return Math.max(10, Math.ceil(sec / 10) * 10);
 }
 
-/** 초 → "N시간 N분 N초"(0 단위 생략). 압축 분량 표시용(10초 단위 올림). */
-function humanizeSec(sec: number): string {
-  const t = ceil10(sec);
+/** 초 → "N시간 N분 N초"(0 단위 생략). 영상 길이(정확)·압축 분량(10초 올림) 공용. */
+function hms(sec: number): string {
+  const t = Math.max(0, Math.floor(sec));
   const h = Math.floor(t / 3600);
   const m = Math.floor((t % 3600) / 60);
   const s = t % 60;
@@ -114,7 +113,8 @@ export default function SummaryCard({
   summaries,
 }: Props) {
   const showToast = useToast();
-  const duration = formatDuration(durationSeconds);
+  // 영상 길이: {n}시간 {n}분 {n}초(정확).
+  const duration = durationSeconds && durationSeconds > 0 ? hms(durationSeconds) : '';
   const [mode, setMode] = useState<LengthMode>(initialMode); // 본문에 반영되는 길이
   const [visual, setVisual] = useState<LengthMode>(initialMode); // 인디케이터/강조(즉시 이동)
   const [expanded, setExpanded] = useState(false);
@@ -139,16 +139,14 @@ export default function SummaryCard({
     durationSeconds && durationSeconds > 0 && readSeconds > 0
       ? Math.max(0, Math.min(99.9, (1 - readSeconds / durationSeconds) * 100))
       : null;
-  const readText = humanizeSec(readSeconds);
+  const readText = hms(ceil10(readSeconds)); // 압축 분량은 10초 단위 올림
 
-  // 복사/표시 공용 메타 한 줄(플레인 텍스트).
-  const metaText = [
-    duration && `영상 길이 ${duration}`,
-    hasBody && `압축 분량 ${readText}`,
-    compressionPct !== null && `(압축률 ${compressionPct.toFixed(1)}%)`,
-  ]
+  // 복사/표시 공용 메타(플레인 텍스트). 압축률은 앞 파이프 없이 2칸 띄워 붙인다.
+  const metaBase = [duration && `영상 길이 ${duration}`, hasBody && `압축 분량 ${readText}`]
     .filter(Boolean)
     .join(' | ');
+  const metaText =
+    compressionPct !== null ? `${metaBase}  (압축률 ${compressionPct.toFixed(1)}%)` : metaBase;
 
   const visualIndex = Math.max(0, MODES.findIndex((o) => o.mode === visual));
 
@@ -180,7 +178,10 @@ export default function SummaryCard({
     const body = [shown.coreText, ...shown.bullets.map((b) => `- ${b}`)]
       .filter(Boolean)
       .join('\n');
-    const text = `${header.join('\n')}\n\n${body}`;
+    // 본문 마지막 줄에서 한 줄 띄우고 마케팅 훅.
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const hook = `Powered by 겟꿀. 유튜브 콘텐츠를 압축해 당신의 시간을 절약해드립니다. 지금 절약하러 가기 -> ${origin}/login`;
+    const text = `${header.join('\n')}\n\n${body}\n\n${hook}`;
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -314,9 +315,8 @@ export default function SummaryCard({
               압축 분량 <span className="tabular-nums text-foreground/70">{readText}</span>
             </span>
           )}
-          {compressionPct !== null && <span aria-hidden>|</span>}
           {compressionPct !== null && (
-            <span className="font-semibold text-accent" data-testid="compression-rate">
+            <span className="ml-2 font-semibold text-accent" data-testid="compression-rate">
               (압축률 {compressionPct.toFixed(1)}%)
             </span>
           )}
