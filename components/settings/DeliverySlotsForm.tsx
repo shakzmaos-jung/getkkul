@@ -40,10 +40,12 @@ export default function DeliverySlotsForm({ current }: { current: SlotCode[] }) 
             data-testid={`slot-${code}`}
             className="peer sr-only"
           />
-          <CheckIcon className="pointer-events-none absolute right-1.5 top-1.5 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
           <span className="text-sm font-medium">{SEND_SLOTS_KST[i]}</span>
-          {savingKey === code && (
+          {/* 저장 중엔 스피너, 완료되면 체크(peer-checked). 택일 렌더로 겹침 방지. */}
+          {savingKey === code ? (
             <Spinner className="absolute right-1.5 top-1.5 text-muted-foreground" />
+          ) : (
+            <CheckIcon className="pointer-events-none absolute right-1.5 top-1.5 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
           )}
         </label>
       ))}

@@ -164,10 +164,12 @@ export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
                 data-testid={`slot-${name}`}
                 className="peer sr-only"
               />
-              <CheckIcon className="pointer-events-none absolute right-1.5 top-1.5 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
               <span className="text-sm font-medium">{label}</span>
-              {savingKey === name && (
+              {/* 저장 중엔 스피너, 완료되면 체크(peer-checked). 택일 렌더로 겹침 방지. */}
+              {savingKey === name ? (
                 <Spinner className="absolute right-1.5 top-1.5 text-muted-foreground" />
+              ) : (
+                <CheckIcon className="pointer-events-none absolute right-1.5 top-1.5 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
               )}
             </label>
           ))}

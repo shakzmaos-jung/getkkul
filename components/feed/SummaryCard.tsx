@@ -127,10 +127,23 @@ export default function SummaryCard({
         </div>
       </div>
 
-      <p className="mt-3 text-sm leading-relaxed text-foreground/80">{shown.coreText}</p>
-
-      {hasBullets && (
-        <>
+      {hasBullets ? (
+        /* 본문/상세 영역을 탭하면 접기·펼치기 (요청: 메인 본문·상세 영역 터치 토글). */
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setExpanded((v) => !v);
+            }
+          }}
+          data-testid="summary-body"
+          className="mt-3 -mx-1 cursor-pointer select-none rounded-md px-1 py-0.5 transition-colors hover:bg-muted/40"
+        >
+          <p className="text-sm leading-relaxed text-foreground/80">{shown.coreText}</p>
           {expanded && (
             <ul className="mt-3 flex flex-col gap-1.5">
               {shown.bullets.map((b, i) => (
@@ -141,16 +154,21 @@ export default function SummaryCard({
               ))}
             </ul>
           )}
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            data-testid="toggle-bullets"
-            aria-expanded={expanded}
-            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {expanded ? '접기 ▴' : '상세 보기 ▾'}
-          </button>
-        </>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm leading-relaxed text-foreground/80">{shown.coreText}</p>
+      )}
+
+      {hasBullets && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          data-testid="toggle-bullets"
+          aria-expanded={expanded}
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {expanded ? '접기 ▴' : '상세 보기 ▾'}
+        </button>
       )}
 
       <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
