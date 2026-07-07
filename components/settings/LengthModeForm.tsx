@@ -45,11 +45,13 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
             data-testid={`length-${mode}`}
             className="peer sr-only"
           />
-          <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
           <span className="text-sm font-medium">{LABELS[mode]}</span>
           <span className="text-xs text-muted-foreground">{DESC[mode]}</span>
-          {savingKey === mode && (
+          {/* 저장 중엔 스피너, 완료되면 체크(peer-checked). 둘이 겹치지 않게 택일 렌더. */}
+          {savingKey === mode ? (
             <Spinner className="absolute right-2 top-2 text-muted-foreground" />
+          ) : (
+            <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
           )}
         </label>
       ))}

@@ -40,10 +40,14 @@ export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver
           data-testid="exclude-over-2h"
           className="peer sr-only"
         />
-        <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
         <span className="text-sm font-medium">2시간 이상 제외</span>
         <span className="text-xs text-muted-foreground">긴 영상 숨김</span>
-        {saving && <Spinner className="absolute right-2 top-2 text-muted-foreground" />}
+        {/* 저장 중엔 스피너, 완료되면 체크(peer-checked). 택일 렌더로 겹침 방지. */}
+        {saving ? (
+          <Spinner className="absolute right-2 top-2 text-muted-foreground" />
+        ) : (
+          <CheckIcon className="pointer-events-none absolute right-2 top-2 text-accent opacity-0 transition-opacity peer-checked:opacity-100" />
+        )}
       </label>
     </form>
   );
