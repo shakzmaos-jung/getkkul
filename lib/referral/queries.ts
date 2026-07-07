@@ -48,6 +48,8 @@ export interface CreditTxnRow {
 export interface CreditLedger {
   balance: number;
   expiringSoon: number;
+  /** 지급받은 크레딧 건수(로트 수) — 탭 배지 표시용. */
+  grantCount: number;
   transactions: CreditTxnRow[];
 }
 
@@ -78,6 +80,7 @@ export async function getCreditLedger(
   return {
     balance: computeBalance(lots, nowIso),
     expiringSoon: expiringSoon(lots, nowIso),
+    grantCount: lots.length,
     transactions: txns ?? [],
   };
 }
