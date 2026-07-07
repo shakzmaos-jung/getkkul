@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { isPublicPath, shouldRedirectToLogin } from './route-access';
 
 describe('route-access (AC-A1.1 보호 라우트)', () => {
-  it('공개 경로(/login, /auth/*)는 public 으로 판정한다', () => {
+  it('공개 경로(/login, /auth/*, /r/*)는 public 으로 판정한다', () => {
     expect(isPublicPath('/login')).toBe(true);
     expect(isPublicPath('/auth/callback')).toBe(true);
     expect(isPublicPath('/auth/auth-code-error')).toBe(true);
+    expect(isPublicPath('/r/ABCDE23456')).toBe(true); // 추천 링크(AC-A2.1)
   });
 
   it('그 외 경로는 보호 경로로 판정한다', () => {
@@ -15,6 +16,7 @@ describe('route-access (AC-A1.1 보호 라우트)', () => {
     // 접두사만 우연히 겹치는 경로는 공개가 아니다
     expect(isPublicPath('/loginx')).toBe(false);
     expect(isPublicPath('/authorize')).toBe(false);
+    expect(isPublicPath('/reader')).toBe(false);
   });
 
   it('미인증 사용자가 보호 경로에 접근하면 로그인으로 보낸다', () => {

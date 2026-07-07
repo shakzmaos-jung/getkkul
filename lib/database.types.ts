@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      abuse_guard: {
+        Row: {
+          created_at: string
+          device_fingerprints: string[]
+          email_hash: string
+          id: string
+          payment_fingerprints: string[]
+          rewarded_before: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprints?: string[]
+          email_hash: string
+          id?: string
+          payment_fingerprints?: string[]
+          rewarded_before?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprints?: string[]
+          email_hash?: string
+          id?: string
+          payment_fingerprints?: string[]
+          rewarded_before?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_grants: {
+        Row: {
+          amount: number
+          expires_at: string
+          granted_at: string
+          id: string
+          remaining_amount: number
+          source_referral_id: string | null
+          source_type: Database["public"]["Enums"]["credit_source"]
+          status: Database["public"]["Enums"]["credit_grant_status"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          expires_at: string
+          granted_at?: string
+          id?: string
+          remaining_amount: number
+          source_referral_id?: string | null
+          source_type: Database["public"]["Enums"]["credit_source"]
+          status?: Database["public"]["Enums"]["credit_grant_status"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          expires_at?: string
+          granted_at?: string
+          id?: string
+          remaining_amount?: number
+          source_referral_id?: string | null
+          source_type?: Database["public"]["Enums"]["credit_source"]
+          status?: Database["public"]["Enums"]["credit_grant_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_grants_source_referral_id_fkey"
+            columns: ["source_referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_grants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          created_at: string
+          delta: number
+          grant_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["credit_txn_kind"]
+          memo: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          grant_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["credit_txn_kind"]
+          memo?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          grant_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["credit_txn_kind"]
+          memo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "credit_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deliveries: {
         Row: {
           channel: Database["public"]["Enums"]["delivery_channel"]
@@ -118,6 +244,116 @@ export type Database = {
           },
         ]
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_program: {
+        Row: {
+          active: boolean
+          budget_cap: number
+          id: number
+          payment_usage_ratio: number
+          per_user_cap: number
+          reward_amount: number
+          total_issued: number
+          validity_years: number
+        }
+        Insert: {
+          active?: boolean
+          budget_cap?: number
+          id?: number
+          payment_usage_ratio?: number
+          per_user_cap?: number
+          reward_amount?: number
+          total_issued?: number
+          validity_years?: number
+        }
+        Update: {
+          active?: boolean
+          budget_cap?: number
+          id?: number
+          payment_usage_ratio?: number
+          per_user_cap?: number
+          reward_amount?: number
+          total_issued?: number
+          validity_years?: number
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          activated_at: string | null
+          code: string
+          created_at: string
+          id: string
+          referee_email_hash: string | null
+          referee_user_id: string
+          referrer_user_id: string
+          status: Database["public"]["Enums"]["referral_status"]
+        }
+        Insert: {
+          activated_at?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          referee_email_hash?: string | null
+          referee_user_id: string
+          referrer_user_id: string
+          status?: Database["public"]["Enums"]["referral_status"]
+        }
+        Update: {
+          activated_at?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          referee_email_hash?: string | null
+          referee_user_id?: string
+          referrer_user_id?: string
+          status?: Database["public"]["Enums"]["referral_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referee_user_id_fkey"
+            columns: ["referee_user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_user_id_fkey"
+            columns: ["referrer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           active_since: string | null
@@ -211,14 +447,14 @@ export type Database = {
           delivery_email: string | null
           delivery_slots: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h: boolean
+          otp_expires_at: string | null
+          otp_hash: string | null
+          pending_email: string | null
           push_slot_0730: boolean
           push_slot_1130: boolean
           push_slot_1730: boolean
           skip_empty_email: boolean
           skip_empty_push: boolean
-          otp_expires_at: string | null
-          otp_hash: string | null
-          pending_email: string | null
           summary_length: Database["public"]["Enums"]["summary_length"]
           user_id: string
         }
@@ -226,14 +462,14 @@ export type Database = {
           delivery_email?: string | null
           delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h?: boolean
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          pending_email?: string | null
           push_slot_0730?: boolean
           push_slot_1130?: boolean
           push_slot_1730?: boolean
           skip_empty_email?: boolean
           skip_empty_push?: boolean
-          otp_expires_at?: string | null
-          otp_hash?: string | null
-          pending_email?: string | null
           summary_length?: Database["public"]["Enums"]["summary_length"]
           user_id: string
         }
@@ -241,14 +477,14 @@ export type Database = {
           delivery_email?: string | null
           delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h?: boolean
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          pending_email?: string | null
           push_slot_0730?: boolean
           push_slot_1130?: boolean
           push_slot_1730?: boolean
           skip_empty_email?: boolean
           skip_empty_push?: boolean
-          otp_expires_at?: string | null
-          otp_hash?: string | null
-          pending_email?: string | null
           summary_length?: Database["public"]["Enums"]["summary_length"]
           user_id?: string
         }
@@ -338,12 +574,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      activate_and_award: {
+        Args: { p_referee: string }
+        Returns: {
+          award_amount: number
+          award_source: Database["public"]["Enums"]["credit_source"]
+          award_user_id: string
+        }[]
+      }
+      expire_credits: { Args: never; Returns: number }
+      forfeit_user_credits: { Args: { p_user: string }; Returns: number }
+      get_referral_progress: {
+        Args: never
+        Returns: {
+          activated_at: string | null
+          channel_count: number
+          created_at: string
+          referral_id: string
+          status: Database["public"]["Enums"]["referral_status"]
+          summary_count: number
+        }[]
+      }
+      use_credits: {
+        Args: { p_payment_amount: number; p_user: string }
+        Returns: number
+      }
     }
     Enums: {
+      credit_grant_status: "active" | "exhausted" | "expired" | "forfeited"
+      credit_source: "referrer" | "referee"
+      credit_txn_kind: "grant" | "usage" | "expiry" | "forfeit"
       delivery_channel: "email" | "push"
       delivery_slot: "0730" | "1130" | "1730"
       delivery_status: "pending" | "sent" | "failed"
+      referral_status: "pending" | "activated" | "void"
       summary_language: "ko" | "en"
       summary_length: "short" | "normal" | "long"
       transcript_source: "caption" | "audio" | "none"
@@ -475,9 +739,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      credit_grant_status: ["active", "exhausted", "expired", "forfeited"],
+      credit_source: ["referrer", "referee"],
+      credit_txn_kind: ["grant", "usage", "expiry", "forfeit"],
       delivery_channel: ["email", "push"],
       delivery_slot: ["0730", "1130", "1730"],
       delivery_status: ["pending", "sent", "failed"],
+      referral_status: ["pending", "activated", "void"],
       summary_language: ["ko", "en"],
       summary_length: ["short", "normal", "long"],
       transcript_source: ["caption", "audio", "none"],
