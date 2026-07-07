@@ -46,11 +46,12 @@ async function main() {
     await alertCookieExpiry(acq, botBlocks);
   }
 
-  const sum = await summarizePending();
-  console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
-
+  // 요약 앞에서 duration 을 먼저 채운다 → 정식 영상은 길이 확보, 남은 NULL(라이브/예정/삭제)만 요약 제외.
   const dur = await fillMissingDurations();
   console.log(`[duration] filled=${dur.filled}/${dur.targets}`);
+
+  const sum = await summarizePending();
+  console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
 
   console.log('[pipeline] done');
 }
