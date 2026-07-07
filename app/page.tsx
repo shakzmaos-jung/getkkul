@@ -4,8 +4,6 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
 import ReferralBanner from '@/components/home/ReferralBanner';
-import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
-import { passesDurationFilters } from '@/lib/youtube/duration';
 import { KST_TIME_ZONE } from '@/lib/time';
 
 /**
@@ -22,21 +20,15 @@ export default async function Home() {
   const user = session?.user;
   if (!user) redirect('/login');
 
-  const [{ data: subs }, { data: setting }] = await Promise.all([
-    supabase
-      .from('subscriptions')
-      .select('channel_id, channel_title, paused, active_since')
-      .eq('user_id', user.id),
-    supabase.from('user_settings').select('exclude_over_2h').eq('user_id', user.id).maybeSingle(),
+  // 다이제스트 집계·최근 목록은 SQL 로 계산(피드와 동일 조건: 활성 구독·기준선·길이·ko요약).
+  // 앱에서 모든 요약을 가져오면 API max-rows(1000) 상한에 걸려 최신분이 누락돼 과소집계됐다 → RPC 로 이전.
+  const [{ data: subs }, { data: summary }, { data: recentRows }] = await Promise.all([
+    supabase.from('subscriptions').select('channel_id, channel_title').eq('user_id', user.id),
+    supabase.rpc('get_digest_summary'),
+    supabase.rpc('get_recent_digests', { p_limit: 5 }),
   ]);
-  const excludeOver2h = setting?.exclude_over_2h ?? true;
-  const subsList = subs ?? [];
-  const subscriptionCount = subsList.length; // 구독 수는 일시정지 포함 전체
-  // 다이제스트(오늘/누적/최근)는 일시정지 채널 제외 + 정지해제 기준선 이후만.
-  const activeSubs = subsList.filter((s) => !s.paused);
-  const sinceByChannel = activeSinceByChannel(activeSubs);
-  const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
-  const titleById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_title ?? '']));
+  const subscriptionCount = (subs ?? []).length; // 구독 수는 일시정지 포함 전체
+  const titleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
 
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
   const kstShort = new Intl.DateTimeFormat('sv-SE', {
@@ -48,45 +40,17 @@ export default async function Home() {
     minute: '2-digit',
     hour12: false,
   });
-  const todayKst = kstDate.format(new Date());
 
-  let todayDigestCount = 0;
-  let totalDigestCount = 0;
-  let recent: HomeRecentItem[] = [];
-
-  if (channelIds.length > 0) {
-    // done 영상 전체를 조회한 뒤 기준선(active_since) 필터 → 누적/오늘/최근 집계.
-    // (기준선은 채널별이라 count 쿼리로 못 걸러 애플리케이션에서 필터·집계한다. 개인 규모라 부담 적음.)
-    const { data: videos } = await supabase
-      .from('videos')
-      .select('id, title, url, channel_id, published_at, created_at, duration_seconds')
-      .eq('status', 'done')
-      .in('channel_id', channelIds)
-      .order('published_at', { ascending: false });
-    const activeRows = (videos ?? [])
-      .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
-      .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
-    // 다이제스트 = 요약이 있는 영상만(피드 표시 기준과 일치) → 카운트와 실제 노출 일치.
-    const { data: sums } = await supabase
-      .from('summaries')
-      .select('video_id')
-      .eq('language', 'ko');
-    const summarized = new Set((sums ?? []).map((s) => s.video_id));
-    const rows = activeRows.filter((v) => summarized.has(v.id));
-    totalDigestCount = rows.length;
-    for (const v of rows) {
-      if (v.published_at && kstDate.format(new Date(v.published_at)) === todayKst) {
-        todayDigestCount++;
-      }
-    }
-    recent = rows.slice(0, 5).map((v) => ({
-      id: v.id,
-      title: v.title ?? '',
-      channelTitle: titleById.get(v.channel_id) ?? '',
-      time: v.published_at ? kstShort.format(new Date(v.published_at)) : '',
-      dateKst: v.published_at ? kstDate.format(new Date(v.published_at)) : '',
-    }));
-  }
+  const stats = summary?.[0] ?? { today_count: 0, total_count: 0 };
+  const todayDigestCount = stats.today_count;
+  const totalDigestCount = stats.total_count;
+  const recent: HomeRecentItem[] = (recentRows ?? []).map((v) => ({
+    id: v.id,
+    title: v.title ?? '',
+    channelTitle: titleById.get(v.channel_id) ?? '',
+    time: v.published_at ? kstShort.format(new Date(v.published_at)) : '',
+    dateKst: v.published_at ? kstDate.format(new Date(v.published_at)) : '',
+  }));
 
   return (
     <div className="flex min-h-screen flex-col">

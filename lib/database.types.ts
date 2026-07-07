@@ -646,6 +646,19 @@ export type Database = {
       }
       expire_credits: { Args: never; Returns: number }
       forfeit_user_credits: { Args: { p_user: string }; Returns: number }
+      get_digest_summary: {
+        Args: never
+        Returns: { today_count: number; total_count: number }[]
+      }
+      get_recent_digests: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          channel_id: string
+          title: string | null
+          published_at: string | null
+        }[]
+      }
       get_referral_progress: {
         Args: never
         Returns: {
