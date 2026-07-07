@@ -20,6 +20,8 @@ interface Props {
   durationSeconds: number | null;
   initialMode: LengthMode;
   summaries: Partial<Record<LengthMode, ModeSummary>>;
+  bookmarked: boolean;
+  onToggleBookmark: (next: boolean) => void;
 }
 
 const MODES: { mode: LengthMode; label: string }[] = [
@@ -100,6 +102,14 @@ function ShareIcon() {
   );
 }
 
+function BookmarkIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 export default function SummaryCard({
   videoId,
   channelTitle,
@@ -111,6 +121,8 @@ export default function SummaryCard({
   durationSeconds,
   initialMode,
   summaries,
+  bookmarked,
+  onToggleBookmark,
 }: Props) {
   const showToast = useToast();
   // 영상 길이: {n}시간 {n}분 {n}초(정확).
@@ -180,7 +192,7 @@ export default function SummaryCard({
       .join('\n');
     // 본문 마지막 줄에서 한 줄 띄우고 마케팅 훅.
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const hook = `Powered by 겟꿀. 유튜브 콘텐츠를 압축해 당신의 시간을 절약해드립니다. 지금 절약하러 가기 -> ${origin}/login`;
+    const hook = `Powered by 겟꿀\n유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드립니다\n\n지금 시간 절약하러 가기 -> ${origin}/login`;
     const text = `${header.join('\n')}\n\n${body}\n\n${hook}`;
     try {
       await navigator.clipboard.writeText(text);
@@ -229,17 +241,8 @@ export default function SummaryCard({
           </div>
         </div>
 
+        {/* 아이콘 순서: 원본 › 복사 › 공유 › 북마크 */}
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={copyBody}
-            aria-label="본문 복사"
-            title="본문 복사"
-            data-testid="copy-body"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <CopyIcon />
-          </button>
           <a
             href={url}
             target="_blank"
@@ -253,6 +256,16 @@ export default function SummaryCard({
           </a>
           <button
             type="button"
+            onClick={copyBody}
+            aria-label="본문 복사"
+            title="본문 복사"
+            data-testid="copy-body"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <CopyIcon />
+          </button>
+          <button
+            type="button"
             onClick={shareCard}
             aria-label="카드 공유"
             title="공유"
@@ -260,6 +273,19 @@ export default function SummaryCard({
             className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <ShareIcon />
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleBookmark(!bookmarked)}
+            aria-label="북마크"
+            aria-pressed={bookmarked}
+            title={bookmarked ? '북마크 해제' : '북마크'}
+            data-testid="bookmark"
+            className={`inline-flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-muted ${
+              bookmarked ? 'text-accent' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BookmarkIcon filled={bookmarked} />
           </button>
         </div>
       </div>

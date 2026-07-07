@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import HowToUse from '@/components/home/HowToUse';
+import IntroBanner from '@/components/home/IntroBanner';
 
 export interface HomeRecentItem {
   id: string;
@@ -70,16 +71,8 @@ export default function HomeDashboard({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. 서비스 소개 */}
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl leading-none">🍯</span>
-          <h1 className="text-2xl font-semibold tracking-tight">겟꿀</h1>
-        </div>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          구독한 유튜브 채널의 새 영상을 대신 보고, 핵심만 하루 세 번 정해진 시각에 보내드려요.
-        </p>
-      </div>
+      {/* 1. 서비스 소개 (끌 수 있는 배너) */}
+      <IntroBanner />
 
       {/* 2. 사용법 (접이식) */}
       <HowToUse />

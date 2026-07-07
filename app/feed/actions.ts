@@ -24,3 +24,26 @@ export async function setVideoLength(videoId: string, mode: string): Promise<voi
       { onConflict: 'user_id,video_id' },
     );
 }
+
+/**
+ * 다이제스트 북마크 토글. 있으면 삭제, 없으면 추가. RLS 로 본인 행만.
+ * 반환값은 토글 후 북마크 여부(클라이언트 낙관적 UI 확정용).
+ */
+export async function toggleBookmark(videoId: string, next: boolean): Promise<{ bookmarked: boolean }> {
+  if (!videoId) return { bookmarked: false };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  if (next) {
+    await supabase
+      .from('bookmarks')
+      .upsert({ user_id: user.id, video_id: videoId }, { onConflict: 'user_id,video_id' });
+  } else {
+    await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('video_id', videoId);
+  }
+  return { bookmarked: next };
+}

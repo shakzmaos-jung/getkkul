@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import DigestCalendar from '@/components/feed/DigestCalendar';
 import SummaryCard from '@/components/feed/SummaryCard';
 import ChannelFilter from '@/components/feed/ChannelFilter';
+import { TabCards } from '@/components/ui/TabCards';
+import { toggleBookmark } from '@/app/feed/actions';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -23,11 +25,15 @@ export type FeedItem = {
   dateKst: string;
   initialMode: LengthMode;
   summaries: Partial<Record<LengthMode, ModeSummary>>;
+  bookmarked: boolean;
 };
 
+type Tab = 'digest' | 'bookmark';
+
 /**
- * 캘린더(일자) + 채널 멀티체크로 다이제스트를 필터링. default 는 오늘·전체 채널.
- * 채널 선택이 바뀌면 캘린더 일자별 수도 선택 채널 기준으로 재집계된다.
+ * 상단 탭(다이제스트/북마크) + 캘린더(일자) + 채널 멀티체크로 다이제스트를 필터링.
+ * - 다이제스트 탭: 캘린더 선택일 + 채널 필터. (채널 필터는 캘린더 아래)
+ * - 북마크 탭: 북마크된 항목만(채널 필터 적용, 일자 무관).
  */
 export default function FeedContent({
   items,
@@ -42,8 +48,25 @@ export default function FeedContent({
   todayKst: string;
   initialDate?: string;
 }) {
+  const [tab, setTab] = useState<Tab>('digest');
   const [selected, setSelected] = useState(() => initialDate ?? todayKst);
   const [checked, setChecked] = useState<Set<string>>(() => new Set(channels.map((c) => c.id)));
+  const [bookmarks, setBookmarks] = useState<Set<string>>(
+    () => new Set(items.filter((i) => i.bookmarked).map((i) => i.id)),
+  );
+  const [, startTransition] = useTransition();
+
+  function onToggleBookmark(id: string, next: boolean) {
+    setBookmarks((prev) => {
+      const n = new Set(prev);
+      if (next) n.add(id);
+      else n.delete(id);
+      return n;
+    });
+    startTransition(() => {
+      void toggleBookmark(id, next);
+    });
+  }
 
   // 선택 채널 기준 일자별 다이제스트 수 재집계
   const countsByDate = useMemo(() => {
@@ -55,30 +78,49 @@ export default function FeedContent({
     return m;
   }, [digestDates, checked]);
 
-  const filtered = items.filter((it) => it.dateKst === selected && checked.has(it.channelId));
+  const list =
+    tab === 'digest'
+      ? items.filter((it) => it.dateKst === selected && checked.has(it.channelId))
+      : items.filter((it) => bookmarks.has(it.id) && checked.has(it.channelId));
 
   return (
     <>
-      <div className="mb-3">
+      <TabCards
+        ariaLabel="다이제스트 / 북마크"
+        className="mb-4"
+        active={tab}
+        onChange={(k) => setTab(k as Tab)}
+        tabs={[
+          { key: 'digest', title: '다이제스트' },
+          { key: 'bookmark', title: '북마크', count: bookmarks.size },
+        ]}
+      />
+
+      {tab === 'digest' && (
+        <div className="mb-3">
+          <DigestCalendar
+            todayKst={todayKst}
+            selected={selected}
+            onSelect={setSelected}
+            countsByDate={countsByDate}
+          />
+        </div>
+      )}
+
+      {/* 채널 필터: 캘린더 아래 배치 */}
+      <div className="mb-6">
         <ChannelFilter channels={channels} checked={checked} onChange={setChecked} />
       </div>
 
-      <div className="mb-6">
-        <DigestCalendar
-          todayKst={todayKst}
-          selected={selected}
-          onSelect={setSelected}
-          countsByDate={countsByDate}
-        />
-      </div>
-
-      {filtered.length === 0 ? (
+      {list.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">이 조건의 다이제스트가 없습니다.</p>
+          <p className="text-sm text-muted-foreground">
+            {tab === 'bookmark' ? '북마크한 다이제스트가 없습니다.' : '이 조건의 다이제스트가 없습니다.'}
+          </p>
         </div>
       ) : (
         <div data-testid="feed-list" className="flex flex-col gap-4">
-          {filtered.map((it) => (
+          {list.map((it) => (
             <SummaryCard
               key={it.id}
               videoId={it.id}
@@ -91,6 +133,8 @@ export default function FeedContent({
               durationSeconds={it.durationSeconds}
               initialMode={it.initialMode}
               summaries={it.summaries}
+              bookmarked={bookmarks.has(it.id)}
+              onToggleBookmark={(next) => onToggleBookmark(it.id, next)}
             />
           ))}
         </div>
