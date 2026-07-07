@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
+import ContentQA from '@/components/feed/ContentQA';
 import { setVideoLength } from '@/app/feed/actions';
 import type { LengthMode } from '@/lib/summary/format';
 
@@ -287,6 +288,7 @@ export default function SummaryCard({
           >
             <BookmarkIcon filled={bookmarked} />
           </button>
+          <ContentQA videoId={videoId} />
         </div>
       </div>
 

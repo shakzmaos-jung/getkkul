@@ -58,7 +58,7 @@ export default function SubscriptionRowActions({
 
   return (
     <div className="flex shrink-0 items-center gap-2">
-      {/* 일시정지 / 정지해제 */}
+      {/* 일시정지 / 정지해제 — 저장 중엔 텍스트 숨기고 스피너만(너비 고정으로 흔들림 방지) */}
       <Button
         type="button"
         variant="secondary"
@@ -66,9 +66,9 @@ export default function SubscriptionRowActions({
         disabled={pending}
         onClick={togglePause}
         data-testid="toggle-pause-subscription"
+        className="min-w-[72px]"
       >
-        {pending && <Spinner size={12} />}
-        {paused ? '정지해제' : '일시정지'}
+        {pending ? <Spinner size={14} /> : paused ? '정지해제' : '일시정지'}
       </Button>
 
       {/* 삭제(모달 확인) */}
