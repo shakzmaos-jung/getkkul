@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
+import { useToast } from '@/components/ui/ToastProvider';
 import { setVideoLength } from '@/app/feed/actions';
 import { formatDuration } from '@/lib/youtube/duration';
 import type { LengthMode } from '@/lib/summary/format';
@@ -28,6 +29,9 @@ const MODES: { mode: LengthMode; label: string }[] = [
   { mode: 'long', label: '길게' },
 ];
 
+// 한국어 평균 독서 속도(자/분). 압축 분량·압축률 산정 기준.
+const CHARS_PER_MIN = 500;
+
 /** 영상 업데이트 일시(published_at, UTC)를 KST yyyy-mm-dd hh:mm 으로. */
 function formatKstDateTime(iso: string | null): string {
   if (!iso) return '';
@@ -42,6 +46,32 @@ function formatKstDateTime(iso: string | null): string {
   }).format(new Date(iso));
 }
 
+/** published_at → KST yyyy-mm-dd (딥링크 date 파라미터용). */
+function kstDate(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date(iso));
+}
+
+function CopyIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+    </svg>
+  );
+}
+
 export default function SummaryCard({
   videoId,
   channelTitle,
@@ -54,6 +84,7 @@ export default function SummaryCard({
   initialMode,
   summaries,
 }: Props) {
+  const showToast = useToast();
   const duration = formatDuration(durationSeconds);
   const [mode, setMode] = useState<LengthMode>(initialMode);
   const [expanded, setExpanded] = useState(false);
@@ -64,6 +95,16 @@ export default function SummaryCard({
     summaries.short ??
     summaries.long ?? { coreText: '', bullets: [] };
   const hasBullets = shown.bullets.length > 0;
+  const hasBody = shown.coreText.length > 0 || hasBullets;
+
+  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 압축률.
+  const bodyPlain = [shown.coreText, ...shown.bullets].join(' ').replace(/\s+/g, '');
+  const readSeconds = bodyPlain.length > 0 ? (bodyPlain.length / CHARS_PER_MIN) * 60 : 0;
+  const readMinutes = Math.max(1, Math.round(readSeconds / 60));
+  const compressionPct =
+    durationSeconds && durationSeconds > 0 && readSeconds > 0
+      ? Math.max(0, Math.min(99, Math.round((1 - readSeconds / durationSeconds) * 100)))
+      : null;
 
   function pick(m: LengthMode) {
     if (m === mode) return;
@@ -72,63 +113,133 @@ export default function SummaryCard({
     startTransition(() => setVideoLength(videoId, m)); // 영상별·계정 저장(최신값)
   }
 
+  async function copyBody() {
+    const text = [shown.coreText, ...shown.bullets].filter(Boolean).join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* 클립보드 실패해도 토스트로 안내 */
+    }
+    showToast('본문이 복사되었습니다');
+  }
+
+  async function shareCard() {
+    const date = kstDate(publishedAt);
+    const path = `/feed${date ? `?date=${date}` : ''}#d-${videoId}`;
+    const link = typeof window !== 'undefined' ? `${window.location.origin}${path}` : path;
+    // 모바일이면 OS 공유 시트(카카오톡/문자 등)로 바로 전달, 아니면 복사 + 토스트.
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title, text: title, url: link });
+        return;
+      } catch {
+        return; // 사용자가 공유 시트를 닫음
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      /* noop */
+    }
+    showToast('링크가 복사되었습니다');
+  }
+
   return (
     <Card id={`d-${videoId}`} data-testid="summary-card" className="scroll-mt-20 p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {channelTitle && (
-            <div className="flex items-center gap-2">
-              <ChannelAvatar src={channelThumbnail} title={channelTitle} size={20} />
-              <div className="flex min-w-0 items-baseline gap-1.5">
-                <p data-testid="channel-label" className="truncate text-xs font-medium text-muted-foreground">
-                  {channelTitle}
-                </p>
-                {channelHandle && (
-                  <span className="truncate text-[11px] text-muted-foreground/60">
-                    {channelHandle}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-          <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight">{title}</h3>
-          {publishedAt && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              업데이트 {formatKstDateTime(publishedAt)}
-            </p>
-          )}
+      {/* 1행: 채널명·핸들 + (짧게/보통/길게 + 복사/공유). 세로 빈공간 방지(1열 정렬). */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {channelTitle && <ChannelAvatar src={channelThumbnail} title={channelTitle} size={20} />}
+          <div className="flex min-w-0 items-baseline gap-1.5">
+            {channelTitle && (
+              <p data-testid="channel-label" className="truncate text-xs font-medium text-muted-foreground">
+                {channelTitle}
+              </p>
+            )}
+            {channelHandle && (
+              <span className="truncate text-[11px] text-muted-foreground/60">{channelHandle}</span>
+            )}
+          </div>
         </div>
 
-        <div
-          role="group"
-          aria-label="요약 길이"
-          className="inline-flex shrink-0 rounded-lg border border-border bg-card p-0.5"
-        >
-          {MODES.map((o) => {
-            const active = o.mode === mode;
-            const disabled = !summaries[o.mode];
-            return (
-              <button
-                key={o.mode}
-                type="button"
-                disabled={disabled}
-                data-testid={`card-length-${o.mode}`}
-                onClick={() => pick(o.mode)}
-                className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-40 ${
-                  active
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {o.label}
-              </button>
-            );
-          })}
+        <div className="flex shrink-0 items-center gap-1">
+          <div
+            role="group"
+            aria-label="요약 길이"
+            className="inline-flex rounded-lg border border-border bg-card p-0.5"
+          >
+            {MODES.map((o) => {
+              const active = o.mode === mode;
+              const disabled = !summaries[o.mode];
+              return (
+                <button
+                  key={o.mode}
+                  type="button"
+                  disabled={disabled}
+                  data-testid={`card-length-${o.mode}`}
+                  onClick={() => pick(o.mode)}
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-40 ${
+                    active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={copyBody}
+            aria-label="본문 복사"
+            title="본문 복사"
+            data-testid="copy-body"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <CopyIcon />
+          </button>
+          <button
+            type="button"
+            onClick={shareCard}
+            aria-label="카드 공유"
+            title="공유"
+            data-testid="share-card"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ShareIcon />
+          </button>
         </div>
       </div>
 
+      {/* 제목 + 업데이트 */}
+      <h3 className="mt-3 text-[17px] font-semibold leading-snug tracking-tight">{title}</h3>
+      {publishedAt && (
+        <p className="mt-1 text-xs text-muted-foreground">업데이트 {formatKstDateTime(publishedAt)}</p>
+      )}
+
+      {/* 시간 절약 어필: 영상 길이 | 압축 분량 (압축률) */}
+      {(duration || hasBody) && (
+        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+          {duration && (
+            <span>
+              영상 길이 <span className="tabular-nums text-foreground/70">{duration}</span>
+            </span>
+          )}
+          {duration && hasBody && <span aria-hidden>|</span>}
+          {hasBody && (
+            <span>
+              압축 분량 <span className="tabular-nums text-foreground/70">{readMinutes}분</span>
+              {compressionPct !== null && (
+                <span className="ml-1 font-semibold text-accent" data-testid="compression-rate">
+                  (압축률 {compressionPct}%)
+                </span>
+              )}
+            </span>
+          )}
+        </p>
+      )}
+
       {hasBullets ? (
-        /* 본문/상세 영역을 탭하면 접기·펼치기 (요청: 메인 본문·상세 영역 터치 토글). */
+        /* 본문/상세 영역을 탭하면 접기·펼치기 (메인 본문·상세 영역 터치 토글). */
         <div
           role="button"
           tabIndex={0}
@@ -180,11 +291,6 @@ export default function SummaryCard({
         >
           원본 영상 <span aria-hidden>↗</span>
         </a>
-        {duration && (
-          <span className="text-xs tabular-nums text-muted-foreground/70" aria-label="영상 길이">
-            · {duration}
-          </span>
-        )}
       </div>
     </Card>
   );
