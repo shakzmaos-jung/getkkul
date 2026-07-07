@@ -590,6 +590,7 @@ export type Database = {
           activated_at: string | null
           channel_count: number
           created_at: string
+          referee_email: string | null
           referral_id: string
           status: Database["public"]["Enums"]["referral_status"]
           summary_count: number

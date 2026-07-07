@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -12,16 +11,8 @@ import PushSettings from '@/components/settings/PushSettings';
 import SkipEmptyForm from '@/components/settings/SkipEmptyForm';
 import SignOutButton from '@/components/auth/SignOutButton';
 import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
-import CreditLedgerCard from '@/components/settings/CreditLedgerCard';
-import ReferralStatusCard from '@/components/settings/ReferralStatusCard';
 import type { LengthMode } from '@/lib/summary/format';
 import { SLOT_CODES, type SlotCode } from '@/lib/time';
-import {
-  getOrCreateReferralCode,
-  getCreditLedger,
-  getReferralProgress,
-} from '@/lib/referral/queries';
-import { referralLink } from '@/lib/referral/code';
 
 /** 설정 (요약 길이 / 수신 이메일 / 발송 시각). */
 export default async function SettingsPage() {
@@ -56,19 +47,6 @@ export default async function SettingsPage() {
     email: setting?.skip_empty_email ?? true,
   };
 
-  // 친구추천 & 크레딧 (REQ-G). 코드/원장/진행률을 병렬 로드(RLS 본인 스코프).
-  // 공유 링크는 요청 오리진에서 절대 URL을 만든다(APP_BASE_URL 미설정 환경에서도 동작). 폴백=env.
-  const hdrs = await headers();
-  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host');
-  const proto = hdrs.get('x-forwarded-proto') ?? 'https';
-  const baseUrl = host ? `${proto}://${host}` : (process.env.APP_BASE_URL ?? '');
-  const [referralCode, ledger, referralProgress] = await Promise.all([
-    getOrCreateReferralCode(supabase, user.id),
-    getCreditLedger(supabase, user.id),
-    getReferralProgress(supabase),
-  ]);
-  const referralHref = referralLink(referralCode, baseUrl);
-
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
@@ -78,22 +56,6 @@ export default async function SettingsPage() {
         </header>
 
         <div className="flex flex-col gap-4">
-          <Card className="p-5">
-            <h2 className="mb-1 text-sm font-semibold">친구 초대</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              링크로 친구를 초대하고, 친구가 활성화하면 둘 다 크레딧을 받아요.
-            </p>
-            <ReferralStatusCard link={referralHref} rows={referralProgress} />
-          </Card>
-
-          <Card className="p-5">
-            <h2 className="mb-1 text-sm font-semibold">내 크레딧</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              적립·사용·만료 내역과 사용 가능한 잔액입니다.
-            </p>
-            <CreditLedgerCard ledger={ledger} />
-          </Card>
-
           <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">요약 길이</h2>
             <p className="mb-3 text-xs text-muted-foreground">

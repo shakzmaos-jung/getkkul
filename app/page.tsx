@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
+import ReferralBanner from '@/components/home/ReferralBanner';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { passesDurationFilters } from '@/lib/youtube/duration';
 import { KST_TIME_ZONE } from '@/lib/time';
@@ -91,6 +92,9 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
+        <div className="mb-6">
+          <ReferralBanner />
+        </div>
         <HomeDashboard
           subscriptionCount={subscriptionCount}
           todayDigestCount={todayDigestCount}

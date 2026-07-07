@@ -43,6 +43,17 @@
 9. **탈퇴 처리.** 삭제 전 `forfeit_user_credits` 로 본인 크레딧 소멸(AC-J1.1). `abuse_guard` 는 profiles FK 가 없어
    보존(AC-J1.2), 추천인 크레딧은 `credit_grants.source_referral_id ON DELETE SET NULL` 로 유지(AC-J1.3).
 
+## 후속 변경 (2026-07-08, 운영 피드백)
+
+- **가입 귀속을 `/auth/claim` 단일 지점으로(버그 수정).** 최초 구현은 OAuth 콜백(`/auth/callback`)에서만 귀속해,
+  **이메일 OTP 가입 경로는 콜백을 거치지 않아 referral 이 생성되지 않는 버그**가 있었다(프로덕션에서 referrals=0 확인).
+  → OAuth·OTP 두 경로 모두 로그인 직후 `/auth/claim`(route handler)로 모아 gk_ref 쿠키로 귀속·쿠키 정리한다.
+  OTP 는 `verifyOtp` 후 `window.location.assign('/auth/claim')`(하드 내비 — soft push 는 route handler 리디렉션에서 깨짐).
+- **추천 현황에 피추천인 이메일 노출(§G2.2 완화, 운영자 결정).** 신뢰 그룹 대상 서비스라 초대 목록에서
+  이메일 + 진행률(채널 x/3, 다이제스트 y/10) + 목표 달성률을 표시한다. "어떤 채널을 구독했는지" 등 상세 활동은 여전히 비노출.
+  `get_referral_progress()` 에 `referee_email` 추가. 친구가 가입하면 대기 상태로 **즉시** 목록에 나타난다(카운트 0부터).
+- **화면 이동.** 친구 초대·내 크레딧 카드를 설정에서 분리해 `/referral` 전용 화면으로 옮기고, 홈 최상단 배너로 진입.
+
 ## 영향
 
 - 마이그레이션 4건(원격 적용 완료): `referral_schema`, `referral_functions`(+out-col fix, exec lockdown),
