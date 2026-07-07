@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
+import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { KST_TIME_ZONE } from '@/lib/time';
 
 /**
@@ -21,12 +22,15 @@ export default async function Home() {
 
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('channel_id, channel_title')
+    .select('channel_id, channel_title, paused, active_since')
     .eq('user_id', user.id);
   const subsList = subs ?? [];
-  const subscriptionCount = subsList.length;
-  const channelIds = [...new Set(subsList.map((s) => s.channel_id))];
-  const titleById = new Map(subsList.map((s) => [s.channel_id, s.channel_title ?? '']));
+  const subscriptionCount = subsList.length; // 구독 수는 일시정지 포함 전체
+  // 다이제스트(오늘/누적/최근)는 일시정지 채널 제외 + 정지해제 기준선 이후만.
+  const activeSubs = subsList.filter((s) => !s.paused);
+  const sinceByChannel = activeSinceByChannel(activeSubs);
+  const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
+  const titleById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_title ?? '']));
 
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
   const kstShort = new Intl.DateTimeFormat('sv-SE', {
@@ -45,23 +49,18 @@ export default async function Home() {
   let recent: HomeRecentItem[] = [];
 
   if (channelIds.length > 0) {
-    // 최근 50개(오늘 집계·미리보기용)와 전체 누적 수(count)를 병렬 조회.
-    const [{ data: videos }, { count }] = await Promise.all([
-      supabase
-        .from('videos')
-        .select('id, title, url, channel_id, published_at')
-        .eq('status', 'done')
-        .in('channel_id', channelIds)
-        .order('published_at', { ascending: false })
-        .limit(50),
-      supabase
-        .from('videos')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'done')
-        .in('channel_id', channelIds),
-    ]);
-    totalDigestCount = count ?? 0;
-    const rows = videos ?? [];
+    // done 영상 전체를 조회한 뒤 기준선(active_since) 필터 → 누적/오늘/최근 집계.
+    // (기준선은 채널별이라 count 쿼리로 못 걸러 애플리케이션에서 필터·집계한다. 개인 규모라 부담 적음.)
+    const { data: videos } = await supabase
+      .from('videos')
+      .select('id, title, url, channel_id, published_at, created_at')
+      .eq('status', 'done')
+      .in('channel_id', channelIds)
+      .order('published_at', { ascending: false });
+    const rows = (videos ?? []).filter((v) =>
+      isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
+    );
+    totalDigestCount = rows.length;
     for (const v of rows) {
       if (v.published_at && kstDate.format(new Date(v.published_at)) === todayKst) {
         todayDigestCount++;

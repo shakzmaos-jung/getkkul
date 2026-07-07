@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
+import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -30,7 +31,7 @@ export default async function FeedPage({
   const [{ data: subs }, { data: setting }] = await Promise.all([
     supabase
       .from('subscriptions')
-      .select('channel_id, channel_title, channel_thumbnail, channel_handle')
+      .select('channel_id, channel_title, channel_thumbnail, channel_handle, paused, active_since')
       .eq('user_id', user.id),
     supabase
       .from('user_settings')
@@ -39,11 +40,14 @@ export default async function FeedPage({
       .maybeSingle(),
   ]);
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
-  const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
-  const channelTitleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
-  const channelThumbById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_thumbnail]));
-  const channelHandleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_handle]));
-  const channels = (subs ?? []).map((s) => ({
+  // 일시정지된 채널은 다이제스트에서 제외(피드·캘린더·채널필터 모두).
+  const activeSubs = (subs ?? []).filter((s) => !s.paused);
+  const sinceByChannel = activeSinceByChannel(activeSubs);
+  const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
+  const channelTitleById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_title ?? '']));
+  const channelThumbById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_thumbnail]));
+  const channelHandleById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_handle]));
+  const channels = activeSubs.map((s) => ({
     id: s.channel_id,
     title: s.channel_title ?? s.channel_id,
     thumbnail: s.channel_thumbnail,
@@ -61,11 +65,14 @@ export default async function FeedPage({
     const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
     const { data: doneVideos } = await supabase
       .from('videos')
-      .select('id, title, url, channel_id, published_at, duration_seconds')
+      .select('id, title, url, channel_id, published_at, duration_seconds, created_at')
       .eq('status', 'done')
       .in('channel_id', channelIds)
       .order('published_at', { ascending: false });
-    const doneRows = doneVideos ?? [];
+    // 정지해제 기준선(active_since) 이후 감지된 영상만 — 일시정지 동안 밀린 콘텐츠 제외.
+    const doneRows = (doneVideos ?? []).filter((v) =>
+      isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
+    );
     for (const r of doneRows) {
       if (!r.published_at) continue;
       digestDates.push({ c: r.channel_id, d: kstFmt.format(new Date(r.published_at)) });

@@ -5,7 +5,7 @@ import AppFooter from '@/components/layout/AppFooter';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
-import { removeSubscription } from './actions';
+import SubscriptionRowActions from '@/components/subscriptions/SubscriptionRowActions';
 
 /** 구독시작일시(created_at, UTC) 를 KST yyyy-mm-dd hh:mm 으로 표시(sv-SE=ISO 형식). */
 function formatSubscribedDateTime(iso: string): string {
@@ -32,7 +32,9 @@ export default async function SubscriptionsPage() {
 
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at')
+    .select(
+      'id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at, paused',
+    )
     .order('created_at', { ascending: false });
 
   const list = subs ?? [];
@@ -60,7 +62,7 @@ export default async function SubscriptionsPage() {
                 data-testid="subscription-item"
                 className="flex items-center justify-between gap-3 px-4 py-3"
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <div className={`flex min-w-0 items-center gap-3 ${s.paused ? 'opacity-50' : ''}`}>
                   <ChannelAvatar
                     src={s.channel_thumbnail}
                     title={s.channel_title ?? s.channel_id}
@@ -81,22 +83,22 @@ export default async function SubscriptionsPage() {
                           {s.channel_handle}
                         </span>
                       )}
+                      {s.paused && (
+                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          일시정지됨
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       구독시작일시 {formatSubscribedDateTime(s.created_at)}
                     </p>
                   </div>
                 </div>
-                <form action={removeSubscription}>
-                  <input type="hidden" name="id" value={s.id} />
-                  <button
-                    type="submit"
-                    data-testid="remove-subscription"
-                    className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-danger"
-                  >
-                    삭제
-                  </button>
-                </form>
+                <SubscriptionRowActions
+                  id={s.id}
+                  paused={s.paused}
+                  title={s.channel_title ?? s.channel_id}
+                />
               </div>
             ))}
           </Card>

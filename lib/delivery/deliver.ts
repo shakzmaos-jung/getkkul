@@ -1,5 +1,6 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { createNotifier } from '@/lib/notify/create-notifier';
+import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import type { Notifier } from '@/lib/notify/notify';
 import type { LengthMode } from '@/lib/summary/format';
 import type { SlotCode } from '@/lib/time';
@@ -113,18 +114,24 @@ async function candidateVideos(
 
   const { data: subs } = await supabase
     .from('subscriptions')
-    .select('channel_id')
-    .eq('user_id', userId);
-  const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
+    .select('channel_id, active_since')
+    .eq('user_id', userId)
+    .eq('paused', false); // 일시정지 채널은 발송에서 제외
+  const activeSubs = subs ?? [];
+  const sinceByChannel = activeSinceByChannel(activeSubs);
+  const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
   if (channelIds.length === 0) return [];
 
   const { data: videos } = await supabase
     .from('videos')
-    .select('id, title, url')
+    .select('id, title, url, channel_id, created_at')
     .eq('status', 'done')
     .in('channel_id', channelIds)
     .order('published_at', { ascending: true });
-  const videoRows = videos ?? [];
+  // 정지해제 기준선 이후 감지된 영상만 — 일시정지 동안 밀린 분이 한꺼번에 발송되지 않도록.
+  const videoRows = (videos ?? []).filter((v) =>
+    isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)),
+  );
   if (videoRows.length === 0) return [];
   const videoIds = videoRows.map((v) => v.id);
 
