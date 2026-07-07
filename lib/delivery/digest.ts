@@ -13,6 +13,7 @@ export interface DigestVideo {
   url: string;
   headline: string;
   coreText: string;
+  durationSeconds?: number | null;
 }
 
 export interface DigestSelection {

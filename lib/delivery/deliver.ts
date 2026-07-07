@@ -233,6 +233,7 @@ async function candidateVideos(
         url: v.url ?? '',
         headline: s.headline ?? v.title ?? '',
         coreText: s.core_text ?? '',
+        durationSeconds: v.duration_seconds,
       };
     });
 }

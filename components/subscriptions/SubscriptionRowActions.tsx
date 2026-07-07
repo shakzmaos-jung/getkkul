@@ -1,24 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { removeSubscription, setSubscriptionPause } from '@/app/subscriptions/actions';
 import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
+import { useToast } from '@/components/ui/ToastProvider';
 
 /**
  * 구독 행 액션: [일시정지/정지해제] [삭제].
- * - 일시정지/정지해제: 현재 상태의 반대값으로 서버 액션 제출.
+ * - 일시정지/정지해제: 버튼 내 스피너 → 완료 토스트 → 해당 상태 탭으로 이동(onPausedChange).
  * - 삭제: 확인 모달(삭제/취소). 배경 클릭·ESC 로 닫힘.
  */
 export default function SubscriptionRowActions({
   id,
   paused,
   title,
+  onPausedChange,
 }: {
   id: string;
   paused: boolean;
   title: string;
+  onPausedChange?: (nextPaused: boolean) => void;
 }) {
+  const router = useRouter();
+  const showToast = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (!confirmOpen) return;
@@ -29,21 +37,39 @@ export default function SubscriptionRowActions({
     return () => document.removeEventListener('keydown', onKey);
   }, [confirmOpen]);
 
+  async function togglePause() {
+    if (pending) return;
+    const next = !paused;
+    setPending(true);
+    try {
+      const fd = new FormData();
+      fd.set('id', id);
+      fd.set('paused', String(next));
+      await setSubscriptionPause(fd);
+      onPausedChange?.(next); // 해당 상태 탭으로 이동
+      showToast(next ? '일시정지되었습니다' : '정지 해제되었습니다');
+      router.refresh(); // 최신 목록 반영(항목이 다른 탭으로 이동)
+    } catch {
+      showToast('상태 변경에 실패했습니다');
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <div className="flex shrink-0 items-center gap-2">
       {/* 일시정지 / 정지해제 */}
-      <form action={setSubscriptionPause}>
-        <input type="hidden" name="id" value={id} />
-        <input type="hidden" name="paused" value={paused ? 'false' : 'true'} />
-        <Button
-          type="submit"
-          variant="secondary"
-          size="sm"
-          data-testid="toggle-pause-subscription"
-        >
-          {paused ? '정지해제' : '일시정지'}
-        </Button>
-      </form>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        disabled={pending}
+        onClick={togglePause}
+        data-testid="toggle-pause-subscription"
+      >
+        {pending && <Spinner size={12} />}
+        {paused ? '정지해제' : '일시정지'}
+      </Button>
 
       {/* 삭제(모달 확인) */}
       <Button

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import HowToUse from '@/components/home/HowToUse';
-import IntroBanner from '@/components/home/IntroBanner';
+import DismissibleBanner from '@/components/ui/DismissibleBanner';
 
 export interface HomeRecentItem {
   id: string;
@@ -72,7 +72,12 @@ export default function HomeDashboard({
   return (
     <div className="flex flex-col gap-6">
       {/* 1. 서비스 소개 (끌 수 있는 배너) */}
-      <IntroBanner />
+      <DismissibleBanner
+        storageKey="gk_intro_dismissed"
+        icon="🍯"
+        title="겟꿀"
+        description="겟꿀은 유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드리는 서비스입니다."
+      />
 
       {/* 2. 사용법 (접이식) */}
       <HowToUse />

@@ -104,6 +104,7 @@ export default function SubscriptionsList({ subs }: { subs: SubItem[] }) {
                 id={s.id}
                 paused={s.paused}
                 title={s.channel_title ?? s.channel_id}
+                onPausedChange={(next) => setTab(next ? 'paused' : 'active')}
               />
             </div>
           ))}

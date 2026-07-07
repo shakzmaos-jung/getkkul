@@ -153,8 +153,8 @@ export default function SummaryCard({
       : null;
   const readText = hms(ceil10(readSeconds)); // 압축 분량은 10초 단위 올림
 
-  // 복사/표시 공용 메타(플레인 텍스트). 압축률은 앞 파이프 없이 2칸 띄워 붙인다.
-  const metaBase = [duration && `영상 길이 ${duration}`, hasBody && `압축 분량 ${readText}`]
+  // 복사/표시 공용 메타(플레인 텍스트). 압축률은 앞 파이프 없이 띄워 붙인다.
+  const metaBase = [duration && `원본 영상 ${duration}`, hasBody && `읽는 시간 ${readText}`]
     .filter(Boolean)
     .join(' | ');
   const metaText =
@@ -332,17 +332,17 @@ export default function SummaryCard({
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           {duration && (
             <span>
-              영상 길이 <span className="tabular-nums text-foreground/70">{duration}</span>
+              원본 영상 <span className="tabular-nums text-foreground/70">{duration}</span>
             </span>
           )}
           {duration && hasBody && <span aria-hidden>|</span>}
           {hasBody && (
             <span>
-              압축 분량 <span className="tabular-nums text-foreground/70">{readText}</span>
+              읽는 시간 <span className="tabular-nums text-foreground/70">{readText}</span>
             </span>
           )}
           {compressionPct !== null && (
-            <span className="ml-2 font-semibold text-accent" data-testid="compression-rate">
+            <span className="ml-1 font-semibold text-accent" data-testid="compression-rate">
               (압축률 {compressionPct.toFixed(1)}%)
             </span>
           )}
