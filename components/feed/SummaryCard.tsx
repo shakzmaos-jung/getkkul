@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -29,15 +29,17 @@ const MODES: { mode: LengthMode; label: string }[] = [
   { mode: 'long', label: '길게' },
 ];
 
-// 한국어 평균 독서 속도(자/분). 압축 분량·절약 시간·압축률 산정 기준.
+// 한국어 평균 독서 속도(자/분). 압축 분량·압축률 산정 기준.
 const CHARS_PER_MIN = 500;
+// 길이 전환 시 인디케이터 이동 시간(ms). 이동 완료 후 본문 반영.
+const SLIDE_MS = 150;
 
 /** 초를 10초 단위로 올림(허용 초: 10/20/30/40/50, 최소 10초). 예 73초 → 80초. */
 function ceil10(sec: number): number {
   return Math.max(10, Math.ceil(sec / 10) * 10);
 }
 
-/** 초 → "N시간 N분 N초"(0 단위 생략). 압축 분량/절약 시간 표시용(10초 단위 올림). */
+/** 초 → "N시간 N분 N초"(0 단위 생략). 압축 분량 표시용(10초 단위 올림). */
 function humanizeSec(sec: number): string {
   const t = ceil10(sec);
   const h = Math.floor(t / 3600);
@@ -113,9 +115,15 @@ export default function SummaryCard({
 }: Props) {
   const showToast = useToast();
   const duration = formatDuration(durationSeconds);
-  const [mode, setMode] = useState<LengthMode>(initialMode);
+  const [mode, setMode] = useState<LengthMode>(initialMode); // 본문에 반영되는 길이
+  const [visual, setVisual] = useState<LengthMode>(initialMode); // 인디케이터/강조(즉시 이동)
   const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   const shown = summaries[mode] ??
     summaries.normal ??
@@ -124,36 +132,40 @@ export default function SummaryCard({
   const hasBullets = shown.bullets.length > 0;
   const hasBody = shown.coreText.length > 0 || hasBullets;
 
-  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 절약 시간·압축률.
+  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 압축률.
   const bodyPlain = [shown.coreText, ...shown.bullets].join(' ').replace(/\s+/g, '');
   const readSeconds = bodyPlain.length > 0 ? (bodyPlain.length / CHARS_PER_MIN) * 60 : 0;
-  const savedSeconds = durationSeconds ? Math.max(0, durationSeconds - readSeconds) : 0;
   const compressionPct =
     durationSeconds && durationSeconds > 0 && readSeconds > 0
-      ? Math.max(0, Math.min(99, Math.round((1 - readSeconds / durationSeconds) * 100)))
+      ? Math.max(0, Math.min(99.9, (1 - readSeconds / durationSeconds) * 100))
       : null;
   const readText = humanizeSec(readSeconds);
-  const savedText = humanizeSec(savedSeconds);
 
   // 복사/표시 공용 메타 한 줄(플레인 텍스트).
   const metaText = [
     duration && `영상 길이 ${duration}`,
     hasBody && `압축 분량 ${readText}`,
-    compressionPct !== null &&
-      `(${savedSeconds > 0 ? `절약 시간 ${savedText}, ` : ''}압축률 ${compressionPct}%)`,
+    compressionPct !== null && `(압축률 ${compressionPct.toFixed(1)}%)`,
   ]
     .filter(Boolean)
     .join(' | ');
 
+  const visualIndex = Math.max(0, MODES.findIndex((o) => o.mode === visual));
+
   function pick(m: LengthMode) {
-    if (m === mode) return;
-    setMode(m);
-    setExpanded(false);
-    startTransition(() => setVideoLength(videoId, m)); // 영상별·계정 저장(최신값)
+    if (m === visual) return;
+    setVisual(m); // 인디케이터 즉시 이동(0.15초 슬라이드)
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      // 이동 완료 후 본문 반영 + 저장.
+      setExpanded(false);
+      setMode(m);
+      startTransition(() => setVideoLength(videoId, m));
+    }, SLIDE_MS);
   }
 
   async function copyBody() {
-    // 상단 메타(채널·제목·업데이트·영상길이·압축분량·절약시간·압축률) + 빈 줄 + 표시 본문.
+    // 상단 메타(채널·제목·업데이트·영상길이·압축분량·압축률) + 빈 줄 + 표시 본문.
     const channelLine = channelTitle
       ? channelHandle
         ? `${channelTitle} ${channelHandle}`
@@ -200,9 +212,9 @@ export default function SummaryCard({
 
   return (
     <Card id={`d-${videoId}`} data-testid="summary-card" className="scroll-mt-20 p-5">
-      {/* 헤더: 채널정보(좌) + [복사·원본·공유 아이콘] 아래 길이 선택(우측 정렬). */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 pt-0.5">
+      {/* 헤더: 채널정보(좌) + 복사·원본·공유 아이콘(우) */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           {channelTitle && <ChannelAvatar src={channelThumbnail} title={channelTitle} size={20} />}
           <div className="flex min-w-0 items-baseline gap-1.5">
             {channelTitle && (
@@ -216,66 +228,70 @@ export default function SummaryCard({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={copyBody}
-              aria-label="본문 복사"
-              title="본문 복사"
-              data-testid="copy-body"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <CopyIcon />
-            </button>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="원본 영상"
-              title="원본 영상"
-              data-testid="original-video"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <ExternalLinkIcon />
-            </a>
-            <button
-              type="button"
-              onClick={shareCard}
-              aria-label="카드 공유"
-              title="공유"
-              data-testid="share-card"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <ShareIcon />
-            </button>
-          </div>
-
-          <div
-            role="group"
-            aria-label="요약 길이"
-            className="inline-flex rounded-lg border border-border bg-card p-0.5"
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={copyBody}
+            aria-label="본문 복사"
+            title="본문 복사"
+            data-testid="copy-body"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            {MODES.map((o) => {
-              const active = o.mode === mode;
-              const disabled = !summaries[o.mode];
-              return (
-                <button
-                  key={o.mode}
-                  type="button"
-                  disabled={disabled}
-                  data-testid={`card-length-${o.mode}`}
-                  onClick={() => pick(o.mode)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40 ${
-                    active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
+            <CopyIcon />
+          </button>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="원본 영상"
+            title="원본 영상"
+            data-testid="original-video"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ExternalLinkIcon />
+          </a>
+          <button
+            type="button"
+            onClick={shareCard}
+            aria-label="카드 공유"
+            title="공유"
+            data-testid="share-card"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ShareIcon />
+          </button>
         </div>
+      </div>
+
+      {/* 길이 선택: 카드 폭 전체 균등 3분할 + 슬라이드 인디케이터(0.15초) */}
+      <div
+        role="group"
+        aria-label="요약 길이"
+        className="relative mt-3 grid grid-cols-3 rounded-lg border border-border bg-card p-0.5"
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 rounded-md bg-foreground transition-transform duration-150 ease-out"
+          style={{ width: 'calc((100% - 0.25rem) / 3)', transform: `translateX(${visualIndex * 100}%)` }}
+        />
+        {MODES.map((o) => {
+          const active = o.mode === visual;
+          const disabled = !summaries[o.mode];
+          return (
+            <button
+              key={o.mode}
+              type="button"
+              disabled={disabled}
+              data-testid={`card-length-${o.mode}`}
+              onClick={() => pick(o.mode)}
+              className={`relative z-10 rounded-md py-1.5 text-xs font-medium transition-colors disabled:opacity-40 ${
+                active ? 'text-background' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* 제목 + 업데이트 */}
@@ -284,7 +300,7 @@ export default function SummaryCard({
         <p className="mt-1 text-xs text-muted-foreground">업데이트 {formatKstDateTime(publishedAt)}</p>
       )}
 
-      {/* 시간 절약 어필: 영상 길이 | 압축 분량 | (절약 시간, 압축률) */}
+      {/* 시간 절약 어필: 영상 길이 | 압축 분량 | (압축률) */}
       {(duration || hasBody) && (
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
           {duration && (
@@ -301,7 +317,7 @@ export default function SummaryCard({
           {compressionPct !== null && <span aria-hidden>|</span>}
           {compressionPct !== null && (
             <span className="font-semibold text-accent" data-testid="compression-rate">
-              ({savedSeconds > 0 ? `절약 시간 ${savedText}, ` : ''}압축률 {compressionPct}%)
+              (압축률 {compressionPct.toFixed(1)}%)
             </span>
           )}
         </p>
