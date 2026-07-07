@@ -1,4 +1,4 @@
-import { detectNewVideos } from '@/lib/pipeline/detect';
+import { detectNewVideos, type DetectResult } from '@/lib/pipeline/detect';
 import { acquireTranscripts, type AcquireResult } from '@/lib/pipeline/acquire';
 import { summarizePending } from '@/lib/pipeline/summarize-pending';
 import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
@@ -31,11 +31,38 @@ async function alertCookieExpiry(acq: AcquireResult, botBlocks: number) {
   }
 }
 
+/** RSS 감지가 다수 실패(데이터센터 IP 차단 404/429·쿠키만료)하면 운영자에게 알린다. */
+async function alertRssBlocked(det: DetectResult) {
+  const to = process.env.OPERATOR_ALERT_EMAIL || process.env.GMAIL_USER;
+  if (!to) {
+    console.warn('[alert] 운영자 이메일 미설정 — RSS 차단 알림 생략');
+    return;
+  }
+  try {
+    await createNotifier().send(
+      { email: to },
+      {
+        subject: '⚠️ 겟꿀: RSS 감지 차단 의심 — 신규 콘텐츠 미갱신',
+        text: `유튜브 RSS 폴링이 다수 실패했습니다 (${det.rssFailures}/${det.channels} 채널 실패, 신규 감지 0).\n\n데이터센터 IP 차단(404/429) 또는 쿠키 만료 가능성입니다. GitHub 시크릿 YOUTUBE_COOKIES 갱신을 확인하고, 지속되면 residential 실행환경 전환을 검토해 주세요.`,
+        html: `<div style="font-family:sans-serif"><p><b>겟꿀 파이프라인 알림</b></p><p>유튜브 <b>RSS 감지가 차단</b>돼 신규 콘텐츠가 갱신되지 않고 있습니다. (${det.rssFailures}/${det.channels} 채널 실패 · 신규 감지 0)</p><p>데이터센터 IP 차단(404/429) 또는 쿠키 만료 가능성. <code>YOUTUBE_COOKIES</code> 갱신 확인, 지속 시 residential 실행환경 검토.</p></div>`,
+      },
+    );
+    console.log(`[alert] RSS 차단 알림 발송 → ${to}`);
+  } catch (e) {
+    console.warn(`[alert] 발송 실패: ${(e as Error).message}`);
+  }
+}
+
 async function main() {
   console.log('[pipeline] start');
 
   const det = await detectNewVideos();
-  console.log(`[detect] channels=${det.channels} registered=${det.registered}`);
+  console.log(`[detect] channels=${det.channels} registered=${det.registered} rssFailures=${det.rssFailures}`);
+
+  // RSS 절반 이상 실패 + 신규 감지 0 이면 IP 차단/쿠키만료로 보고 알림(일부 일시적 404 는 무시).
+  if (det.channels > 0 && det.rssFailures >= Math.ceil(det.channels * 0.5) && det.registered === 0) {
+    await alertRssBlocked(det);
+  }
 
   const acq = await acquireTranscripts();
   console.log(`[acquire] processed=${acq.processed} done=${acq.done} failed=${acq.failed}`);

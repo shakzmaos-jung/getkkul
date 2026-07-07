@@ -15,6 +15,7 @@ const RSS_UA =
 export interface DetectResult {
   channels: number;
   registered: number;
+  rssFailures: number; // RSS 요청 실패(404/429/네트워크) 채널 수 — IP 차단·쿠키만료 감지용
 }
 
 export async function detectNewVideos(
@@ -28,6 +29,7 @@ export async function detectNewVideos(
 
   const channelIds = [...new Set((subs ?? []).map((s) => s.channel_id))];
   let registered = 0;
+  let rssFailures = 0;
   const insertedIds: string[] = [];
 
   // 로그인 쿠키를 RSS 요청에 붙인다(IP 차단 우회 시도). 파일 없으면 UA 만.
@@ -41,6 +43,7 @@ export async function detectNewVideos(
       const res = await fetchFn(channelFeedUrl(channelId), { headers: rssHeaders });
       if (!res.ok) {
         console.warn(`[detect] RSS ${channelId} → ${res.status}`);
+        rssFailures++;
         continue;
       }
       const feed = parseChannelFeed(await res.text());
@@ -68,6 +71,7 @@ export async function detectNewVideos(
       for (const r of inserted ?? []) insertedIds.push(r.video_id);
     } catch (e) {
       console.warn(`[detect] ${channelId} 실패: ${(e as Error).message}`);
+      rssFailures++;
     }
   }
 
@@ -84,5 +88,5 @@ export async function detectNewVideos(
     }
   }
 
-  return { channels: channelIds.length, registered };
+  return { channels: channelIds.length, registered, rssFailures };
 }
