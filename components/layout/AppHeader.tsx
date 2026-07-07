@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import InstallButton from '@/components/pwa/InstallButton';
+import ShareButton from '@/components/pwa/ShareButton';
 
 function NavLink({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -28,6 +29,7 @@ export default function AppHeader() {
           <span className="mx-1 h-4 w-px bg-border" aria-hidden />
           <ThemeToggle />
           <InstallButton />
+          <ShareButton />
         </nav>
       </div>
     </header>

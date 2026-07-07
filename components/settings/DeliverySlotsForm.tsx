@@ -18,7 +18,7 @@ export default function DeliverySlotsForm({ current }: { current: SlotCode[] }) 
         {SLOT_CODES.map((code, i) => (
           <label
             key={code}
-            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted"
+            className="flex cursor-pointer items-center justify-center rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
           >
             <input
               type="checkbox"
@@ -27,7 +27,7 @@ export default function DeliverySlotsForm({ current }: { current: SlotCode[] }) 
               defaultChecked={checked.has(code)}
               onChange={(e) => e.currentTarget.form?.requestSubmit()}
               data-testid={`slot-${code}`}
-              className="accent-foreground"
+              className="sr-only"
             />
             <span className="text-sm font-medium">{SEND_SLOTS_KST[i]}</span>
           </label>

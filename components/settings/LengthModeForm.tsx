@@ -27,21 +27,19 @@ export default function LengthModeForm({ current }: { current: LengthMode }) {
         {(Object.keys(LABELS) as LengthMode[]).map((mode) => (
           <label
             key={mode}
-            className="flex cursor-pointer flex-col gap-1 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted"
+            className="flex cursor-pointer flex-col gap-1 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
           >
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <input
-                type="radio"
-                name="summary_length"
-                value={mode}
-                defaultChecked={current === mode}
-                onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                data-testid={`length-${mode}`}
-                className="accent-foreground"
-              />
-              {LABELS[mode]}
-            </span>
-            <span className="pl-6 text-xs text-muted-foreground">{DESC[mode]}</span>
+            <input
+              type="radio"
+              name="summary_length"
+              value={mode}
+              defaultChecked={current === mode}
+              onChange={(e) => e.currentTarget.form?.requestSubmit()}
+              data-testid={`length-${mode}`}
+              className="sr-only"
+            />
+            <span className="text-sm font-medium">{LABELS[mode]}</span>
+            <span className="text-xs text-muted-foreground">{DESC[mode]}</span>
           </label>
         ))}
       </div>

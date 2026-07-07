@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { AutoSaveStatus } from '@/components/settings/AutoSaveStatus';
 import { detectOS, isStandaloneNow, canSubscribePush, type OS } from '@/lib/pwa/platform';
 import { subscribeToPush, getExistingSubscription, unsubscribeFromPush } from '@/lib/pwa/push-client';
+import { InstallIcon } from '@/components/pwa/InstallIcon';
 
 const initial: SettingsState = {};
 
@@ -96,8 +97,9 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
           <p className="text-xs text-muted-foreground">확인 중…</p>
         ) : env.os === 'ios' && !env.standalone ? (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            iPhone/iPad는 먼저 <b className="text-foreground">홈 화면에 추가</b>(상단 &quot;앱 설치&quot;
-            → iPhone 안내)한 뒤, 홈 화면 아이콘으로 열면 푸시를 켤 수 있어요.
+            iPhone/iPad는 먼저 <b className="text-foreground">홈 화면에 추가</b>(상단{' '}
+            <InstallIcon size={13} className="inline-block align-text-bottom text-foreground" /> →
+            iPhone 안내)한 뒤, 홈 화면 아이콘으로 열면 푸시를 켤 수 있어요.
           </p>
         ) : !canPush ? (
           <p className="text-xs text-muted-foreground">이 브라우저는 웹 푸시를 지원하지 않습니다.</p>
@@ -137,9 +139,9 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
           ).map(([name, label, checked]) => (
             <label
               key={name}
-              className={`flex items-center gap-2 rounded-lg border border-border p-3 ${
+              className={`flex items-center justify-center rounded-lg border border-border p-3 ${
                 subscribed
-                  ? 'cursor-pointer transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted'
+                  ? 'cursor-pointer transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10'
                   : 'cursor-not-allowed opacity-50'
               }`}
             >
@@ -150,7 +152,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
                 disabled={!subscribed}
                 onChange={(e) => e.currentTarget.form?.requestSubmit()}
                 data-testid={`slot-${name}`}
-                className="accent-foreground"
+                className="sr-only"
               />
               <span className="text-sm font-medium">{label}</span>
             </label>
@@ -164,25 +166,25 @@ export default function PushSettings({ vapidPublicKey, pushSlots, skip }: Props)
       {/* 3) 빈 슬롯 생략(REQ-D2) */}
       <form action={skipAction} className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">새 소식 없을 때</p>
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
           <input
             type="checkbox"
             name="skip_empty_push"
             defaultChecked={skip.push}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
             data-testid="skip-empty-push"
-            className="accent-foreground"
+            className="sr-only"
           />
           <span className="text-sm font-medium">새 항목 없으면 푸시 생략</span>
         </label>
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-foreground has-[:checked]:bg-muted">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
           <input
             type="checkbox"
             name="skip_empty_email"
             defaultChecked={skip.email}
             onChange={(e) => e.currentTarget.form?.requestSubmit()}
             data-testid="skip-empty-email"
-            className="accent-foreground"
+            className="sr-only"
           />
           <span className="text-sm font-medium">새 항목 없으면 이메일 생략</span>
         </label>

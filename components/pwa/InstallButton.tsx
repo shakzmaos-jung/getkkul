@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { detectOS, isStandaloneNow, type OS } from '@/lib/pwa/platform';
+import { InstallIcon } from '@/components/pwa/InstallIcon';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -39,13 +40,9 @@ export default function InstallButton() {
         data-testid="install-app"
         aria-label="앱 설치"
         title="앱 설치"
-        className="inline-flex items-center justify-center rounded-lg bg-accent/15 p-1.5 text-accent ring-1 ring-accent/40 transition-colors hover:bg-accent/25"
+        className="inline-flex items-center justify-center rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M12 3v12" />
-          <path d="m7 10 5 5 5-5" />
-          <path d="M5 21h14" />
-        </svg>
+        <InstallIcon size={18} />
       </button>
       {open &&
         typeof document !== 'undefined' &&
@@ -115,14 +112,16 @@ function InstallDialog({
           {tab === 'android' ? (
             deferred ? (
               <div className="flex flex-col gap-3">
-                <p className="text-muted-foreground">아래 버튼으로 홈 화면에 설치하세요.</p>
+                <p className="text-muted-foreground">
+                  아래 버튼을 누르면 앱이 홈 화면(바탕화면)에 설치됩니다.
+                </p>
                 <button
                   type="button"
                   onClick={androidInstall}
                   data-testid="android-install"
                   className="h-10 rounded-lg bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
                 >
-                  설치하기
+                  다운로드하기
                 </button>
               </div>
             ) : (
