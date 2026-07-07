@@ -3,9 +3,9 @@ import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
-import { Card } from '@/components/ui/Card';
 import CreditLedgerCard from '@/components/settings/CreditLedgerCard';
 import ReferralStatusCard from '@/components/settings/ReferralStatusCard';
+import ReferralTabs from '@/components/settings/ReferralTabs';
 import {
   getOrCreateReferralCode,
   getCreditLedger,
@@ -34,6 +34,8 @@ export default async function ReferralPage() {
     getReferralProgress(supabase),
   ]);
   const referralHref = referralLink(referralCode, baseUrl);
+  const inviteCount = referralProgress.filter((r) => r.status !== 'void').length; // 초대한 친구 수
+  const grantCount = ledger.grantCount; // 지급받은 크레딧 건수
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -46,23 +48,13 @@ export default async function ReferralPage() {
           </p>
         </header>
 
-        <div className="flex flex-col gap-4">
-          <Card className="p-5">
-            <h2 className="mb-1 text-sm font-semibold">내 크레딧</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              적립·사용·만료 내역과 사용 가능한 잔액입니다.
-            </p>
-            <CreditLedgerCard ledger={ledger} />
-          </Card>
-
-          <Card className="p-5">
-            <h2 className="mb-1 text-sm font-semibold">친구 초대</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              링크로 친구를 초대하고, 친구가 활성화하면 둘 다 크레딧을 받아요.
-            </p>
-            <ReferralStatusCard link={referralHref} rows={referralProgress} />
-          </Card>
-        </div>
+        {/* 좌: 친구 초대(기본), 우: 내 크레딧 — 탭 카드로 분리 */}
+        <ReferralTabs
+          inviteCount={inviteCount}
+          grantCount={grantCount}
+          invite={<ReferralStatusCard link={referralHref} rows={referralProgress} />}
+          credit={<CreditLedgerCard ledger={ledger} />}
+        />
       </main>
       <AppFooter />
     </div>
