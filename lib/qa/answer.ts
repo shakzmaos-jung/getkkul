@@ -14,6 +14,8 @@ const MAX_COMPLETION_TOKENS = 4096;
 export const MAX_QUESTION_LEN = 200;
 /** 맥락 최대 글자수(토큰·비용 상한). */
 export const MAX_CONTEXT_LEN = 12000;
+/** 추출 용어 칩 최대 개수. */
+export const MAX_TERMS = 6;
 
 export interface QAAnswer {
   short: string; // 80자 내외
@@ -89,4 +91,54 @@ export async function answerAboutContent(
     normal: parsed.normal ?? '',
     long: parsed.long ?? '',
   };
+}
+
+const TERMS_SCHEMA = {
+  type: 'object',
+  properties: { terms: { type: 'array', items: { type: 'string' } } },
+  required: ['terms'],
+  additionalProperties: false,
+} as const;
+
+/**
+ * 콘텐츠에서 일반인이 이해하기 어려운 전문용어·핵심 단어를 추출한다(칩 후보).
+ * 어려운 단어가 없으면 빈 배열. 실패해도 빈 배열(칩 없이 진행).
+ */
+export async function extractTerms(
+  input: { context: string },
+  deps: { client?: OpenAI } = {},
+): Promise<string[]> {
+  const client = deps.client ?? new OpenAI();
+  const res = await client.chat.completions.create({
+    model: MODEL,
+    max_completion_tokens: 1024,
+    reasoning_effort: REASONING_EFFORT,
+    messages: [
+      {
+        role: 'system',
+        content: [
+          `다음 콘텐츠에서 일반인이 이해하기 어려운 전문용어·핵심 어려운 단어를 최대 ${MAX_TERMS}개 뽑아라.`,
+          '콘텐츠에 실제로 등장한 용어만 고른다. 어려운 단어가 없으면 빈 배열.',
+          '각 항목은 짧은 명사(단어/구)로, 한국어 표기로.',
+        ].join('\n'),
+      },
+      { role: 'user', content: input.context },
+    ],
+    response_format: {
+      type: 'json_schema',
+      json_schema: { name: 'terms', strict: true, schema: TERMS_SCHEMA },
+    },
+  });
+  const content = res.choices[0]?.message?.content;
+  if (!content) return [];
+  try {
+    const parsed = JSON.parse(content) as { terms?: unknown };
+    const arr = Array.isArray(parsed.terms) ? parsed.terms : [];
+    return arr
+      .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+      .map((t) => t.trim())
+      .slice(0, MAX_TERMS);
+  } catch {
+    return [];
+  }
 }
