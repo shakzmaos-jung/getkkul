@@ -51,6 +51,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YTDLP_COOKIES_FILE: /tmp/yt-cookies.txt
           # 쿠키 만료 알림용(운영자 이메일 = GMAIL_USER, 발송도 Gmail)
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
