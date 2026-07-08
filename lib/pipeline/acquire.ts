@@ -25,17 +25,24 @@ export async function acquireTranscripts(
   } = {},
 ): Promise<AcquireResult> {
   const supabase = deps.supabase ?? createPipelineClient();
-  const limit = deps.limit ?? 40;
+  const limit = deps.limit ?? 100;
   const baseMs = deps.baseMs ?? 1000;
   const run =
     deps.fetchContentFn ??
     ((v: VideoRef) => fetchContent(v, { getCaption: ytdlpCaption, transcribeAudio: whisperAudio }));
 
+  // 이전 런이 타임아웃/중단으로 남긴 'processing' 을 회복한다(다시 pending 으로).
+  // 워크플로 concurrency group(cancel-in-progress:false)로 런이 겹치지 않으므로,
+  // 이 시점에 남은 processing 은 모두 지난 런의 미완료분 → 안전하게 재시도 대상으로 되돌린다.
+  await supabase.from('videos').update({ status: 'pending' }).eq('status', 'processing');
+
   const { data: pending, error } = await supabase
     .from('videos')
     .select('id, video_id, url')
     .eq('status', 'pending')
-    .order('published_at', { ascending: true, nullsFirst: true }) // 오래된 것부터(결정적)
+    // 최신 영상 우선(사용자가 곧바로 보는 것). 폭주(감지 스케줄 지연)로 백로그가 쌓여도
+    // 오늘 올라온 콘텐츠가 오래된 백로그 뒤에서 굶지 않도록 한다.
+    .order('published_at', { ascending: false, nullsFirst: false })
     .limit(limit);
   if (error) throw new Error(`pending 조회 실패: ${error.message}`);
 
