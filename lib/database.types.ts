@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      abuse_guard: {
+        Row: {
+          created_at: string
+          device_fingerprints: string[]
+          email_hash: string
+          id: string
+          payment_fingerprints: string[]
+          rewarded_before: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprints?: string[]
+          email_hash: string
+          id?: string
+          payment_fingerprints?: string[]
+          rewarded_before?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprints?: string[]
+          email_hash?: string
+          id?: string
+          payment_fingerprints?: string[]
+          rewarded_before?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -75,36 +105,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      abuse_guard: {
-        Row: {
-          created_at: string
-          device_fingerprints: string[]
-          email_hash: string
-          id: string
-          payment_fingerprints: string[]
-          rewarded_before: boolean
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          device_fingerprints?: string[]
-          email_hash: string
-          id?: string
-          payment_fingerprints?: string[]
-          rewarded_before?: boolean
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          device_fingerprints?: string[]
-          email_hash?: string
-          id?: string
-          payment_fingerprints?: string[]
-          rewarded_before?: boolean
-          updated_at?: string
-        }
-        Relationships: []
       }
       credit_grants: {
         Row: {
@@ -249,6 +249,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_runs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          kind: string
+          ok: boolean
+          started_at: string
+          stats: Json | null
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          kind: string
+          ok?: boolean
+          started_at: string
+          stats?: Json | null
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          ok?: boolean
+          started_at?: string
+          stats?: Json | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -594,8 +624,12 @@ export type Database = {
           channel_id: string
           created_at: string
           duration_seconds: number | null
+          failure_kind: Database["public"]["Enums"]["failure_kind"] | null
           id: string
+          last_error: string | null
+          next_retry_at: string | null
           published_at: string | null
+          retry_count: number
           status: Database["public"]["Enums"]["video_status"]
           title: string | null
           transcript: string | null
@@ -607,8 +641,12 @@ export type Database = {
           channel_id: string
           created_at?: string
           duration_seconds?: number | null
+          failure_kind?: Database["public"]["Enums"]["failure_kind"] | null
           id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
           published_at?: string | null
+          retry_count?: number
           status?: Database["public"]["Enums"]["video_status"]
           title?: string | null
           transcript?: string | null
@@ -620,8 +658,12 @@ export type Database = {
           channel_id?: string
           created_at?: string
           duration_seconds?: number | null
+          failure_kind?: Database["public"]["Enums"]["failure_kind"] | null
           id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
           published_at?: string | null
+          retry_count?: number
           status?: Database["public"]["Enums"]["video_status"]
           title?: string | null
           transcript?: string | null
@@ -648,24 +690,27 @@ export type Database = {
       forfeit_user_credits: { Args: { p_user: string }; Returns: number }
       get_digest_summary: {
         Args: never
-        Returns: { today_count: number; total_count: number }[]
+        Returns: {
+          today_count: number
+          total_count: number
+        }[]
       }
       get_recent_digests: {
         Args: { p_limit?: number }
         Returns: {
-          id: string
           channel_id: string
-          title: string | null
-          published_at: string | null
+          id: string
+          published_at: string
+          title: string
         }[]
       }
       get_referral_progress: {
         Args: never
         Returns: {
-          activated_at: string | null
+          activated_at: string
           channel_count: number
           created_at: string
-          referee_email: string | null
+          referee_email: string
           referral_id: string
           status: Database["public"]["Enums"]["referral_status"]
           summary_count: number
@@ -683,6 +728,7 @@ export type Database = {
       delivery_channel: "email" | "push"
       delivery_slot: "0730" | "1130" | "1730"
       delivery_status: "pending" | "sent" | "failed"
+      failure_kind: "transient" | "permanent"
       referral_status: "pending" | "activated" | "void"
       summary_language: "ko" | "en"
       summary_length: "short" | "normal" | "long"
@@ -821,6 +867,7 @@ export const Constants = {
       delivery_channel: ["email", "push"],
       delivery_slot: ["0730", "1130", "1730"],
       delivery_status: ["pending", "sent", "failed"],
+      failure_kind: ["transient", "permanent"],
       referral_status: ["pending", "activated", "void"],
       summary_language: ["ko", "en"],
       summary_length: ["short", "normal", "long"],
