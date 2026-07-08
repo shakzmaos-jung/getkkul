@@ -271,7 +271,8 @@ export default function ContentQA({ videoId }: { videoId: string }) {
                       autoFocus
                       placeholder="이 콘텐츠에 대해 궁금한 점을 입력하세요."
                       data-testid="qa-input"
-                      className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 pb-7 text-sm outline-none focus:border-foreground/40"
+                      /* 폰트 16px 이상: iOS 가 인풋 포커스 시 화면을 자동 확대(줌인)하는 것을 방지 */
+                      className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 pb-7 text-base outline-none focus:border-foreground/40"
                     />
                     <span className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">
                       {question.length}/{MAX_QUESTION_LEN}
