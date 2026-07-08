@@ -18,7 +18,7 @@ export async function summarizePending(
   deps: { supabase?: SupabaseClient; limit?: number } = {},
 ): Promise<SummarizeResult> {
   const supabase = deps.supabase ?? createPipelineClient();
-  const limit = deps.limit ?? 50;
+  const limit = deps.limit ?? 100;
 
   // done 영상 전체(최신순)와 이미 있는 ko 요약(video_id, mode)을 조회.
   // duration >= 60초만 요약 대상. NULL(라이브/예정/미취득)·1분 미만(Shorts)은 제외.
