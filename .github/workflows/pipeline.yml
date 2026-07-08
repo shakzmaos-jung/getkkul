@@ -1,9 +1,11 @@
 name: pipeline
 
-# 감지 → 전사 파이프라인 (ADR-0004). 30분 스케줄 + 수동 실행.
+# 감지 → 전사 파이프라인 (ADR-0004).
+# 주 트리거는 Supabase pg_cron(dispatch_pipeline, 20분 :07/:27/:47) → workflow_dispatch.
+# GitHub 자체 크론은 지연·드롭이 잦아 백업으로만 매시 :37에 돈다(pg_cron/PAT 장애 대비).
 on:
   schedule:
-    - cron: '*/30 * * * *' # AC-C1.3 (UTC; best-effort)
+    - cron: '37 * * * *' # 백업(UTC; best-effort). 주 트리거는 pg_cron.
   workflow_dispatch:
 
 # 동시 실행 방지 (겹치는 폴링으로 중복 처리 방지)
