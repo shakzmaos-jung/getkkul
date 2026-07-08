@@ -2,7 +2,16 @@ import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { fetchContent, type FetchedContent, type VideoRef } from '@/lib/pipeline/fetch-content';
 import { withRetry } from '@/lib/pipeline/retry';
 import { ytdlpCaption, whisperAudio } from '@/lib/pipeline/youtube-content';
+import { supadataCaption } from '@/lib/pipeline/supadata';
 import { planFailure } from '@/lib/pipeline/retry-policy';
+
+/**
+ * 자막 획득 티어(REQ-C): yt-dlp 자막(무료·주경로) → 실패 시 Supadata 관리형 API(폴백, 키 있을 때만).
+ * 둘 다 실패하면 fetchContent 가 오디오 STT(Whisper)로 넘어간다. 격리 유지(source 는 'caption').
+ */
+async function captionWithFallback(v: VideoRef): Promise<string | null> {
+  return (await ytdlpCaption(v)) ?? (await supadataCaption(v));
+}
 
 /**
  * pending 영상의 전사 확보 (SSR REQ-C2, pipeline-reliability REQ-B).
@@ -35,7 +44,8 @@ export async function acquireTranscripts(
   const nowIso = deps.nowIso ?? new Date().toISOString();
   const run =
     deps.fetchContentFn ??
-    ((v: VideoRef) => fetchContent(v, { getCaption: ytdlpCaption, transcribeAudio: whisperAudio }));
+    ((v: VideoRef) =>
+      fetchContent(v, { getCaption: captionWithFallback, transcribeAudio: whisperAudio }));
 
   // 이전 런이 타임아웃/중단으로 남긴 'processing' 을 회복한다(다시 pending 으로).
   // 워크플로 concurrency group(cancel-in-progress:false)로 런이 겹치지 않으므로,
