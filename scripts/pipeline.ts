@@ -4,6 +4,9 @@ import { summarizePending } from '@/lib/pipeline/summarize-pending';
 import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
 import { getBotBlockCount } from '@/lib/pipeline/youtube-content';
 import { createNotifier } from '@/lib/notify/create-notifier';
+import { createPipelineClient } from '@/lib/pipeline/supabase';
+import { recordRun, recordPipelineRun } from '@/lib/pipeline/observability';
+import type { Json } from '@/lib/database.types';
 
 /**
  * 처리 파이프라인 진입점 (ADR-0004, GitHub Actions 30분 스케줄).
@@ -55,34 +58,44 @@ async function alertDetectFailure(det: DetectResult) {
 
 async function main() {
   console.log('[pipeline] start');
+  const supabase = createPipelineClient();
+  const pipelineStarted = new Date().toISOString();
 
-  const det = await detectNewVideos();
-  console.log(
-    `[detect] channels=${det.channels} registered=${det.registered} detectFailures=${det.detectFailures}`,
-  );
+  try {
+    const det = await recordRun(supabase, 'detect', () => detectNewVideos());
+    console.log(
+      `[detect] channels=${det.channels} registered=${det.registered} detectFailures=${det.detectFailures}`,
+    );
 
-  // RSS·API 폴백 둘 다 실패한 채널이 하나라도 있으면 알림(감지 이중화가 뚫린 것 = 누락 위험).
-  if (det.detectFailures > 0) {
-    await alertDetectFailure(det);
+    // RSS·API 폴백 둘 다 실패한 채널이 하나라도 있으면 알림(감지 이중화가 뚫린 것 = 누락 위험).
+    if (det.detectFailures > 0) {
+      await alertDetectFailure(det);
+    }
+
+    const acq = await recordRun(supabase, 'acquire', () => acquireTranscripts());
+    console.log(
+      `[acquire] processed=${acq.processed} done=${acq.done} failed=${acq.failed} rescheduled=${acq.rescheduled}`,
+    );
+
+    // 봇차단이 다수(≈영상 1개 이상, 재시도 포함)이고 성공이 0이면 쿠키 만료로 보고 알림
+    const botBlocks = getBotBlockCount();
+    if (botBlocks >= 5 && acq.done === 0) {
+      await alertCookieExpiry(acq, botBlocks);
+    }
+
+    // 요약 앞에서 duration 을 먼저 채운다 → 정식 영상은 길이 확보, 남은 NULL(라이브/예정/삭제)만 요약 제외.
+    const dur = await recordRun(supabase, 'duration', () => fillMissingDurations());
+    console.log(`[duration] filled=${dur.filled}/${dur.targets}`);
+
+    const sum = await recordRun(supabase, 'summarize', () => summarizePending());
+    console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
+
+    await recordPipelineRun(supabase, pipelineStarted, { det, acq, dur, sum } as unknown as Json, true);
+    console.log('[pipeline] done');
+  } catch (e) {
+    await recordPipelineRun(supabase, pipelineStarted, { error: (e as Error).message } as Json, false);
+    throw e;
   }
-
-  const acq = await acquireTranscripts();
-  console.log(`[acquire] processed=${acq.processed} done=${acq.done} failed=${acq.failed}`);
-
-  // 봇차단이 다수(≈영상 1개 이상, 재시도 포함)이고 성공이 0이면 쿠키 만료로 보고 알림
-  const botBlocks = getBotBlockCount();
-  if (botBlocks >= 5 && acq.done === 0) {
-    await alertCookieExpiry(acq, botBlocks);
-  }
-
-  // 요약 앞에서 duration 을 먼저 채운다 → 정식 영상은 길이 확보, 남은 NULL(라이브/예정/삭제)만 요약 제외.
-  const dur = await fillMissingDurations();
-  console.log(`[duration] filled=${dur.filled}/${dur.targets}`);
-
-  const sum = await summarizePending();
-  console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
-
-  console.log('[pipeline] done');
 }
 
 main().catch((e) => {

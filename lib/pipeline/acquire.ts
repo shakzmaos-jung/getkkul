@@ -2,15 +2,19 @@ import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { fetchContent, type FetchedContent, type VideoRef } from '@/lib/pipeline/fetch-content';
 import { withRetry } from '@/lib/pipeline/retry';
 import { ytdlpCaption, whisperAudio } from '@/lib/pipeline/youtube-content';
+import { planFailure } from '@/lib/pipeline/retry-policy';
 
 /**
- * pending 영상의 전사 확보 (SSR REQ-C2). fetchContent 로 자막→오디오 폴백,
- * 최대 3회 백오프(AC-C2.4). 성공 시 done, 실패 시 failed 로 남기고 다음 영상으로 계속(H6/C2.3).
+ * pending 영상의 전사 확보 (SSR REQ-C2, pipeline-reliability REQ-B).
+ * fetchContent 로 자막→오디오 폴백, 한 영상당 최대 3회 백오프(AC-C2.4).
+ * 성공 시 done. 실패 시 일시/영구를 분류해(REQ-B) 일시 실패는 next_retry_at 백오프로 pending 재큐,
+ * 영구·최대초과는 종점 failed. 개별 실패가 전체를 막지 않는다(H6/C2.3).
  */
 export interface AcquireResult {
   processed: number;
   done: number;
-  failed: number;
+  failed: number; // 종점 failed (영구·최대초과)
+  rescheduled: number; // 일시 실패로 재큐(next_retry_at)
 }
 
 type SupabaseClient = ReturnType<typeof createPipelineClient>;
@@ -22,11 +26,13 @@ export async function acquireTranscripts(
     limit?: number;
     baseMs?: number;
     sleep?: (ms: number) => Promise<void>;
+    nowIso?: string;
   } = {},
 ): Promise<AcquireResult> {
   const supabase = deps.supabase ?? createPipelineClient();
   const limit = deps.limit ?? 100;
   const baseMs = deps.baseMs ?? 1000;
+  const nowIso = deps.nowIso ?? new Date().toISOString();
   const run =
     deps.fetchContentFn ??
     ((v: VideoRef) => fetchContent(v, { getCaption: ytdlpCaption, transcribeAudio: whisperAudio }));
@@ -38,16 +44,18 @@ export async function acquireTranscripts(
 
   const { data: pending, error } = await supabase
     .from('videos')
-    .select('id, video_id, url')
+    .select('id, video_id, url, retry_count')
     .eq('status', 'pending')
-    // 최신 영상 우선(사용자가 곧바로 보는 것). 폭주(감지 스케줄 지연)로 백로그가 쌓여도
-    // 오늘 올라온 콘텐츠가 오래된 백로그 뒤에서 굶지 않도록 한다.
+    // 재시도 큐 소비(AC-B1.2): 신규(next_retry_at NULL) + 도래한 재시도만.
+    .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
+    // 최신 영상 우선(사용자가 곧바로 보는 것). 폭주로 백로그가 쌓여도 오늘 콘텐츠가 굶지 않도록.
     .order('published_at', { ascending: false, nullsFirst: false })
     .limit(limit);
   if (error) throw new Error(`pending 조회 실패: ${error.message}`);
 
   let done = 0;
   let failed = 0;
+  let rescheduled = 0;
 
   for (const v of pending ?? []) {
     await supabase.from('videos').update({ status: 'processing' }).eq('id', v.id);
@@ -58,19 +66,36 @@ export async function acquireTranscripts(
       );
       await supabase
         .from('videos')
-        .update({ transcript: result.transcript, transcript_source: result.source, status: 'done' })
+        .update({
+          transcript: result.transcript,
+          transcript_source: result.source,
+          status: 'done',
+          next_retry_at: null,
+          last_error: null,
+        })
         .eq('id', v.id);
       done++;
     } catch (e) {
-      // 개별 실패는 전체를 막지 않는다 (H6). 발송 대상에서 제외(status=failed).
+      // 일시/영구 분류 후 재큐 or 종점화(REQ-B).
+      const plan = planFailure(v.retry_count ?? 0, (e as Error).message, nowIso);
       await supabase
         .from('videos')
-        .update({ status: 'failed', transcript_source: 'none' })
+        .update({
+          status: plan.status,
+          transcript_source: 'none',
+          retry_count: plan.retry_count,
+          failure_kind: plan.failure_kind,
+          next_retry_at: plan.next_retry_at,
+          last_error: plan.last_error,
+        })
         .eq('id', v.id);
-      failed++;
-      console.warn(`[acquire] ${v.video_id} 실패: ${(e as Error).message}`);
+      if (plan.status === 'failed') failed++;
+      else rescheduled++;
+      console.warn(
+        `[acquire] ${v.video_id} 실패(${plan.failure_kind}, ${plan.status}): ${(e as Error).message}`,
+      );
     }
   }
 
-  return { processed: (pending ?? []).length, done, failed };
+  return { processed: (pending ?? []).length, done, failed, rescheduled };
 }
