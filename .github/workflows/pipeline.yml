@@ -52,6 +52,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          # 관리형 전사 폴백(REQ-C). 미설정이면 폴백 비활성(yt-dlp/Whisper만).
+          SUPADATA_API_KEY: ${{ secrets.SUPADATA_API_KEY }}
           YTDLP_COOKIES_FILE: /tmp/yt-cookies.txt
           # 쿠키 만료 알림용(운영자 이메일 = GMAIL_USER, 발송도 Gmail)
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
