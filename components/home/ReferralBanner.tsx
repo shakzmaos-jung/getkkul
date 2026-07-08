@@ -8,7 +8,7 @@ export default function ReferralBanner() {
     <Link
       href="/referral"
       data-testid="referral-banner"
-      className="group flex items-center gap-3 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 transition-colors hover:bg-accent/20"
+      className="group flex items-center gap-3 rounded-xl border border-accent/50 bg-gradient-to-r from-amber-400/30 via-pink-500/20 to-violet-500/25 px-4 py-3 shadow-sm transition-all hover:from-amber-400/40 hover:via-pink-500/30 hover:to-violet-500/35"
     >
       <span className="text-xl leading-none" aria-hidden>
         🎁
