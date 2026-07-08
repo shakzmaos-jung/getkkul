@@ -68,9 +68,14 @@ export function renderPushMessage(
 
   const totalVideoSec = selection.items.reduce((a, v) => a + (v.durationSeconds ?? 0), 0);
   const totalReadSec = selection.items.reduce((a, v) => a + readSeconds(v.coreText), 0);
+  const compressionPct =
+    totalVideoSec > 0 && totalReadSec > 0
+      ? Math.max(0, Math.min(99.9, (1 - totalReadSec / totalVideoSec) * 100))
+      : null;
+  const rate = compressionPct !== null ? ` (압축률 ${compressionPct.toFixed(1)}%)` : '';
   return {
     title: `유튜브 콘텐츠 ${n}건 압축 완료`,
-    body: `원본 영상 ${hmsPush(totalVideoSec)}, 흡수하는데 걸리는 시간 ${hmsPush(totalReadSec)}`,
+    body: `원본 영상 ${hmsPush(totalVideoSec)}, 압축된 글 읽는 시간 ${hmsPush(totalReadSec)}${rate}`,
     url,
   };
 }
