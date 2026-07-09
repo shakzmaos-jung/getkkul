@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { searchChannels, addSubscriptionById, type SearchCandidate } from '@/app/subscriptions/actions';
 import { Input } from '@/components/ui/Input';
@@ -9,12 +9,21 @@ import { Spinner } from '@/components/ui/Spinner';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
 
-const DEBOUNCE_MS = 400; // AC-C1.1
 const MIN_CHARS = 2; // AC-C1.2
 
+/** 구독자 수 한국어 축약(만/억). 없으면 null. */
+function formatSubs(n: number | null | undefined): string | null {
+  if (n == null) return null;
+  const fix = (v: number) => v.toFixed(1).replace(/\.0$/, '');
+  if (n >= 100_000_000) return `구독자 ${fix(n / 100_000_000)}억명`;
+  if (n >= 10_000) return `구독자 ${fix(n / 10_000)}만명`;
+  if (n >= 1_000) return `구독자 ${fix(n / 1_000)}천명`;
+  return `구독자 ${n.toLocaleString('ko-KR')}명`;
+}
+
 /**
- * 채널 제목 검색 → 후보 선택 저장 (channel-search REQ-A). 디바운스·최소 글자수로 API 억제(REQ-C).
- * 이미 구독 중이면 "구독됨" 표시(중복 저장 안 함). 상한 도달 시 안내 + 직접 입력 유도.
+ * 채널 제목 검색 → 후보 선택 저장 (channel-search REQ-A). "검색하기" 버튼(또는 Enter)으로만 검색 시작해
+ * 불필요한 API 호출을 억제(REQ-C). 후보에 핸들·구독자 수 표시. 이미 구독 중이면 "구독됨".
  */
 export default function ChannelSearch() {
   const router = useRouter();
@@ -23,41 +32,32 @@ export default function ChannelSearch() {
   const [candidates, setCandidates] = useState<SearchCandidate[]>([]);
   const [capped, setCapped] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const reqId = useRef(0);
 
-  // 즉시 상태 갱신은 이벤트 핸들러에서(effect 내 동기 setState 회피). 최소 글자수 미달이면 결과를 비운다.
-  function onChange(v: string) {
-    setQuery(v);
-    const q = v.trim();
-    if (q.length < MIN_CHARS) {
-      setCandidates([]);
-      setCapped(false);
-      setSearching(false);
-    } else {
-      setSearching(true);
+  const canSearch = query.trim().length >= MIN_CHARS && !searching;
+
+  async function runSearch() {
+    const q = query.trim();
+    if (q.length < MIN_CHARS || searching) return;
+    setSearching(true);
+    const my = ++reqId.current;
+    try {
+      const r = await searchChannels(q);
+      if (my !== reqId.current) return; // 최신 요청만 반영
+      setCandidates(r.candidates);
+      setCapped(r.capped);
+      setSearched(true);
+    } catch {
+      if (my === reqId.current) {
+        setCandidates([]);
+        setSearched(true);
+      }
+    } finally {
+      if (my === reqId.current) setSearching(false);
     }
   }
-
-  // 디바운스 검색만 담당(AC-C1.1). query 가 최소 글자수 이상일 때만 예약, 다음 입력 시 취소.
-  useEffect(() => {
-    const q = query.trim();
-    if (q.length < MIN_CHARS) return;
-    const t = setTimeout(async () => {
-      const my = ++reqId.current;
-      try {
-        const r = await searchChannels(q);
-        if (my !== reqId.current) return; // 최신 요청만 반영(경합 방지)
-        setCandidates(r.candidates);
-        setCapped(r.capped);
-      } catch {
-        if (my === reqId.current) setCandidates([]);
-      } finally {
-        if (my === reqId.current) setSearching(false);
-      }
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [query]);
 
   async function add(c: SearchCandidate) {
     if (adding) return;
@@ -75,22 +75,35 @@ export default function ChannelSearch() {
     }
   }
 
-  const showEmpty =
-    query.trim().length >= MIN_CHARS && !searching && candidates.length === 0 && !capped;
+  const showEmpty = searched && !searching && candidates.length === 0 && !capped;
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative">
+      <div className="flex gap-2">
         <Input
           value={query}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              runSearch();
+            }
+          }}
           placeholder="채널 이름으로 검색 (예: 슈카월드)"
+          className="flex-1"
           data-testid="channel-search"
           aria-label="채널 검색"
         />
-        {searching && (
-          <Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        )}
+        <Button
+          type="button"
+          variant="primary"
+          onClick={runSearch}
+          disabled={!canSearch}
+          className="shrink-0"
+          data-testid="channel-search-submit"
+        >
+          {searching ? <Spinner size={14} /> : '검색하기'}
+        </Button>
       </div>
 
       {capped && (
@@ -104,31 +117,35 @@ export default function ChannelSearch() {
           data-testid="channel-candidates"
           className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border"
         >
-          {candidates.map((c) => (
-            <li key={c.channelId} className="flex items-center gap-3 px-3 py-2">
-              <ChannelAvatar src={c.thumbnail} title={c.title} size={32} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{c.title}</p>
-                {c.handle && <p className="truncate text-xs text-muted-foreground">{c.handle}</p>}
-              </div>
-              {c.subscribed ? (
-                <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
-                  구독됨
-                </span>
-              ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="primary"
-                  disabled={adding === c.channelId}
-                  onClick={() => add(c)}
-                  data-testid="candidate-add"
-                >
-                  {adding === c.channelId ? <Spinner size={12} /> : '추가'}
-                </Button>
-              )}
-            </li>
-          ))}
+          {candidates.map((c) => {
+            const subs = formatSubs(c.subscriberHint);
+            const meta = [c.handle, subs].filter(Boolean).join(' · ');
+            return (
+              <li key={c.channelId} className="flex items-center gap-3 px-3 py-2">
+                <ChannelAvatar src={c.thumbnail} title={c.title} size={36} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{c.title}</p>
+                  {meta && <p className="truncate text-xs text-muted-foreground">{meta}</p>}
+                </div>
+                {c.subscribed ? (
+                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+                    구독됨
+                  </span>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    disabled={adding === c.channelId}
+                    onClick={() => add(c)}
+                    data-testid="candidate-add"
+                  >
+                    {adding === c.channelId ? <Spinner size={12} /> : '추가'}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

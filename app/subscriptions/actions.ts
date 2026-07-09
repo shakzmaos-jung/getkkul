@@ -8,6 +8,7 @@ import { resolveChannel, ChannelResolveError, type ResolvedChannel } from '@/lib
 import {
   resolveChannelSearch,
   searchChannelsApi,
+  enrichCandidates,
   normalizeQuery,
   MIN_QUERY_CHARS,
   type ChannelCandidate,
@@ -117,7 +118,7 @@ export async function searchChannels(query: string): Promise<SearchChannelsResul
     loadCatalog: async (q) => {
       const { data } = await admin
         .from('channel_catalog')
-        .select('channel_id, title, handle, thumbnail_url')
+        .select('channel_id, title, handle, thumbnail_url, subscriber_hint')
         .ilike('title', `%${q}%`)
         .limit(10);
       return (data ?? []).map((r) => ({
@@ -125,6 +126,7 @@ export async function searchChannels(query: string): Promise<SearchChannelsResul
         title: r.title ?? '',
         thumbnail: r.thumbnail_url,
         handle: r.handle,
+        subscriberHint: r.subscriber_hint == null ? null : Number(r.subscriber_hint),
       }));
     },
     loadCache: async (q) => {
@@ -136,7 +138,7 @@ export async function searchChannels(query: string): Promise<SearchChannelsResul
       if (!data || new Date(data.expires_at).getTime() <= Date.now()) return null;
       return (data.results as unknown as ChannelCandidate[]) ?? [];
     },
-    apiSearch: async (q) => searchChannelsApi(q),
+    apiSearch: async (q) => enrichCandidates(await searchChannelsApi(q)),
     saveCache: async (q, results) => {
       await admin.from('channel_search_cache').upsert(
         {
