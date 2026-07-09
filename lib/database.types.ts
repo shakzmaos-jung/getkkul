@@ -673,6 +673,33 @@ export type Database = {
         }
         Relationships: []
       }
+      websub_subscriptions: {
+        Row: {
+          channel_id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          status: Database["public"]["Enums"]["websub_status"]
+          subscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          status?: Database["public"]["Enums"]["websub_status"]
+          subscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          status?: Database["public"]["Enums"]["websub_status"]
+          subscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -686,6 +713,7 @@ export type Database = {
           award_user_id: string
         }[]
       }
+      dispatch_pipeline: { Args: never; Returns: undefined }
       expire_credits: { Args: never; Returns: number }
       forfeit_user_credits: { Args: { p_user: string }; Returns: number }
       get_digest_summary: {
@@ -734,6 +762,7 @@ export type Database = {
       summary_length: "short" | "normal" | "long"
       transcript_source: "caption" | "audio" | "none"
       video_status: "pending" | "processing" | "done" | "failed"
+      websub_status: "active" | "pending" | "expired" | "unsubscribed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -873,6 +902,7 @@ export const Constants = {
       summary_length: ["short", "normal", "long"],
       transcript_source: ["caption", "audio", "none"],
       video_status: ["pending", "processing", "done", "failed"],
+      websub_status: ["active", "pending", "expired", "unsubscribed"],
     },
   },
 } as const
