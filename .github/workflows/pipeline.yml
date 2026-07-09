@@ -16,7 +16,9 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 정상 런은 ~23분(감지→획득→요약). LLM 지연 스파이크로 30분을 넘겨 잡이 취소되면
+    # 요약이 중단·낭비되므로 여유를 둔다(감지 주기는 배치 상한으로 짧게 유지).
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 

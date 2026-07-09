@@ -18,9 +18,10 @@ export async function summarizePending(
   deps: { supabase?: SupabaseClient; limit?: number } = {},
 ): Promise<SummarizeResult> {
   const supabase = deps.supabase ?? createPipelineClient();
-  // 백로그(오래 전 done 이 뒤늦게 duration 충전되어 요약 대상이 된 분)를 하루 안에 소진하도록
-  // 배치를 다소 키운다. 최근 인플로우(~30-40/run)를 처리하고 남는 여유가 백로그를 당긴다.
-  const limit = deps.limit ?? 150;
+  // 배치 상한. 단일 파이프라인 잡(감지→획득→요약)이 30분 타임아웃 안에 끝나야 하고,
+  // 런이 짧아야 감지 주기가 촘촘하게 유지된다(핵심 가치). 100 이면 런 ~23분.
+  // 백로그는 fillMissingDurations 가 duration 을 풀어주는 한 매 런 100건씩 꾸준히 소진된다.
+  const limit = deps.limit ?? 100;
 
   // done 영상 전체(최신순)와 이미 있는 ko 요약(video_id, mode)을 조회.
   // duration >= 60초만 요약 대상. NULL(라이브/예정/미취득)·1분 미만(Shorts)은 제외.
