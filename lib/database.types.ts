@@ -817,6 +817,15 @@ export type Database = {
           title: string
         }[]
       }
+      get_today_digests: {
+        Args: never
+        Returns: {
+          channel_id: string
+          id: string
+          published_at: string
+          title: string
+        }[]
+      }
       get_referral_progress: {
         Args: never
         Returns: {
