@@ -13,8 +13,10 @@ import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
 
-// done 영상 조회 상한(최신순). 이 중 요약(ko) 있는 것만 다이제스트로 취급한다.
-const FEED_DONE_LIMIT = 500;
+// done 영상 스캔 상한(최신순). 이 중 요약(ko) 있는 것만 다이제스트로 취급한다.
+// 표시 상한(FEED_DISPLAY_LIMIT)보다 넉넉히 커야, 아직 요약 안 된 done(전사만 된 상태)에 밀려
+// 최근 다이제스트가 스캔 창 밖으로 잘리지 않는다.
+const FEED_DONE_LIMIT = 800;
 // 캘린더·카드에 실을 다이제스트(요약 있는 done) 상한. 캘린더와 카드가 동일 집합을 공유한다.
 const FEED_DISPLAY_LIMIT = 200;
 
