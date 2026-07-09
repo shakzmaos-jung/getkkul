@@ -1,5 +1,46 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fetchChannelUploads } from './channel-uploads';
+import { fetchChannelUploads, fetchChannelUploadsPaged } from './channel-uploads';
+
+function page(items: string[], nextPageToken?: string): Response {
+  return {
+    ok: true,
+    json: async () => ({
+      items: items.map((id) => ({
+        contentDetails: { videoId: id, videoPublishedAt: '2026-07-09T00:00:00Z' },
+        snippet: { title: `t-${id}` },
+      })),
+      nextPageToken,
+    }),
+  } as unknown as Response;
+}
+
+describe('fetchChannelUploadsPaged (REQ-E 백필 페이지네이션)', () => {
+  it('nextPageToken 을 따라 여러 페이지를 이어붙이고 토큰 소진 시 중단', async () => {
+    const pages = [page(['a', 'b'], 'p2'), page(['c', 'd'], 'p3'), page(['e'])];
+    let i = 0;
+    const fetchFn = vi.fn<typeof fetch>(async () => pages[i++]);
+    const out = await fetchChannelUploadsPaged('UC_x', 5, { fetchFn, apiKey: 'k' });
+    expect(out.map((v) => v.videoId)).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+  });
+
+  it('maxPages 에서 멈춘다', async () => {
+    const pages = [page(['a'], 'p2'), page(['b'], 'p3'), page(['c'], 'p4')];
+    let i = 0;
+    const fetchFn = vi.fn<typeof fetch>(async () => pages[i++]);
+    const out = await fetchChannelUploadsPaged('UC_x', 2, { fetchFn, apiKey: 'k' });
+    expect(out.map((v) => v.videoId)).toEqual(['a', 'b']);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('다음 페이지 요청에 pageToken 을 싣는다', async () => {
+    const pages = [page(['a'], 'TOKEN2'), page(['b'])];
+    let i = 0;
+    const fetchFn = vi.fn<typeof fetch>(async () => pages[i++]);
+    await fetchChannelUploadsPaged('UC_x', 5, { fetchFn, apiKey: 'k' });
+    expect(String(fetchFn.mock.calls[1][0])).toContain('pageToken=TOKEN2');
+  });
+});
 
 describe('fetchChannelUploads', () => {
   it('UC → UU 업로드 재생목록으로 조회, FeedVideo[] 로 매핑', async () => {
