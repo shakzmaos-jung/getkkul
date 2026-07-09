@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
+import ChannelSearch from '@/components/subscriptions/ChannelSearch';
 import SubscriptionsList from '@/components/subscriptions/SubscriptionsList';
 import DismissibleBanner from '@/components/ui/DismissibleBanner';
 import FoldNote from '@/components/ui/FoldNote';
@@ -43,12 +44,20 @@ export default async function SubscriptionsPage() {
             testId="subs-how-to"
             title="채널 관리, 이렇게 해요"
             points={[
-              '요약받고 싶은 유튜브 채널을 URL이나 핸들(@…)로 추가하세요.',
+              '채널 이름으로 검색해서 바로 추가하세요. 안 나오면 URL·핸들(@…)로도 추가할 수 있어요.',
               '일시정지하면 그 채널의 새 다이제스트를 잠시 멈춰요.',
               '정지해제하면 그 이후에 올라온 영상부터 다시 받아요(밀린 영상은 몰아 오지 않아요).',
               '구독중 / 일시 정지 탭으로 상태별로 볼 수 있어요.',
             ]}
           />
+        </div>
+
+        <ChannelSearch />
+
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">또는 URL·핸들로 직접 추가</span>
+          <div className="h-px flex-1 bg-border" />
         </div>
 
         <AddSubscriptionForm />

@@ -80,6 +80,87 @@ export type Database = {
           },
         ]
       }
+      channel_catalog: {
+        Row: {
+          channel_id: string
+          created_at: string
+          handle: string | null
+          id: string
+          source: Database["public"]["Enums"]["channel_catalog_source"]
+          subscriber_hint: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          handle?: string | null
+          id?: string
+          source?: Database["public"]["Enums"]["channel_catalog_source"]
+          subscriber_hint?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          handle?: string | null
+          id?: string
+          source?: Database["public"]["Enums"]["channel_catalog_source"]
+          subscriber_hint?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      channel_search_cache: {
+        Row: {
+          expires_at: string
+          fetched_at: string
+          id: string
+          query_norm: string
+          results: Json
+        }
+        Insert: {
+          expires_at: string
+          fetched_at?: string
+          id?: string
+          query_norm: string
+          results: Json
+        }
+        Update: {
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          query_norm?: string
+          results?: Json
+        }
+        Relationships: []
+      }
+      search_api_usage: {
+        Row: {
+          cap: number
+          day: string
+          id: string
+          units_used: number
+        }
+        Insert: {
+          cap?: number
+          day: string
+          id?: string
+          units_used?: number
+        }
+        Update: {
+          cap?: number
+          day?: string
+          id?: string
+          units_used?: number
+        }
+        Relationships: []
+      }
       content_terms: {
         Row: {
           created_at: string
@@ -713,6 +794,10 @@ export type Database = {
           award_user_id: string
         }[]
       }
+      consume_search_api_units: {
+        Args: { p_units: number; p_cap?: number }
+        Returns: boolean
+      }
       dispatch_pipeline: { Args: never; Returns: undefined }
       expire_credits: { Args: never; Returns: number }
       forfeit_user_credits: { Args: { p_user: string }; Returns: number }
@@ -750,6 +835,7 @@ export type Database = {
       }
     }
     Enums: {
+      channel_catalog_source: "user_selected" | "api" | "detected"
       credit_grant_status: "active" | "exhausted" | "expired" | "forfeited"
       credit_source: "referrer" | "referee"
       credit_txn_kind: "grant" | "usage" | "expiry" | "forfeit"
@@ -890,6 +976,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      channel_catalog_source: ["user_selected", "api", "detected"],
       credit_grant_status: ["active", "exhausted", "expired", "forfeited"],
       credit_source: ["referrer", "referee"],
       credit_txn_kind: ["grant", "usage", "expiry", "forfeit"],
