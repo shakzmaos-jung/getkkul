@@ -4,6 +4,7 @@ import {
   mergeDedupe,
   resolveChannelSearch,
   searchChannelsApi,
+  enrichCandidates,
   type ChannelCandidate,
   type SearchDeps,
 } from './search';
@@ -13,6 +14,7 @@ const cand = (id: string, title = id): ChannelCandidate => ({
   title,
   thumbnail: null,
   handle: null,
+  subscriberHint: null,
 });
 
 function deps(over: Partial<SearchDeps> = {}): SearchDeps {
@@ -80,7 +82,7 @@ describe('resolveChannelSearch 소스 우선순위 (REQ-B/C)', () => {
     const d = deps({ apiSearch: vi.fn(async () => [cand('a1'), cand('a2')]), saveCache });
     const r = await resolveChannelSearch('신규채널', d);
     expect(r.source).toBe('api');
-    expect(d.consumeUnits).toHaveBeenCalledWith(100);
+    expect(d.consumeUnits).toHaveBeenCalledWith(101);
     expect(d.apiSearch).toHaveBeenCalledOnce();
     expect(saveCache).toHaveBeenCalledOnce();
     expect(r.candidates.map((c) => c.channelId)).toEqual(['a1', 'a2']);
@@ -111,9 +113,47 @@ describe('searchChannelsApi (search.list 매핑)', () => {
       }),
     }) as unknown as Response);
     const out = await searchChannelsApi('뉴스', { apiKey: 'k', fetchFn });
-    expect(out).toEqual([{ channelId: 'UC1', title: '채널1', thumbnail: 't1', handle: null }]);
+    expect(out).toEqual([
+      { channelId: 'UC1', title: '채널1', thumbnail: 't1', handle: null, subscriberHint: null },
+    ]);
     const url = new URL(String(fetchFn.mock.calls[0][0]));
     expect(url.searchParams.get('type')).toBe('channel');
     expect(url.searchParams.get('q')).toBe('뉴스');
+  });
+});
+
+describe('enrichCandidates (channels.list 핸들·구독자 보강)', () => {
+  it('customUrl→핸들(@), subscriberCount→숫자, 비공개는 null 유지', async () => {
+    const fetchFn = vi.fn<typeof fetch>(async () => ({
+      ok: true,
+      json: async () => ({
+        items: [
+          { id: 'UC1', snippet: { customUrl: '@news' }, statistics: { subscriberCount: '123000' } },
+          {
+            id: 'UC2',
+            snippet: { customUrl: 'legacy' },
+            statistics: { hiddenSubscriberCount: true },
+          },
+        ],
+      }),
+    }) as unknown as Response);
+    const out = await enrichCandidates([cand('UC1'), cand('UC2')], { apiKey: 'k', fetchFn });
+    expect(out[0]).toMatchObject({ channelId: 'UC1', handle: '@news', subscriberHint: 123000 });
+    expect(out[1]).toMatchObject({ channelId: 'UC2', handle: '@legacy', subscriberHint: null });
+    const url = new URL(String(fetchFn.mock.calls[0][0]));
+    expect(url.searchParams.get('part')).toBe('snippet,statistics');
+    expect(url.searchParams.get('id')).toBe('UC1,UC2');
+  });
+
+  it('빈 입력은 호출 없이 그대로 반환', async () => {
+    const fetchFn = vi.fn<typeof fetch>();
+    expect(await enrichCandidates([], { apiKey: 'k', fetchFn })).toEqual([]);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('보강 실패(비-200)해도 기본 후보 유지', async () => {
+    const fetchFn = vi.fn<typeof fetch>(async () => ({ ok: false, status: 403 }) as unknown as Response);
+    const input = [cand('UC1')];
+    expect(await enrichCandidates(input, { apiKey: 'k', fetchFn })).toEqual(input);
   });
 });

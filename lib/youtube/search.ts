@@ -9,10 +9,11 @@ export interface ChannelCandidate {
   title: string;
   thumbnail: string | null;
   handle: string | null;
+  subscriberHint: number | null; // 구독자 수(channels.list 보강). 비공개/미조회 시 null.
 }
 
-/** search.list 1회 유닛(감지 대비 100배). */
-export const SEARCH_UNITS = 100;
+/** 검색 1회 유닛: search.list(100) + channels.list 보강(1). */
+export const SEARCH_UNITS = 101;
 /** 검색 최소 글자수(AC-C1.2). */
 export const MIN_QUERY_CHARS = 2;
 /** 로컬 카탈로그가 이 개수 이상이면 API 미호출(AC-B1.1). */
@@ -81,10 +82,65 @@ export async function searchChannelsApi(
       channelId,
       title: it.snippet?.title ?? '',
       thumbnail: pickThumb(it.snippet?.thumbnails),
-      handle: null, // search.list 는 핸들 미제공(저장 시 channels.list 로 보강)
+      handle: null, // search.list 는 핸들 미제공 → enrichCandidates 로 보강
+      subscriberHint: null, // search.list 는 통계 미제공 → enrichCandidates 로 보강
     });
   }
   return out;
+}
+
+interface YtChannelInfo {
+  id?: string;
+  snippet?: { customUrl?: string };
+  statistics?: { subscriberCount?: string; hiddenSubscriberCount?: boolean };
+}
+
+/** 핸들 표기 정규화: customUrl 에 @ 가 없으면 붙인다(표시용). */
+function normalizeHandle(customUrl?: string): string | null {
+  if (!customUrl) return null;
+  return customUrl.startsWith('@') ? customUrl : `@${customUrl}`;
+}
+
+/**
+ * channels.list(part=snippet,statistics)로 핸들·구독자 수를 보강한다(1유닛, 최대 50개 배치).
+ * 보강 실패해도 기본 검색 결과는 그대로 제공한다(격리·회복력).
+ */
+export async function enrichCandidates(
+  cands: ChannelCandidate[],
+  deps: { apiKey?: string; fetchFn?: typeof fetch } = {},
+): Promise<ChannelCandidate[]> {
+  if (cands.length === 0) return cands;
+  const key = deps.apiKey ?? searchApiKey();
+  const fetchFn = deps.fetchFn ?? fetch;
+  if (!key) return cands;
+
+  const url = new URL('https://www.googleapis.com/youtube/v3/channels');
+  url.searchParams.set('part', 'snippet,statistics');
+  url.searchParams.set('id', cands.map((c) => c.channelId).join(','));
+  url.searchParams.set('maxResults', '50');
+  url.searchParams.set('key', key);
+
+  let byId = new Map<string, YtChannelInfo>();
+  try {
+    const res = await fetchFn(url, { cache: 'no-store' });
+    if (!res.ok) return cands;
+    const data = (await res.json()) as { items?: YtChannelInfo[] };
+    byId = new Map((data.items ?? []).filter((it) => it.id).map((it) => [it.id!, it]));
+  } catch {
+    return cands;
+  }
+
+  return cands.map((c) => {
+    const info = byId.get(c.channelId);
+    if (!info) return c;
+    const sub = info.statistics?.subscriberCount;
+    const hidden = info.statistics?.hiddenSubscriberCount;
+    return {
+      ...c,
+      handle: c.handle ?? normalizeHandle(info.snippet?.customUrl),
+      subscriberHint: hidden || sub == null ? c.subscriberHint : Number(sub),
+    };
+  });
 }
 
 export type SearchSource = 'none' | 'local' | 'cache' | 'api' | 'capped';
