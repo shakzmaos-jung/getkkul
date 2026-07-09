@@ -1,6 +1,7 @@
 import { detectNewVideos, type DetectResult } from '@/lib/pipeline/detect';
 import { acquireTranscripts, type AcquireResult } from '@/lib/pipeline/acquire';
 import { renewWebSubSubscriptions } from '@/lib/pipeline/websub-subscribe';
+import { reconcileChannels } from '@/lib/pipeline/reconcile';
 import { summarizePending } from '@/lib/pipeline/summarize-pending';
 import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
 import { getBotBlockCount } from '@/lib/pipeline/youtube-content';
@@ -97,7 +98,13 @@ async function main() {
     const sum = await recordRun(supabase, 'summarize', () => summarizePending());
     console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
 
-    await recordPipelineRun(supabase, pipelineStarted, { det, acq, dur, sum } as unknown as Json, true);
+    // 자가치유 백필(하루 1회 셀프 게이트): WebSub·폴링이 놓친 영상까지 회복(REQ-E).
+    const rec = await reconcileChannels({ supabase });
+    if (rec.ran) {
+      console.log(`[reconcile] channels=${rec.channels} backfilled=${rec.backfilled} failed=${rec.failed}`);
+    }
+
+    await recordPipelineRun(supabase, pipelineStarted, { det, acq, ws, dur, sum, rec } as unknown as Json, true);
     console.log('[pipeline] done');
   } catch (e) {
     await recordPipelineRun(supabase, pipelineStarted, { error: (e as Error).message } as Json, false);
