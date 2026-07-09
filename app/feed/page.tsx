@@ -8,7 +8,7 @@ import DismissibleBanner from '@/components/ui/DismissibleBanner';
 import FoldNote from '@/components/ui/FoldNote';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { passesDurationFilters } from '@/lib/youtube/duration';
-import { selectSummarizedRows, toDigestDates } from '@/lib/feed/digests';
+import { chunk, selectSummarizedRows, toDigestDates } from '@/lib/feed/digests';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -19,6 +19,8 @@ type ModeSummary = { coreText: string; bullets: string[] };
 const FEED_DONE_LIMIT = 800;
 // 캘린더·카드에 실을 다이제스트(요약 있는 done) 상한. 캘린더와 카드가 동일 집합을 공유한다.
 const FEED_DISPLAY_LIMIT = 200;
+// PostgREST .in() 한 요청당 id 개수 상한(대량이면 URL 길이로 400). 이 단위로 청크 조회.
+const IN_CHUNK = 100;
 
 /** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
 export default async function FeedPage({
@@ -88,27 +90,20 @@ export default async function FeedPage({
     const doneIds = doneRows.map((v) => v.id);
 
     if (doneIds.length > 0) {
-      // 영상별 길이 선택 + 요약(ko) + 북마크 — 서로 독립이라 병렬로 조회.
-      // 요약은 done 전체를 대상으로 조회해 "어떤 done 이 실제 다이제스트인지" 판정한다.
-      const [{ data: prefs }, { data: sums }, { data: bms }] = await Promise.all([
-        supabase
-          .from('user_video_prefs')
-          .select('video_id, length_mode')
-          .in('video_id', doneIds),
-        // 모든 길이 모드 요약(ko) — 카드별 전환이 즉시 되도록 3개 모드 모두 로드
-        supabase
-          .from('summaries')
-          .select('video_id, length_mode, core_text, body')
-          .eq('language', 'ko')
-          .in('video_id', doneIds),
-        supabase.from('bookmarks').select('video_id').in('video_id', doneIds),
-      ]);
-      const bookmarkedIds = new Set((bms ?? []).map((b) => b.video_id));
-      const prefByVideo = new Map(
-        (prefs ?? []).map((p) => [p.video_id, p.length_mode as LengthMode]),
+      // 요약(ko)은 done 전체를 대상으로 조회해 "어떤 done 이 실제 다이제스트인지" 판정한다.
+      // PostgREST 의 .in() 은 값이 많으면 URL 길이 한계로 400 을 내므로 청크로 나눠 조회 후 병합.
+      const sumChunks = await Promise.all(
+        chunk(doneIds, IN_CHUNK).map((c) =>
+          supabase
+            .from('summaries')
+            .select('video_id, length_mode, core_text, body')
+            .eq('language', 'ko')
+            .in('video_id', c),
+        ),
       );
+      const sums = sumChunks.flatMap((r) => r.data ?? []);
       const byVideo = new Map<string, Partial<Record<LengthMode, ModeSummary>>>();
-      for (const s of sums ?? []) {
+      for (const s of sums) {
         const bullets =
           s.body && typeof s.body === 'object' && 'bullets' in s.body
             ? ((s.body as { bullets?: unknown }).bullets as string[]) ?? []
@@ -128,6 +123,25 @@ export default async function FeedPage({
         FEED_DISPLAY_LIMIT,
       );
       digestDates = toDigestDates(summarizedRows, (iso) => kstFmt.format(new Date(iso)));
+
+      // 길이 선택·북마크는 표시 대상(≤FEED_DISPLAY_LIMIT)만 — 역시 청크 조회.
+      const shownIds = summarizedRows.map((v) => v.id);
+      const [prefChunks, bmChunks] = await Promise.all([
+        Promise.all(
+          chunk(shownIds, IN_CHUNK).map((c) =>
+            supabase.from('user_video_prefs').select('video_id, length_mode').in('video_id', c),
+          ),
+        ),
+        Promise.all(
+          chunk(shownIds, IN_CHUNK).map((c) =>
+            supabase.from('bookmarks').select('video_id').in('video_id', c),
+          ),
+        ),
+      ]);
+      const bookmarkedIds = new Set(bmChunks.flatMap((r) => r.data ?? []).map((b) => b.video_id));
+      const prefByVideo = new Map(
+        prefChunks.flatMap((r) => r.data ?? []).map((p) => [p.video_id, p.length_mode as LengthMode]),
+      );
 
       for (const v of summarizedRows) {
         const summaries = byVideo.get(v.id);
