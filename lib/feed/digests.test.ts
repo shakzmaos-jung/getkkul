@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { selectSummarizedRows, toDigestDates } from './digests';
+import { chunk, selectSummarizedRows, toDigestDates } from './digests';
+
+describe('chunk (PostgREST .in() URL 한계 회피)', () => {
+  it('size 단위로 분할하며 나머지를 마지막 청크에 담는다', () => {
+    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+  it('빈 배열은 빈 결과', () => {
+    expect(chunk([], 100)).toEqual([]);
+  });
+  it('size 가 길이 이상이면 단일 청크', () => {
+    expect(chunk([1, 2], 100)).toEqual([[1, 2]]);
+  });
+});
 
 type Row = { id: string; channel_id: string; published_at: string | null };
 
