@@ -1,5 +1,6 @@
 import { detectNewVideos, type DetectResult } from '@/lib/pipeline/detect';
 import { acquireTranscripts, type AcquireResult } from '@/lib/pipeline/acquire';
+import { renewWebSubSubscriptions } from '@/lib/pipeline/websub-subscribe';
 import { summarizePending } from '@/lib/pipeline/summarize-pending';
 import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
 import { getBotBlockCount } from '@/lib/pipeline/youtube-content';
@@ -71,6 +72,12 @@ async function main() {
     if (det.detectFailures > 0) {
       await alertDetectFailure(det);
     }
+
+    // WebSub 구독 유지(신규 채널 구독 + 만료 임박 갱신). 시크릿 없으면 no-op.
+    const ws = await recordRun(supabase, 'websub', () => renewWebSubSubscriptions());
+    console.log(
+      `[websub] channels=${ws.channels} subscribed=${ws.subscribed} skipped=${ws.skipped} failed=${ws.failed}`,
+    );
 
     const acq = await recordRun(supabase, 'acquire', () => acquireTranscripts());
     console.log(
