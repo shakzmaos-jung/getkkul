@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import HowToUse from '@/components/home/HowToUse';
 import DismissibleBanner from '@/components/ui/DismissibleBanner';
 
-export interface HomeRecentItem {
+export interface HomeDigestItem {
   id: string;
   title: string;
   channelTitle: string;
@@ -13,9 +13,8 @@ export interface HomeRecentItem {
 
 interface Props {
   subscriptionCount: number;
-  todayDigestCount: number;
   totalDigestCount: number;
-  recent: HomeRecentItem[];
+  today: HomeDigestItem[];
 }
 
 /** 클릭 시 관련 화면으로 이동하는 통계 카드(우상단 화살표 + hover). */
@@ -63,9 +62,8 @@ function StatLink({
  */
 export default function HomeDashboard({
   subscriptionCount,
-  todayDigestCount,
   totalDigestCount,
-  recent,
+  today,
 }: Props) {
   const isEmpty = subscriptionCount === 0;
 
@@ -98,38 +96,18 @@ export default function HomeDashboard({
         </Card>
       ) : (
         <>
-          {/* 3. 통계 3종 (구독 채널→관리, 오늘/누적 다이제스트→다이제스트) */}
-          <div data-testid="home-stats" className="grid grid-cols-3 gap-3">
-            <StatLink
-              href="/subscriptions"
-              testId="stat-subscriptions"
-              label="구독 채널"
-              value={String(subscriptionCount)}
-            />
-            <StatLink
-              href="/feed"
-              testId="stat-today"
-              label="오늘 다이제스트"
-              value={String(todayDigestCount)}
-            />
-            <StatLink
-              href="/feed"
-              testId="stat-total"
-              label="누적 다이제스트"
-              value={String(totalDigestCount)}
-            />
-          </div>
-
-          {/* 4. 최근 다이제스트 미리보기 → 앱 내 다이제스트 카드로 이동 */}
-          {recent.length > 0 && (
-            <div>
-              <h2 className="mb-2 text-sm font-semibold">최근 다이제스트</h2>
+          {/* 3. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
+          <div data-testid="home-today">
+            <h2 className="mb-2 text-sm font-semibold">
+              오늘의 다이제스트{today.length > 0 ? ` (${today.length})` : ''}
+            </h2>
+            {today.length > 0 ? (
               <Card className="divide-y divide-border">
-                {recent.map((it) => (
+                {today.map((it) => (
                   <Link
                     key={it.id}
                     href={`/feed?date=${it.dateKst}#d-${it.id}`}
-                    data-testid="recent-item"
+                    data-testid="today-item"
                     className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted"
                   >
                     <div className="min-w-0">
@@ -140,8 +118,28 @@ export default function HomeDashboard({
                   </Link>
                 ))}
               </Card>
-            </div>
-          )}
+            ) : (
+              <Card className="px-4 py-8 text-center">
+                <p className="text-sm text-muted-foreground">오늘은 아직 다이제스트가 없어요.</p>
+              </Card>
+            )}
+          </div>
+
+          {/* 4. 누적 다이제스트 · 구독 채널 통계(순서: 누적 → 구독) */}
+          <div data-testid="home-stats" className="grid grid-cols-2 gap-3">
+            <StatLink
+              href="/feed"
+              testId="stat-total"
+              label="누적 다이제스트"
+              value={String(totalDigestCount)}
+            />
+            <StatLink
+              href="/subscriptions"
+              testId="stat-subscriptions"
+              label="구독 채널"
+              value={String(subscriptionCount)}
+            />
+          </div>
         </>
       )}
     </div>

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
-import HomeDashboard, { type HomeRecentItem } from '@/components/home/HomeDashboard';
+import HomeDashboard, { type HomeDigestItem } from '@/components/home/HomeDashboard';
 import ReferralBanner from '@/components/home/ReferralBanner';
 import { KST_TIME_ZONE } from '@/lib/time';
 
@@ -22,10 +22,10 @@ export default async function Home() {
 
   // 다이제스트 집계·최근 목록은 SQL 로 계산(피드와 동일 조건: 활성 구독·기준선·길이·ko요약).
   // 앱에서 모든 요약을 가져오면 API max-rows(1000) 상한에 걸려 최신분이 누락돼 과소집계됐다 → RPC 로 이전.
-  const [{ data: subs }, { data: summary }, { data: recentRows }] = await Promise.all([
+  const [{ data: subs }, { data: summary }, { data: todayRows }] = await Promise.all([
     supabase.from('subscriptions').select('channel_id, channel_title').eq('user_id', user.id),
     supabase.rpc('get_digest_summary'),
-    supabase.rpc('get_recent_digests', { p_limit: 5 }),
+    supabase.rpc('get_today_digests'), // 오늘(KST) 다이제스트 전체(제한 없음)
   ]);
   const subscriptionCount = (subs ?? []).length; // 구독 수는 일시정지 포함 전체
   const titleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
@@ -42,9 +42,8 @@ export default async function Home() {
   });
 
   const stats = summary?.[0] ?? { today_count: 0, total_count: 0 };
-  const todayDigestCount = stats.today_count;
   const totalDigestCount = stats.total_count;
-  const recent: HomeRecentItem[] = (recentRows ?? []).map((v) => ({
+  const today: HomeDigestItem[] = (todayRows ?? []).map((v) => ({
     id: v.id,
     title: v.title ?? '',
     channelTitle: titleById.get(v.channel_id) ?? '',
@@ -61,9 +60,8 @@ export default async function Home() {
         </div>
         <HomeDashboard
           subscriptionCount={subscriptionCount}
-          todayDigestCount={todayDigestCount}
           totalDigestCount={totalDigestCount}
-          recent={recent}
+          today={today}
         />
       </main>
       <AppFooter />
