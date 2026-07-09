@@ -8,12 +8,15 @@ import DismissibleBanner from '@/components/ui/DismissibleBanner';
 import FoldNote from '@/components/ui/FoldNote';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { passesDurationFilters } from '@/lib/youtube/duration';
+import { selectSummarizedRows, toDigestDates } from '@/lib/feed/digests';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
 
-// 캘린더·표시용 done 조회 상한(최신순). 데이터 증가 시 서버시간 상한 유지(오래된 다이제스트는 제외).
+// done 영상 조회 상한(최신순). 이 중 요약(ko) 있는 것만 다이제스트로 취급한다.
 const FEED_DONE_LIMIT = 500;
+// 캘린더·카드에 실을 다이제스트(요약 있는 done) 상한. 캘린더와 카드가 동일 집합을 공유한다.
+const FEED_DISPLAY_LIMIT = 200;
 
 /** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
 export default async function FeedPage({
@@ -62,13 +65,12 @@ export default async function FeedPage({
 
   // 캘린더: 오늘(KST) 기본값. 일자별 수는 채널 필터에 따라 클라이언트에서 재집계하도록 원본 전달.
   const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-  const digestDates: { c: string; d: string }[] = [];
+  let digestDates: { c: string; d: string }[] = [];
 
   const items: FeedItem[] = [];
 
   if (channelIds.length > 0) {
-    // done 영상을 최신순으로 조회 — 캘린더 집계(digestDates)와 최근 50개 표시를 겸한다.
-    // 데이터 증가 대비 상한(FEED_DONE_LIMIT): 최근 N개까지만(캘린더는 그 범위, 표시는 상위 50).
+    // done 영상을 최신순으로 조회(FEED_DONE_LIMIT). 이 중 요약(ko) 있는 것만 다이제스트다.
     const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
     const { data: doneVideos } = await supabase
       .from('videos')
@@ -81,29 +83,23 @@ export default async function FeedPage({
     const doneRows = (doneVideos ?? [])
       .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
       .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
-    for (const r of doneRows) {
-      if (!r.published_at) continue;
-      digestDates.push({ c: r.channel_id, d: kstFmt.format(new Date(r.published_at)) });
-    }
+    const doneIds = doneRows.map((v) => v.id);
 
-    // 표시는 최신 50개만 (캘린더는 위에서 전체 집계 완료).
-    const videoRows = doneRows.slice(0, 50);
-    const videoIds = videoRows.map((v) => v.id);
-
-    if (videoIds.length > 0) {
+    if (doneIds.length > 0) {
       // 영상별 길이 선택 + 요약(ko) + 북마크 — 서로 독립이라 병렬로 조회.
+      // 요약은 done 전체를 대상으로 조회해 "어떤 done 이 실제 다이제스트인지" 판정한다.
       const [{ data: prefs }, { data: sums }, { data: bms }] = await Promise.all([
         supabase
           .from('user_video_prefs')
           .select('video_id, length_mode')
-          .in('video_id', videoIds),
+          .in('video_id', doneIds),
         // 모든 길이 모드 요약(ko) — 카드별 전환이 즉시 되도록 3개 모드 모두 로드
         supabase
           .from('summaries')
           .select('video_id, length_mode, core_text, body')
           .eq('language', 'ko')
-          .in('video_id', videoIds),
-        supabase.from('bookmarks').select('video_id').in('video_id', videoIds),
+          .in('video_id', doneIds),
+        supabase.from('bookmarks').select('video_id').in('video_id', doneIds),
       ]);
       const bookmarkedIds = new Set((bms ?? []).map((b) => b.video_id));
       const prefByVideo = new Map(
@@ -123,7 +119,15 @@ export default async function FeedPage({
         byVideo.set(s.video_id, rec);
       }
 
-      for (const v of videoRows) {
+      // 캘린더 집계와 카드는 동일 집합(요약 있는 done)에서 나온다 → 숫자 불일치 방지.
+      const summarizedRows = selectSummarizedRows(
+        doneRows,
+        (id) => byVideo.has(id),
+        FEED_DISPLAY_LIMIT,
+      );
+      digestDates = toDigestDates(summarizedRows, (iso) => kstFmt.format(new Date(iso)));
+
+      for (const v of summarizedRows) {
         const summaries = byVideo.get(v.id);
         if (!summaries || Object.keys(summaries).length === 0) continue;
         const pref = prefByVideo.get(v.id);
