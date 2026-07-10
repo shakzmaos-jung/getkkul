@@ -30,36 +30,46 @@ export async function getMembershipView(
   userId: string,
   now: Date = new Date(),
 ): Promise<MembershipView> {
-  await ensureMembership(userId, now); // 없으면 PoC 무료 Medium 생성
   const admin = createAdminClient();
 
-  const { data: m } = await admin.from('membership').select('*').eq('user_id', userId).single();
+  // membership·usage(전체)·활성채널수·크레딧을 단일 병렬 배치로(직렬 왕복 제거).
+  // 기존 사용자는 이미 시딩됨 → 부트스트랩은 membership 이 없을 때(신규)만 1회.
+  async function loadBatch() {
+    return Promise.all([
+      admin.from('membership').select('*').eq('user_id', userId).maybeSingle(),
+      admin
+        .from('membership_usage')
+        .select('period_start, digest_used, ai_query_used')
+        .eq('user_id', userId),
+      admin
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('active', true),
+      admin
+        .from('credit_grants')
+        .select('remaining_amount, expires_at')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .gt('expires_at', now.toISOString())
+        .order('expires_at', { ascending: true }),
+    ]);
+  }
+  let batch = await loadBatch();
+  if (!batch[0].data) {
+    await ensureMembership(userId, now); // 신규만
+    batch = await loadBatch();
+  }
+  const m = batch[0].data;
   if (!m) throw new Error('membership not found');
+  const usageRows = batch[1].data;
+  const channelCount = batch[2].count;
+  const grants = batch[3].data;
 
   const planCode = m.plan_code as PlanCode;
   const plan = PLANS[planCode];
 
-  // 현재 주기 사용량 + 활성 채널 수 + 크레딧 잔액(병렬).
-  const [{ data: curRow }, { count: channelCount }, { data: grants }] = await Promise.all([
-    admin
-      .from('membership_usage')
-      .select('digest_used, ai_query_used')
-      .eq('user_id', userId)
-      .eq('period_start', m.period_start)
-      .maybeSingle(),
-    admin
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('active', true),
-    admin
-      .from('credit_grants')
-      .select('remaining_amount, expires_at')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .gt('expires_at', now.toISOString())
-      .order('expires_at', { ascending: true }),
-  ]);
+  const curRow = (usageRows ?? []).find((u) => u.period_start === m.period_start);
   const digestUsed = curRow?.digest_used ?? 0;
   const aiUsed = curRow?.ai_query_used ?? 0;
 

@@ -45,7 +45,7 @@ export default async function FeedPage({
   // 전부 서로 독립 → 단일 병렬 대기(직렬 왕복 제거, plan F1).
   // get_feed_digests 가 요약 3모드·길이선택·북마크를 서버 조인으로 합쳐 반환한다
   // (활성구독·기준선·길이필터·ko요약 조건은 RPC 내부 — 피드 표시 규칙의 단일 진실).
-  const [{ data: subs }, { data: setting }, { data: digRows }, { data: dateRows }] =
+  const [{ data: subs }, { data: setting }, { data: digRows }, { data: dateRows }, { data: bmRows }] =
     await Promise.all([
       supabase
         .from('subscriptions')
@@ -56,11 +56,14 @@ export default async function FeedPage({
         .select('summary_length')
         .eq('user_id', user.id)
         .maybeSingle(),
+      // 디지스트 탭: 프리로드 창(오늘·어제)만 — 날짜경계 인덱스로 빠르게(북마크 OR 제거).
       supabase.rpc('get_feed_digests', {
         p_from: `${preloadFrom}T00:00:00+09:00`,
-        p_with_bookmarked: true, // 북마크 탭이 창 밖 항목을 잃지 않도록 항상 포함
+        p_with_bookmarked: false,
       }),
       supabase.rpc('get_digest_dates'),
+      // 북마크 탭: bookmarks 주도 전용 RPC(few rows) — 병렬이라 wall-clock 무증가.
+      supabase.rpc('get_bookmarked_digests'),
     ]);
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
   const activeSubs = (subs ?? []).filter((s) => !s.paused);
@@ -77,8 +80,12 @@ export default async function FeedPage({
   }));
 
   const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
+  const toDate = (iso: string) => kstFmt.format(new Date(iso));
   const items: FeedItem[] = (digRows ?? [])
-    .map((r) => mapDigestRow(r, channelById, globalMode, (iso) => kstFmt.format(new Date(iso))))
+    .map((r) => mapDigestRow(r, channelById, globalMode, toDate))
+    .filter((m): m is FeedItem => m !== null);
+  const bookmarkedItems: FeedItem[] = (bmRows ?? [])
+    .map((r) => mapDigestRow(r, channelById, globalMode, toDate))
     .filter((m): m is FeedItem => m !== null);
 
   // 캘린더 일자별 집계(경량 RPC) — 채널필터 재집계용으로 (채널, 일자, 수) 그대로 전달.
@@ -117,6 +124,7 @@ export default async function FeedPage({
         ) : (
           <FeedContent
             items={items}
+            bookmarkedItems={bookmarkedItems}
             channels={channels}
             digestDates={digestDates}
             todayKst={todayKst}
