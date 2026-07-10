@@ -6,8 +6,10 @@ import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeDigestItem } from '@/components/home/HomeDashboard';
 import ReferralBanner from '@/components/home/ReferralBanner';
 import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
-import { KST_TIME_ZONE } from '@/lib/time';
+import { KST_TIME_ZONE, formatKstDateTime } from '@/lib/time';
 import { timed } from '@/lib/perf';
+import { mapDigestRow, type ChannelMeta } from '@/lib/feed/map-digests';
+import { hms, computeReading } from '@/lib/summary/reading';
 
 const GUIDE_LINK = 'font-medium text-accent hover:underline';
 
@@ -25,38 +27,58 @@ export default async function Home() {
   const user = session?.user;
   if (!user) redirect('/login');
 
-  // 다이제스트 집계·최근 목록은 SQL 로 계산(피드와 동일 조건: 활성 구독·기준선·길이·ko요약).
-  // 앱에서 모든 요약을 가져오면 API max-rows(1000) 상한에 걸려 최신분이 누락돼 과소집계됐다 → RPC 로 이전.
+  // 오늘(KST) 자정 경계 — get_feed_digests 로 오늘치 카드 데이터(요약·길이·북마크 포함)를 가져온다.
+  const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE }).format(new Date());
+
+  // 다이제스트 집계·오늘 목록은 SQL 로 계산(피드와 동일 조건: 활성 구독·기준선·길이·ko요약).
   const [{ data: subs }, { data: summary }, { data: todayRows }] = await timed('/', () =>
     Promise.all([
-      supabase.from('subscriptions').select('channel_id, channel_title').eq('user_id', user.id),
+      supabase
+        .from('subscriptions')
+        .select('channel_id, channel_title, channel_thumbnail, channel_handle')
+        .eq('user_id', user.id),
       supabase.rpc('get_digest_summary'),
-      supabase.rpc('get_today_digests'), // 오늘(KST) 다이제스트 전체(제한 없음)
+      // 오늘 하루치 카드 데이터(피드 카드와 동일 소스). 다음날 00:00 KST 미만.
+      supabase.rpc('get_feed_digests', {
+        p_from: `${todayKst}T00:00:00+09:00`,
+        p_to: `${todayKst}T24:00:00+09:00`,
+      }),
     ]),
   );
   const subscriptionCount = (subs ?? []).length; // 구독 수는 일시정지 포함 전체
-  const titleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
+  const channelById = new Map<string, ChannelMeta>(
+    (subs ?? []).map((s) => [
+      s.channel_id,
+      { title: s.channel_title ?? '', thumbnail: s.channel_thumbnail, handle: s.channel_handle },
+    ]),
+  );
 
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
-  const kstShort = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: KST_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
 
   const stats = summary?.[0] ?? { today_count: 0, total_count: 0 };
   const totalDigestCount = stats.total_count;
-  const today: HomeDigestItem[] = (todayRows ?? []).map((v) => ({
-    id: v.id,
-    title: v.title ?? '',
-    channelTitle: titleById.get(v.channel_id) ?? '',
-    time: v.published_at ? kstShort.format(new Date(v.published_at)) : '',
-    dateKst: v.published_at ? kstDate.format(new Date(v.published_at)) : '',
-  }));
+
+  // 피드 카드와 동일 매핑 → 채널 메타·요약. 홈에선 카드 헤더 메타(읽는 시간·압축률·원본)만 표시한다.
+  const today: HomeDigestItem[] = (todayRows ?? [])
+    .map((r) => mapDigestRow(r, channelById, 'normal', (iso) => kstDate.format(new Date(iso))))
+    .filter((m): m is NonNullable<typeof m> => m !== null)
+    .map((m) => {
+      const s = m.summaries[m.initialMode] ?? { coreText: '', bullets: [] };
+      const { readText, compressionPct } = computeReading(s.coreText, s.bullets, m.durationSeconds);
+      return {
+        id: m.id,
+        title: m.title,
+        url: m.url,
+        channelTitle: m.channelTitle,
+        channelThumbnail: m.channelThumbnail,
+        channelHandle: m.channelHandle,
+        dateKst: m.dateKst,
+        updatedText: formatKstDateTime(m.publishedAt),
+        durationText: m.durationSeconds && m.durationSeconds > 0 ? hms(m.durationSeconds) : '',
+        readText,
+        compressionPct,
+      };
+    });
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -5,7 +5,19 @@ import HomeDashboard from './HomeDashboard';
 afterEach(cleanup);
 
 const today = [
-  { id: '1', title: '영상 A', channelTitle: '채널1', time: '07-10 09:30', dateKst: '2026-07-10' },
+  {
+    id: '1',
+    title: '영상 A',
+    url: 'https://youtu.be/x',
+    channelTitle: '채널1',
+    channelThumbnail: null,
+    channelHandle: '@ch1',
+    dateKst: '2026-07-10',
+    updatedText: '2026-07-10 09:30',
+    durationText: '10분',
+    readText: '1분',
+    compressionPct: 90.0,
+  },
 ];
 
 describe('HomeDashboard 빈 상태 분기', () => {
@@ -29,6 +41,19 @@ describe('HomeDashboard 빈 상태 분기', () => {
     expect(screen.queryByText(/아직 구독한 채널이 없어요/)).toBeNull();
   });
 
+  it('카드처럼 채널·핸들·업데이트·원본영상·읽는시간·압축률을 함께 표시한다', () => {
+    render(<HomeDashboard subscriptionCount={1} totalDigestCount={1} today={today} />);
+    const row = screen.getByTestId('today-item');
+    expect(row.textContent).toContain('채널1');
+    expect(row.textContent).toContain('@ch1');
+    expect(row.textContent).toContain('업데이트 2026-07-10 09:30');
+    expect(row.textContent).toContain('원본 영상 10분');
+    expect(row.textContent).toContain('읽는 시간 1분');
+    expect(row.textContent).toContain('압축률 90.0%');
+    // 원본 영상 링크는 유튜브 원본 url
+    expect(screen.getByTestId('today-original').getAttribute('href')).toBe('https://youtu.be/x');
+  });
+
   it('오늘 다이제스트가 없으면 빈 안내를 보여준다(개수 제한 없음, 오늘 기준)', () => {
     render(<HomeDashboard subscriptionCount={2} totalDigestCount={10} today={[]} />);
     expect(screen.getByTestId('home-today')).toBeTruthy();
@@ -41,9 +66,10 @@ describe('HomeDashboard 빈 상태 분기', () => {
     expect(screen.getByTestId('stat-subscriptions').getAttribute('href')).toBe('/subscriptions');
   });
 
-  it('오늘 항목은 앱 내 다이제스트(/feed)로 이동한다(유튜브 아님)', () => {
+  it('제목을 누르면 앱 내 다이제스트(/feed)로 이동한다(유튜브 아님)', () => {
     render(<HomeDashboard subscriptionCount={1} totalDigestCount={1} today={today} />);
-    const href = screen.getByTestId('today-item').getAttribute('href') ?? '';
+    const titleLink = screen.getByText('영상 A').closest('a');
+    const href = titleLink?.getAttribute('href') ?? '';
     expect(href.startsWith('/feed')).toBe(true);
     expect(href).toContain('2026-07-10');
   });

@@ -1,12 +1,28 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
+import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 
 export interface HomeDigestItem {
   id: string;
   title: string;
+  url: string;
   channelTitle: string;
-  time: string;
+  channelThumbnail: string | null;
+  channelHandle: string | null;
   dateKst: string;
+  updatedText: string; // 업데이트 KST yyyy-mm-dd hh:mm
+  durationText: string; // 원본 영상 길이(빈 문자열이면 미표시)
+  readText: string; // 읽는 시간
+  compressionPct: number | null; // 압축률(%) — 길이 미상이면 null
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <path d="M15 3h6v6M10 14 21 3" />
+    </svg>
+  );
 }
 
 interface Props {
@@ -91,18 +107,60 @@ export default function HomeDashboard({
             {today.length > 0 ? (
               <Card className="divide-y divide-border">
                 {today.map((it) => (
-                  <Link
-                    key={it.id}
-                    href={`/feed?date=${it.dateKst}#d-${it.id}`}
-                    data-testid="today-item"
-                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{it.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{it.channelTitle}</p>
+                  <div key={it.id} data-testid="today-item" className="px-4 py-3">
+                    {/* 채널: 아이콘 + 채널명 + 핸들 (좌) / 원본 영상 (우) */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <ChannelAvatar src={it.channelThumbnail} title={it.channelTitle} size={20} />
+                        <p className="truncate text-xs font-medium text-muted-foreground">
+                          {it.channelTitle}
+                        </p>
+                        {it.channelHandle && (
+                          <span className="truncate text-[11px] text-muted-foreground/60">
+                            {it.channelHandle}
+                          </span>
+                        )}
+                      </div>
+                      {it.url && (
+                        <a
+                          href={it.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="원본 영상"
+                          title="원본 영상"
+                          data-testid="today-original"
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <ExternalLinkIcon />
+                        </a>
+                      )}
                     </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">{it.time}</span>
-                  </Link>
+
+                    {/* 제목(클릭 시 다이제스트로 이동) + 업데이트 + 읽는 시간·압축률 */}
+                    <Link
+                      href={`/feed?date=${it.dateKst}#d-${it.id}`}
+                      className="mt-1 block transition-colors hover:text-accent"
+                    >
+                      <p className="text-sm font-semibold leading-snug">{it.title}</p>
+                    </Link>
+                    <p className="mt-0.5 text-xs text-muted-foreground">업데이트 {it.updatedText}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                      {it.durationText && (
+                        <span>
+                          원본 영상 <span className="tabular-nums text-foreground/70">{it.durationText}</span>
+                        </span>
+                      )}
+                      {it.durationText && <span aria-hidden>|</span>}
+                      <span>
+                        읽는 시간 <span className="tabular-nums text-foreground/70">{it.readText}</span>
+                      </span>
+                      {it.compressionPct !== null && (
+                        <span className="ml-1 font-semibold text-accent">
+                          (압축률 {it.compressionPct.toFixed(1)}%)
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 ))}
               </Card>
             ) : (

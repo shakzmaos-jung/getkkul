@@ -46,3 +46,17 @@ export function formatKst(isoUtc: string): string {
     timeZone: KST_TIME_ZONE,
   }).format(new Date(isoUtc));
 }
+
+/** 영상 업데이트 일시(UTC ISO)를 KST "yyyy-mm-dd hh:mm" 으로. 피드 카드·홈 목록 공용. */
+export function formatKstDateTime(isoUtc: string | null): string {
+  if (!isoUtc) return '';
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: KST_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(isoUtc));
+}
