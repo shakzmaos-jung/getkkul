@@ -13,6 +13,8 @@ import {
 } from '@/lib/qa/answer';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
+import { mapDigestRow, type ChannelMeta, type MappedDigest } from '@/lib/feed/map-digests';
+import type { LengthMode } from '@/lib/summary/format';
 
 /**
  * 다이제스트 카드별 요약 길이 선택을 영상별·계정 단위로 저장 (최신값 upsert).
@@ -56,6 +58,56 @@ export async function toggleBookmark(videoId: string, next: boolean): Promise<{ 
     await supabase.from('bookmarks').delete().eq('user_id', user.id).eq('video_id', videoId);
   }
   return { bookmarked: next };
+}
+
+/**
+ * 특정 KST 일자의 다이제스트 카드 온디맨드 조회(하이브리드 프리로드 밖 날짜, plan F1).
+ * get_feed_digests RPC(p_from=일자 00:00 KST, p_to=+1일)를 페이지와 동일 매핑으로 반환한다.
+ */
+export async function fetchDigestsForDate(
+  dateKst: string,
+): Promise<{ items: MappedDigest[] } | { error: string }> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKst)) return { error: '잘못된 날짜입니다.' };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  // 다음 날 00:00 KST (문자열 연산으로 월 경계 안전 처리)
+  const [y, m, d] = dateKst.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d));
+  next.setUTCDate(next.getUTCDate() + 1);
+  const nextKst = next.toISOString().slice(0, 10);
+
+  const [{ data: subs }, { data: setting }, { data: rows, error }] = await Promise.all([
+    supabase
+      .from('subscriptions')
+      .select('channel_id, channel_title, channel_thumbnail, channel_handle, paused')
+      .eq('user_id', user.id),
+    supabase.from('user_settings').select('summary_length').eq('user_id', user.id).maybeSingle(),
+    supabase.rpc('get_feed_digests', {
+      p_from: `${dateKst}T00:00:00+09:00`,
+      p_to: `${nextKst}T00:00:00+09:00`,
+    }),
+  ]);
+  if (error) return { error: '다이제스트를 불러오지 못했습니다.' };
+
+  const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
+  const channelById = new Map<string, ChannelMeta>(
+    (subs ?? [])
+      .filter((s) => !s.paused)
+      .map((s) => [
+        s.channel_id,
+        { title: s.channel_title ?? '', thumbnail: s.channel_thumbnail, handle: s.channel_handle },
+      ]),
+  );
+  const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
+  const items = (rows ?? [])
+    .map((r) => mapDigestRow(r, channelById, globalMode, (iso) => kstFmt.format(new Date(iso))))
+    .filter((v): v is MappedDigest => v !== null);
+  return { items };
 }
 
 /** 영상 맥락 로드: 전사 우선, 없으면 한국어 요약(coreText + bullets). 맥락 길이 상한 적용. */

@@ -5,22 +5,18 @@ import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
-import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
-import { passesDurationFilters } from '@/lib/youtube/duration';
-import { chunk, selectSummarizedRows, toDigestDates } from '@/lib/feed/digests';
+import {
+  mapDigestRow,
+  preloadFromKstDate,
+  type ChannelMeta,
+} from '@/lib/feed/map-digests';
 import { perfStart, perfEnd } from '@/lib/perf';
 import type { LengthMode } from '@/lib/summary/format';
 
-type ModeSummary = { coreText: string; bullets: string[] };
-
-// done 영상 스캔 상한(최신순). 이 중 요약(ko) 있는 것만 다이제스트로 취급한다.
-// 표시 상한(FEED_DISPLAY_LIMIT)보다 넉넉히 커야, 아직 요약 안 된 done(전사만 된 상태)에 밀려
-// 최근 다이제스트가 스캔 창 밖으로 잘리지 않는다.
-const FEED_DONE_LIMIT = 800;
-// 캘린더·카드에 실을 다이제스트(요약 있는 done) 상한. 캘린더와 카드가 동일 집합을 공유한다.
-const FEED_DISPLAY_LIMIT = 200;
-// PostgREST .in() 한 요청당 id 개수 상한(대량이면 URL 길이로 400). 이 단위로 청크 조회.
-const IN_CHUNK = 100;
+// 하이브리드 프리로드 창(KST 일수). 오늘+어제만 초기 전송 → 첫 진입 페이로드 최소화.
+// 그 이전 날짜는 선택 시 서버 액션으로 온디맨드 조회(fetchDigestsForDate).
+// 실측: 200개 상한 방식 454kB → 2일 창 ~160kB (요약 텍스트 기준).
+export const PRELOAD_KST_DAYS = 2;
 
 /** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
 export default async function FeedPage({
@@ -40,139 +36,53 @@ export default async function FeedPage({
   const user = session?.user;
   if (!user) redirect('/login');
 
-  const perfT0 = perfStart(); // [perf] 데이터페칭 총 소요 관측(다단계라 수동 계측)
+  const perfT0 = perfStart(); // [perf] 데이터페칭 총 소요 관측
 
-  // 서로 독립적인 두 쿼리는 병렬로 (직렬 왕복 제거).
-  const [{ data: subs }, { data: setting }] = await Promise.all([
-    supabase
-      .from('subscriptions')
-      .select('channel_id, channel_title, channel_thumbnail, channel_handle, paused, active_since')
-      .eq('user_id', user.id),
-    supabase
-      .from('user_settings')
-      .select('summary_length, exclude_over_2h')
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ]);
+  // 캘린더: 오늘(KST) 기본값. 프리로드 창(오늘+어제)의 시작 일자와 그 KST 00:00 타임스탬프.
+  const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+  const preloadFrom = preloadFromKstDate(todayKst, PRELOAD_KST_DAYS);
+
+  // 전부 서로 독립 → 단일 병렬 대기(직렬 왕복 제거, plan F1).
+  // get_feed_digests 가 요약 3모드·길이선택·북마크를 서버 조인으로 합쳐 반환한다
+  // (활성구독·기준선·길이필터·ko요약 조건은 RPC 내부 — 피드 표시 규칙의 단일 진실).
+  const [{ data: subs }, { data: setting }, { data: digRows }, { data: dateRows }] =
+    await Promise.all([
+      supabase
+        .from('subscriptions')
+        .select('channel_id, channel_title, channel_thumbnail, channel_handle, paused')
+        .eq('user_id', user.id),
+      supabase
+        .from('user_settings')
+        .select('summary_length')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      supabase.rpc('get_feed_digests', {
+        p_from: `${preloadFrom}T00:00:00+09:00`,
+        p_with_bookmarked: true, // 북마크 탭이 창 밖 항목을 잃지 않도록 항상 포함
+      }),
+      supabase.rpc('get_digest_dates'),
+    ]);
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
-  const excludeOver2h = setting?.exclude_over_2h ?? true;
-  // 일시정지된 채널은 다이제스트에서 제외(피드·캘린더·채널필터 모두).
   const activeSubs = (subs ?? []).filter((s) => !s.paused);
-  const sinceByChannel = activeSinceByChannel(activeSubs);
-  const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
-  const channelTitleById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_title ?? '']));
-  const channelThumbById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_thumbnail]));
-  const channelHandleById = new Map(activeSubs.map((s) => [s.channel_id, s.channel_handle]));
+  const channelById = new Map<string, ChannelMeta>(
+    activeSubs.map((s) => [
+      s.channel_id,
+      { title: s.channel_title ?? '', thumbnail: s.channel_thumbnail, handle: s.channel_handle },
+    ]),
+  );
   const channels = activeSubs.map((s) => ({
     id: s.channel_id,
     title: s.channel_title ?? s.channel_id,
     thumbnail: s.channel_thumbnail,
   }));
 
-  // 캘린더: 오늘(KST) 기본값. 일자별 수는 채널 필터에 따라 클라이언트에서 재집계하도록 원본 전달.
-  const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-  let digestDates: { c: string; d: string }[] = [];
+  const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
+  const items: FeedItem[] = (digRows ?? [])
+    .map((r) => mapDigestRow(r, channelById, globalMode, (iso) => kstFmt.format(new Date(iso))))
+    .filter((m): m is FeedItem => m !== null);
 
-  const items: FeedItem[] = [];
-
-  if (channelIds.length > 0) {
-    // done 영상을 최신순으로 조회(FEED_DONE_LIMIT). 이 중 요약(ko) 있는 것만 다이제스트다.
-    const kstFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' });
-    const { data: doneVideos } = await supabase
-      .from('videos')
-      .select('id, title, url, channel_id, published_at, duration_seconds, created_at')
-      .eq('status', 'done')
-      .in('channel_id', channelIds)
-      .order('published_at', { ascending: false })
-      .limit(FEED_DONE_LIMIT);
-    // 정지해제 기준선(active_since) 이후 + 영상 길이 필터(1분미만 항상 제외, 2시간이상 옵션).
-    const doneRows = (doneVideos ?? [])
-      .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
-      .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
-    const doneIds = doneRows.map((v) => v.id);
-
-    if (doneIds.length > 0) {
-      // 요약(ko)은 done 전체를 대상으로 조회해 "어떤 done 이 실제 다이제스트인지" 판정한다.
-      // PostgREST 의 .in() 은 값이 많으면 URL 길이 한계로 400 을 내므로 청크로 나눠 조회 후 병합.
-      const sumChunks = await Promise.all(
-        chunk(doneIds, IN_CHUNK).map((c) =>
-          supabase
-            .from('summaries')
-            .select('video_id, length_mode, core_text, body')
-            .eq('language', 'ko')
-            .in('video_id', c),
-        ),
-      );
-      const sums = sumChunks.flatMap((r) => r.data ?? []);
-      const byVideo = new Map<string, Partial<Record<LengthMode, ModeSummary>>>();
-      for (const s of sums) {
-        const bullets =
-          s.body && typeof s.body === 'object' && 'bullets' in s.body
-            ? ((s.body as { bullets?: unknown }).bullets as string[]) ?? []
-            : [];
-        const rec = byVideo.get(s.video_id) ?? {};
-        rec[s.length_mode as LengthMode] = {
-          coreText: s.core_text ?? '',
-          bullets: Array.isArray(bullets) ? bullets : [],
-        };
-        byVideo.set(s.video_id, rec);
-      }
-
-      // 캘린더 집계와 카드는 동일 집합(요약 있는 done)에서 나온다 → 숫자 불일치 방지.
-      const summarizedRows = selectSummarizedRows(
-        doneRows,
-        (id) => byVideo.has(id),
-        FEED_DISPLAY_LIMIT,
-      );
-      digestDates = toDigestDates(summarizedRows, (iso) => kstFmt.format(new Date(iso)));
-
-      // 길이 선택·북마크는 표시 대상(≤FEED_DISPLAY_LIMIT)만 — 역시 청크 조회.
-      const shownIds = summarizedRows.map((v) => v.id);
-      const [prefChunks, bmChunks] = await Promise.all([
-        Promise.all(
-          chunk(shownIds, IN_CHUNK).map((c) =>
-            supabase.from('user_video_prefs').select('video_id, length_mode').in('video_id', c),
-          ),
-        ),
-        Promise.all(
-          chunk(shownIds, IN_CHUNK).map((c) =>
-            supabase.from('bookmarks').select('video_id').in('video_id', c),
-          ),
-        ),
-      ]);
-      const bookmarkedIds = new Set(bmChunks.flatMap((r) => r.data ?? []).map((b) => b.video_id));
-      const prefByVideo = new Map(
-        prefChunks.flatMap((r) => r.data ?? []).map((p) => [p.video_id, p.length_mode as LengthMode]),
-      );
-
-      for (const v of summarizedRows) {
-        const summaries = byVideo.get(v.id);
-        if (!summaries || Object.keys(summaries).length === 0) continue;
-        const pref = prefByVideo.get(v.id);
-        const initialMode: LengthMode =
-          pref && summaries[pref]
-            ? pref
-            : summaries[globalMode]
-              ? globalMode
-              : (Object.keys(summaries)[0] as LengthMode);
-        items.push({
-          id: v.id,
-          channelId: v.channel_id,
-          title: v.title ?? '',
-          url: v.url ?? '',
-          channelTitle: channelTitleById.get(v.channel_id) ?? '',
-          channelThumbnail: channelThumbById.get(v.channel_id) ?? null,
-          channelHandle: channelHandleById.get(v.channel_id) ?? null,
-          publishedAt: v.published_at,
-          durationSeconds: v.duration_seconds,
-          dateKst: v.published_at ? kstFmt.format(new Date(v.published_at)) : '',
-          initialMode,
-          summaries,
-          bookmarked: bookmarkedIds.has(v.id),
-        });
-      }
-    }
-  }
+  // 캘린더 일자별 집계(경량 RPC) — 채널필터 재집계용으로 (채널, 일자, 수) 그대로 전달.
+  const digestDates = (dateRows ?? []).map((r) => ({ c: r.channel_id, d: r.kst_date, n: r.cnt }));
 
   perfEnd('/feed', perfT0);
 
@@ -194,7 +104,7 @@ export default async function FeedPage({
           />
         </div>
 
-        {items.length === 0 ? (
+        {items.length === 0 && digestDates.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">아직 요약된 영상이 없습니다.</p>
             <Link
@@ -211,6 +121,7 @@ export default async function FeedPage({
             digestDates={digestDates}
             todayKst={todayKst}
             initialDate={initialDate}
+            preloadFrom={preloadFrom}
           />
         )}
       </main>

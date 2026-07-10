@@ -808,6 +808,28 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_digest_dates: {
+        Args: never
+        Returns: {
+          channel_id: string
+          kst_date: string
+          cnt: number
+        }[]
+      }
+      get_feed_digests: {
+        Args: { p_from: string; p_to?: string; p_with_bookmarked?: boolean }
+        Returns: {
+          id: string
+          channel_id: string
+          title: string
+          url: string
+          published_at: string
+          duration_seconds: number
+          summaries: Json
+          pref_mode: string
+          bookmarked: boolean
+        }[]
+      }
       get_recent_digests: {
         Args: { p_limit?: number }
         Returns: {
