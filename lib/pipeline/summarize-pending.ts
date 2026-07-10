@@ -24,14 +24,14 @@ export async function summarizePending(
   const limit = deps.limit ?? 100;
 
   // done 영상 전체(최신순)와 이미 있는 ko 요약(video_id, mode)을 조회.
-  // duration >= 60초만 요약 대상. NULL(라이브/예정/미취득)·1분 미만(Shorts)은 제외.
+  // duration >= 120초만 요약 대상. NULL(라이브/예정/미취득)·2분 미만(Shorts 등)은 제외.
   // (fillDurations 를 먼저 돌려 정식 영상은 길이를 채운 뒤이므로, 남은 제외분은 라이브 또는 Shorts.)
   // 2시간 이상은 여기서 요약은 하되(사용자별 설정), 노출/발송 단계에서 필터한다.
   const { data: videos, error } = await supabase
     .from('videos')
     .select('id')
     .eq('status', 'done')
-    .gte('duration_seconds', 60)
+    .gte('duration_seconds', 120)
     .order('created_at', { ascending: false });
   if (error) throw new Error(`done 영상 조회 실패: ${error.message}`);
   const doneList = videos ?? [];

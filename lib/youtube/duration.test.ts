@@ -41,10 +41,11 @@ describe('formatDuration', () => {
 });
 
 describe('passesDurationFilters', () => {
-  it('1분 미만은 항상 제외(설정 무관)', () => {
-    expect(passesDurationFilters(59, false)).toBe(false);
-    expect(passesDurationFilters(59, true)).toBe(false);
-    expect(passesDurationFilters(60, true)).toBe(true); // 정확히 1분은 통과
+  it('2분 미만은 항상 제외(설정 무관, 1분 넘는 숏츠 포함)', () => {
+    expect(passesDurationFilters(119, false)).toBe(false);
+    expect(passesDurationFilters(119, true)).toBe(false);
+    expect(passesDurationFilters(90, true)).toBe(false); // 1분 넘는 숏츠도 제외
+    expect(passesDurationFilters(120, true)).toBe(true); // 정확히 2분은 통과
   });
   it('2시간 이상은 excludeOver2h 일 때만 제외', () => {
     expect(passesDurationFilters(7200, true)).toBe(false); // 2시간
