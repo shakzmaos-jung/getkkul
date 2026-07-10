@@ -38,8 +38,8 @@ function UsageRing({ label, used, limit }: { label: string; used: number; limit:
   const over = used >= limit;
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="relative h-16 w-16">
-        <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
+      <div className="relative h-20 w-20">
+        <svg viewBox="0 0 64 64" className="h-20 w-20 -rotate-90">
           <circle cx="32" cy="32" r={R} fill="none" strokeWidth="6" className="stroke-current text-muted-foreground/20" />
           <circle
             cx="32"
@@ -54,10 +54,10 @@ function UsageRing({ label, used, limit }: { label: string; used: number; limit:
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-[13px] font-semibold tabular-nums leading-none ${over ? 'text-danger' : ''}`}>
+          <span className={`text-base font-semibold tabular-nums leading-none ${over ? 'text-danger' : ''}`}>
             {used.toLocaleString('ko-KR')}
           </span>
-          <span className="text-[10px] tabular-nums leading-tight text-muted-foreground">
+          <span className="text-[11px] tabular-nums leading-tight text-muted-foreground">
             /{limit.toLocaleString('ko-KR')}
           </span>
         </div>
@@ -189,18 +189,17 @@ export default function MembershipScreen({
       {/* 플랜 비교 카드 */}
       <div>
         <h2 className="mb-2 text-sm font-semibold">플랜 변경</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-1.5">
           {PLAN_ORDER.map((code) => {
             const p = PLANS[code];
             const isCurrent = code === cur;
             const up = planRank(code) > planRank(cur);
-            const proration = view.upgradeProration[code];
             // 얼리버드 기간엔 현재(Medium) 외 플랜은 잠금(추후 오픈).
             const locked = view.pocActive && !isCurrent;
             return (
               <Card
                 key={code}
-                className={`relative flex flex-col gap-2 p-4 ${
+                className={`flex flex-col items-center gap-1.5 p-2 text-center ${
                   isCurrent
                     ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
                     : locked
@@ -209,43 +208,35 @@ export default function MembershipScreen({
                 }`}
                 data-testid={`plan-${code}`}
               >
-                {isCurrent && view.pocActive && (
-                  <span className="absolute right-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-background">
+                <span className="text-sm font-semibold">{p.name}</span>
+                {isCurrent && view.pocActive ? (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold leading-tight text-background">
                     얼리버드 무료
                   </span>
-                )}
-                <div className="flex items-baseline justify-between pr-16">
-                  <span className="font-semibold">{p.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {isCurrent && view.pocActive
-                      ? '얼리버드 무료'
-                      : p.price === 0
-                        ? '무료'
-                        : `${won(p.price)}/월`}
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">
+                    {p.price === 0 ? '무료' : won(p.price)}
                   </span>
-                </div>
+                )}
 
                 {isCurrent ? (
-                  <span className="mt-auto rounded-lg border border-accent/40 bg-accent/15 px-2 py-1.5 text-center text-xs font-semibold text-accent">
+                  <span className="mt-auto w-full rounded-lg border border-accent/40 bg-accent/15 px-1 py-1.5 text-[11px] font-semibold text-accent">
                     현재 플랜
                   </span>
                 ) : locked ? (
-                  <span className="mt-auto rounded-lg bg-muted px-2 py-1.5 text-center text-xs text-muted-foreground">
+                  <span className="mt-auto w-full rounded-lg bg-muted px-1 py-1.5 text-[11px] text-muted-foreground">
                     추후 오픈
                   </span>
                 ) : (
                   <Button
                     size="sm"
                     variant={up ? 'primary' : 'secondary'}
-                    className="mt-auto"
+                    className="mt-auto w-full px-1"
                     disabled={pending}
                     onClick={() => setConfirm(code)}
                     data-testid={`change-${code}`}
                   >
-                    {up ? '업그레이드' : code === 'free' ? '해지' : '다운그레이드'}
-                    {up && proration !== undefined && !view.pocActive && (
-                      <span className="ml-1 text-[11px] opacity-80">(+{won(proration)})</span>
-                    )}
+                    {up ? '업그레이드' : code === 'free' ? '해지' : '다운'}
                   </Button>
                 )}
               </Card>
