@@ -199,11 +199,12 @@ export default function MembershipScreen({
             return (
               <Card
                 key={code}
+                onClick={locked ? () => showToast('추후 오픈 예정입니다') : undefined}
                 className={`flex flex-col items-center gap-1.5 p-2 text-center ${
                   isCurrent
                     ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
                     : locked
-                      ? 'opacity-50'
+                      ? 'cursor-pointer opacity-50 transition-opacity hover:opacity-70'
                       : ''
                 }`}
                 data-testid={`plan-${code}`}
