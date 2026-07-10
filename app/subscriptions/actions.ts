@@ -14,6 +14,7 @@ import {
   type ChannelCandidate,
 } from '@/lib/youtube/search';
 import type { Json } from '@/lib/database.types';
+import { checkChannelLimit } from '@/lib/membership/enforce';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h (AC-C1.3)
 
@@ -62,6 +63,12 @@ export async function addSubscription(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  // 플랜 채널 한도 집행(AC-D1.1).
+  const limit = await checkChannelLimit(user.id);
+  if (!limit.allowed) {
+    return { error: `채널 한도(${limit.limit}개)에 도달했어요. 멤버십을 올리면 더 추가할 수 있어요.` };
+  }
 
   let channel;
   try {
@@ -186,6 +193,11 @@ export async function addSubscriptionById(channelId: string): Promise<AddSubscri
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  const limit = await checkChannelLimit(user.id);
+  if (!limit.allowed) {
+    return { error: `채널 한도(${limit.limit}개)에 도달했어요. 멤버십을 올리면 더 추가할 수 있어요.` };
+  }
 
   let channel;
   try {

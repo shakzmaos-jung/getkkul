@@ -14,6 +14,7 @@ import {
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 import { mapDigestRow, type ChannelMeta, type MappedDigest } from '@/lib/feed/map-digests';
+import { consumeAiQuery } from '@/lib/membership/enforce';
 import type { LengthMode } from '@/lib/summary/format';
 
 /**
@@ -160,6 +161,15 @@ export async function askAboutContent(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  // AI 질의 월 한도 집행(AC-D1.3). 원자적 소비 — 초과면 차단.
+  const quota = await consumeAiQuery(user.id);
+  if (!quota.allowed) {
+    return {
+      ok: false,
+      error: `이번 주기 AI 질의 한도(${quota.limit}회)를 모두 사용했어요. 멤버십을 올리면 더 물어볼 수 있어요.`,
+    };
+  }
 
   const ctx = await loadContentContext(supabase, videoId);
   if (!ctx) return { ok: false, error: '이 콘텐츠의 맥락을 찾을 수 없습니다.' };
