@@ -8,7 +8,7 @@ import { CheckIcon } from '@/components/ui/CheckIcon';
 
 const initial: SettingsState = {};
 
-/** 영상 길이 필터. 1분 미만=항상 제외(잠금), 2시간 이상=토글(선택 즉시 자동 저장). */
+/** 영상 길이 필터. 2분 미만=항상 제외(잠금), 2시간 이상=토글(선택 즉시 자동 저장). */
 export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver2h: boolean }) {
   const showToast = useToast();
   const [saving, setSaving] = useState(false);
@@ -21,9 +21,9 @@ export default function VideoDurationFilterForm({ excludeOver2h }: { excludeOver
 
   return (
     <form action={formAction} className="grid grid-cols-2 gap-2">
-      {/* 1분 미만: 항상 적용(잠금) */}
+      {/* 2분 미만: 항상 적용(잠금) */}
       <div className="flex cursor-not-allowed flex-col gap-0.5 rounded-lg border border-accent/30 bg-accent/10 p-3 opacity-70">
-        <span className="text-sm font-medium">1분 미만 제외</span>
+        <span className="text-sm font-medium">2분 미만 제외</span>
         <span className="text-xs text-muted-foreground">항상 적용</span>
       </div>
 
