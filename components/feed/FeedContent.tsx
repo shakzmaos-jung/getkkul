@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import DigestCalendar from '@/components/feed/DigestCalendar';
+import DateFilter from '@/components/feed/DateFilter';
 import SummaryCard from '@/components/feed/SummaryCard';
 import ChannelFilter from '@/components/feed/ChannelFilter';
 import { TabCards } from '@/components/ui/TabCards';
@@ -157,20 +157,19 @@ export default function FeedContent({
         ]}
       />
 
-      {tab === 'digest' && (
-        <div className="mb-3">
-          <DigestCalendar
+      {/* 상단 컨트롤 한 줄: 날짜 필터(좌, 디지스트 탭) + 채널 필터(우) */}
+      <div className="mb-6 flex items-center gap-2">
+        {tab === 'digest' && (
+          <DateFilter
             todayKst={todayKst}
             selected={selected}
             onSelect={onSelectDate}
             countsByDate={countsByDate}
           />
+        )}
+        <div className="ml-auto">
+          <ChannelFilter channels={channels} checked={checked} onChange={setChecked} />
         </div>
-      )}
-
-      {/* 채널 필터: 캘린더 아래 배치 */}
-      <div className="mb-6">
-        <ChannelFilter channels={channels} checked={checked} onChange={setChecked} />
       </div>
 
       {dateLoading && tab === 'digest' ? (

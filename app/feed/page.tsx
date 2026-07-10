@@ -13,10 +13,9 @@ import {
 import { perfStart, perfEnd } from '@/lib/perf';
 import type { LengthMode } from '@/lib/summary/format';
 
-// 하이브리드 프리로드 창(KST 일수). 오늘+어제만 초기 전송 → 첫 진입 페이로드 최소화.
-// 그 이전 날짜는 선택 시 서버 액션으로 온디맨드 조회(fetchDigestsForDate).
-// 실측: 200개 상한 방식 454kB → 2일 창 ~160kB (요약 텍스트 기준).
-export const PRELOAD_KST_DAYS = 2;
+// 하이브리드 프리로드 창(KST 일수). 오늘자만 초기 전송 → 첫 진입 페이로드 최소화.
+// 이전 날짜는 캘린더에서 선택 시 온디맨드 조회(fetchDigestsForDate, 짧은 스피너).
+export const PRELOAD_KST_DAYS = 1;
 
 /** 요약 열람 피드. 카드별 요약 길이(짧게/보통/길게) 선택 — default 는 설정, 영상별 저장값 우선. */
 export default async function FeedPage({
