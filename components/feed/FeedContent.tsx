@@ -157,7 +157,7 @@ export default function FeedContent({
         ]}
       />
 
-      {/* 상단 컨트롤 한 줄: 날짜 필터(좌, 디지스트 탭) + 채널 필터(우) */}
+      {/* 상단 컨트롤 한 줄: 날짜 필터 + 바로 우측에 채널 필터 인접 */}
       <div className="mb-6 flex items-center gap-2">
         {tab === 'digest' && (
           <DateFilter
@@ -167,9 +167,7 @@ export default function FeedContent({
             countsByDate={countsByDate}
           />
         )}
-        <div className="ml-auto">
-          <ChannelFilter channels={channels} checked={checked} onChange={setChecked} />
-        </div>
+        <ChannelFilter channels={channels} checked={checked} onChange={setChecked} />
       </div>
 
       {dateLoading && tab === 'digest' ? (
