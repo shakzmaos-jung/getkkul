@@ -31,12 +31,24 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   );
 
-  // 중요: createServerClient 직후 곧바로 getUser 를 호출한다(사이에 로직 금지).
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 인증 확인은 getClaims 로 — 프로젝트가 비대칭 키(ES256)라 JWT 서명을 로컬 검증한다
+  // (JWKS 캐시, 네트워크 왕복 없음 → 메뉴 이동마다 있던 Auth 서버 왕복 제거, plan F2).
+  // 토큰 만료·검증 실패 시에만 getUser 폴백(리프레시 토큰으로 세션 갱신 경로 보존).
+  let hasUser = false;
+  try {
+    const { data } = await supabase.auth.getClaims();
+    hasUser = Boolean(data?.claims?.sub);
+  } catch {
+    hasUser = false;
+  }
+  if (!hasUser) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(); // 만료 토큰 리프레시 시도(쿠키 갱신은 setAll 로 전파)
+    hasUser = Boolean(user);
+  }
 
-  if (shouldRedirectToLogin(Boolean(user), request.nextUrl.pathname)) {
+  if (shouldRedirectToLogin(hasUser, request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
