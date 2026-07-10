@@ -6,6 +6,7 @@ import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm'
 import ChannelSearch from '@/components/subscriptions/ChannelSearch';
 import SubscriptionsList from '@/components/subscriptions/SubscriptionsList';
 import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
+import { timed } from '@/lib/perf';
 
 /** 채널 구독 관리 (SSR REQ-B2). 본인 구독만 최신순(구독 시작일 내림차순) 표시(AC-B2.1). */
 export default async function SubscriptionsPage() {
@@ -17,12 +18,14 @@ export default async function SubscriptionsPage() {
   } = await supabase.auth.getSession();
   if (!session) redirect('/login');
 
-  const { data: subs } = await supabase
-    .from('subscriptions')
-    .select(
-      'id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at, paused',
-    )
-    .order('created_at', { ascending: false });
+  const { data: subs } = await timed('/subscriptions', async () =>
+    supabase
+      .from('subscriptions')
+      .select(
+        'id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at, paused',
+      )
+      .order('created_at', { ascending: false }),
+  );
 
   // 최신순(created_at desc)은 쿼리에서 정렬됨. 활성/정지 분리는 탭에서 처리.
   const list = subs ?? [];

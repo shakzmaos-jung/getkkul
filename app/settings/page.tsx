@@ -13,6 +13,7 @@ import SignOutButton from '@/components/auth/SignOutButton';
 import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 import type { LengthMode } from '@/lib/summary/format';
 import { SLOT_CODES, type SlotCode } from '@/lib/time';
+import { timed } from '@/lib/perf';
 
 /** 설정 (요약 길이 / 수신 이메일 / 발송 시각). */
 export default async function SettingsPage() {
@@ -24,13 +25,15 @@ export default async function SettingsPage() {
   const user = session?.user;
   if (!user) redirect('/login');
 
-  const { data: setting } = await supabase
-    .from('user_settings')
-    .select(
-      'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, skip_empty_push, skip_empty_email',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const { data: setting } = await timed('/settings', async () =>
+    supabase
+      .from('user_settings')
+      .select(
+        'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, skip_empty_push, skip_empty_email',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  );
   const current = (setting?.summary_length ?? 'normal') as LengthMode;
   const deliveryEmail = setting?.delivery_email ?? user.email ?? '';
   const isDefaultEmail = !setting?.delivery_email;
