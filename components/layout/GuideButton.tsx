@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/Button';
-
-interface Props {
-  title: string;
-  description: string;
-  points: ReactNode[];
-}
+import type { ScreenGuide } from '@/components/layout/screen-guides';
 
 /**
- * 화면 '이용 가이드' 뱃지. 화면 타이틀은 전역 상단 헤더(AppHeader)가 담당하므로 여기선
- * 뱃지만 노출한다. 뱃지를 누르면 화면 설명 + 사용법을 다이얼로그로 연다(닫으면 원화면 복귀).
+ * 화면 타이틀 우측 '이용 가이드' 뱃지. 누르면 화면 설명 + 사용법을 포털 다이얼로그로 연다
+ * (백드롭/Escape/닫기 버튼으로 닫힘). 헤더(AppHeader)에서 현재 화면 가이드와 함께 렌더.
  */
-export default function ScreenGuideHeader({ title, description, points }: Props) {
+export default function GuideButton({ guide }: { guide: ScreenGuide }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <>
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -43,18 +38,12 @@ export default function ScreenGuideHeader({ title, description, points }: Props)
         이용 가이드
       </button>
 
-      {open && <GuideDialog title={title} description={description} points={points} onClose={() => setOpen(false)} />}
-    </div>
+      {open && <GuideDialog guide={guide} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
-/** 포털 다이얼로그(백드롭/Escape/닫기 버튼으로 닫힘). ConfirmDialog·InstallDialog 패턴 미러. */
-function GuideDialog({
-  title,
-  description,
-  points,
-  onClose,
-}: Props & { onClose: () => void }) {
+function GuideDialog({ guide, onClose }: { guide: ScreenGuide; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -73,15 +62,15 @@ function GuideDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`${title} 이용 가이드`}
+        aria-label={`${guide.title} 이용 가이드`}
         onClick={(e) => e.stopPropagation()}
         className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl"
       >
-        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        <h2 className="text-base font-semibold tracking-tight">{guide.title}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{guide.description}</p>
 
         <ul className="mt-4 flex flex-col gap-2.5 border-t border-border pt-4">
-          {points.map((p, i) => (
+          {guide.points.map((p, i) => (
             <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-muted-foreground">
               <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-border" aria-hidden />
               <span className="min-w-0">{p}</span>

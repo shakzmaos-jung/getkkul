@@ -14,7 +14,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`flex min-h-full flex-1 flex-col ${
-        showNav ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))]' : ''
+        showNav ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom))]' : ''
       }`}
     >
       {children}

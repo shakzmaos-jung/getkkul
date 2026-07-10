@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 
@@ -49,6 +49,29 @@ function CloseIcon() {
   );
 }
 
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={`shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+// 햄버거 메뉴 각 행 공통 높이/스타일 — 전체 행 통일(44px). 설정·테마·아코디언 헤더 동일.
+const ROW =
+  'flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted';
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -63,6 +86,8 @@ interface Props {
 export default function SideMenu({ open, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [devOpen, setDevOpen] = useState(false);
 
   // ESC 닫기 + 포커스 트랩(Tab 순환) + 열림 시 첫 요소 포커스.
   useEffect(() => {
@@ -152,71 +177,95 @@ export default function SideMenu({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col gap-5 p-5">
-          {/* (1) 서비스 소개 */}
-          <section className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-base leading-none">🍯</span>
-              <span className="text-base font-semibold tracking-tight">겟꿀</span>
+        <div className="flex flex-1 flex-col p-2">
+          {/* (1) 서비스 소개 — 메뉴명(누르면 펼침) */}
+          <button
+            type="button"
+            onClick={() => setAboutOpen((v) => !v)}
+            aria-expanded={aboutOpen}
+            data-testid="menu-about"
+            className={ROW}
+          >
+            <span>서비스 소개</span>
+            <Chevron open={aboutOpen} />
+          </button>
+          {aboutOpen && (
+            <div className="px-3 pb-3 pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base leading-none">🍯</span>
+                <span className="text-sm font-semibold tracking-tight">겟꿀</span>
+              </div>
+              <p className="mt-1 text-sm text-foreground/80">구독한 콘텐츠의 핵심만</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                관심 유튜브 채널을 대신 감시해 요약해드립니다
+              </p>
             </div>
-            <p className="text-sm text-foreground/80">구독한 콘텐츠의 핵심만</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              관심 유튜브 채널을 대신 감시해 요약해드립니다
-            </p>
-          </section>
+          )}
 
-          {/* (2) 개발자 정보 */}
-          <section className="flex flex-col gap-1.5 border-t border-border pt-5">
-            <div className="text-sm font-semibold tracking-tight">정상화</div>
-            <p className="text-xs text-foreground/80">프로덕트 빌더 with AI</p>
-            <a
-              href="mailto:shakzmaos@gmail.com"
-              className="inline-flex min-h-[36px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <MailIcon />
-              shakzmaos@gmail.com
-            </a>
-            <a
-              href={REMEMBER_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[36px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <RememberLogo />
-              chess.jung@ppoint.kr
-            </a>
-            <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[36px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <GithubIcon />
-              GitHub 레포지터리
-            </a>
-          </section>
+          {/* (2) 개발자 정보 — 메뉴명(누르면 펼침) */}
+          <button
+            type="button"
+            onClick={() => setDevOpen((v) => !v)}
+            aria-expanded={devOpen}
+            data-testid="menu-developer"
+            className={`${ROW} border-t border-border`}
+          >
+            <span>개발자 정보</span>
+            <Chevron open={devOpen} />
+          </button>
+          {devOpen && (
+            <div className="flex flex-col gap-1 px-3 pb-3 pt-1">
+              <div className="text-sm font-semibold tracking-tight">정상화</div>
+              <p className="text-xs text-foreground/80">프로덕트 빌더 with AI</p>
+              <a
+                href="mailto:shakzmaos@gmail.com"
+                className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <MailIcon />
+                shakzmaos@gmail.com
+              </a>
+              <a
+                href={REMEMBER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <RememberLogo />
+                chess.jung@ppoint.kr
+              </a>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <GithubIcon />
+                GitHub 레포지터리
+              </a>
+            </div>
+          )}
 
           {/* (3) 설정 진입 */}
-          <section className="border-t border-border pt-5">
-            <Link
-              href="/settings"
-              onClick={onClose}
-              data-testid="menu-settings"
-              className="inline-flex min-h-[44px] w-full items-center gap-2.5 rounded-lg px-1 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
+          <Link
+            href="/settings"
+            onClick={onClose}
+            data-testid="menu-settings"
+            className={`${ROW} border-t border-border`}
+          >
+            <span className="flex items-center gap-2.5">
               <SettingsIcon />
               설정
-            </Link>
-          </section>
+            </span>
+          </Link>
 
           {/* (4) 라이트/다크 모드 토글 */}
-          <div className="flex min-h-[44px] items-center justify-between border-t border-border pt-5">
-            <span className="text-sm font-medium text-foreground">라이트 / 다크 모드</span>
+          <div className={`${ROW} border-t border-border`}>
+            <span>라이트 / 다크 모드</span>
             <ThemeToggle />
           </div>
 
           {/* (5) 카피라이트 — 하단 고정 */}
-          <p className="mt-auto pt-5 text-xs text-muted-foreground">
+          <p className="mt-auto px-3 pb-2 pt-4 text-xs text-muted-foreground">
             © 2026 getkkul · Made in Seoul
           </p>
         </div>

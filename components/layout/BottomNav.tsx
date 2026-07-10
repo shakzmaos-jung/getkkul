@@ -66,7 +66,7 @@ export default function BottomNav({
       aria-label="주요 메뉴"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="mx-auto flex h-14 max-w-md items-stretch">
+      <div className="mx-auto flex h-[72px] max-w-md items-stretch">
         {NAV_TABS.map((t) => {
           const isActive = t.key === active;
           const count = badges[t.key];

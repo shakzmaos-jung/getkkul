@@ -1,16 +1,12 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import HomeDashboard, { type HomeDigestItem } from '@/components/home/HomeDashboard';
 import ReferralBanner from '@/components/home/ReferralBanner';
-import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
 import { KST_TIME_ZONE, formatKstDateTime } from '@/lib/time';
 import { timed } from '@/lib/perf';
 import { mapDigestRow, type ChannelMeta } from '@/lib/feed/map-digests';
 import { hms, computeReading } from '@/lib/summary/reading';
-
-const GUIDE_LINK = 'font-medium text-accent hover:underline';
 
 /**
  * 홈 = notification-first 관제판. 콘텐츠 리더가 아니라 설정·상태 확인용.
@@ -85,28 +81,6 @@ export default async function Home() {
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
           <ReferralBanner />
-        </div>
-        <div className="mb-6">
-          <ScreenGuideHeader
-            title="홈"
-            description="겟꿀은 유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드리는 서비스입니다."
-            points={[
-              <>
-                관심 있는 유튜브 채널을{' '}
-                <Link href="/subscriptions" className={GUIDE_LINK}>
-                  구독
-                </Link>
-                으로 추가하세요.
-              </>,
-              <>
-                <Link href="/feed" className={GUIDE_LINK}>
-                  다이제스트
-                </Link>
-                에서 핵심 요약을 만나보세요.
-              </>,
-              '이메일 혹은 앱 푸시로 아침(07:30), 점심(11:30), 저녁(17:30)에 알림을 받을 수 있습니다.',
-            ]}
-          />
         </div>
         <HomeDashboard
           subscriptionCount={subscriptionCount}

@@ -4,7 +4,9 @@ import { useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import InstallButton from '@/components/pwa/InstallButton';
 import SideMenu from '@/components/layout/SideMenu';
+import GuideButton from '@/components/layout/GuideButton';
 import { headerTitle } from '@/lib/nav/tabs';
+import { guideForPath } from '@/components/layout/screen-guides';
 
 function HamburgerIcon() {
   return (
@@ -20,6 +22,7 @@ function HamburgerIcon() {
  */
 export default function AppHeader() {
   const pathname = usePathname();
+  const guide = guideForPath(pathname);
   const [menuOpen, setMenuOpen] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
 
@@ -33,8 +36,11 @@ export default function AppHeader() {
     <>
       <header className="sticky top-0 z-20 border-b border-border bg-background">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:px-6">
-          <h1 className="text-base font-semibold tracking-tight">{headerTitle(pathname)}</h1>
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-xl font-semibold tracking-tight">{headerTitle(pathname)}</h1>
+            {guide && <GuideButton guide={guide} />}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
             <InstallButton />
             <button
               ref={hamburgerRef}
