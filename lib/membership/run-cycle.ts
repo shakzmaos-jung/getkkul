@@ -2,7 +2,9 @@
  * 멤버십 주기 잡 (membership-spec §B/E/F/G). 결제일 도래·PoC 종료·유예 만료 전환을 적용하고,
  * 결제 성공/실패·PoC 종료·7일전 안내를 이메일+푸시로 보낸다. 하루 1회(cron) 호출, 멱등.
  */
-import { createAdminClient } from '@/lib/supabase/admin';
+// 파이프라인(GH Actions·Node)에서만 호출 — Next 전용 admin.ts('server-only')는 여기서 import 불가.
+// tsx 가 'server-only' 를 못 찾아 파이프라인 전체가 로드 시 죽으므로 pipeline 전용 클라이언트를 쓴다.
+import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { createNotifier } from '@/lib/notify/create-notifier';
 import { createPushNotifier } from '@/lib/notify/create-push-notifier';
 import { formatKst } from '@/lib/time';
@@ -13,7 +15,7 @@ import { renderBillingEmail, renderBillingPush, type BillingNotifyInput } from '
 const APP = process.env.APP_BASE_URL;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-type Admin = ReturnType<typeof createAdminClient>;
+type Admin = ReturnType<typeof createPipelineClient>;
 type Notifier = ReturnType<typeof createNotifier>;
 type PushNotifier = ReturnType<typeof createPushNotifier>;
 
@@ -54,7 +56,7 @@ async function notifyUser(
 export async function runMembershipCycle(
   now: Date = new Date(),
 ): Promise<{ transitions: number; warned: number }> {
-  const admin = createAdminClient();
+  const admin = createPipelineClient();
   const notifier = createNotifier();
   const push = createPushNotifier();
   const nowIso = now.toISOString();
