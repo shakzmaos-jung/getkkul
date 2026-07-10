@@ -60,8 +60,11 @@ export default async function Home() {
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
+          <ReferralBanner />
+        </div>
+        <div className="mb-6">
           <ScreenGuideHeader
-            title="겟꿀 홈"
+            title="홈"
             description="겟꿀은 유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드리는 서비스입니다."
             points={[
               <>
@@ -80,9 +83,6 @@ export default async function Home() {
               '이메일 혹은 앱 푸시로 아침(07:30), 점심(11:30), 저녁(17:30)에 알림을 받을 수 있습니다.',
             ]}
           />
-        </div>
-        <div className="mb-6">
-          <ReferralBanner />
         </div>
         <HomeDashboard
           subscriptionCount={subscriptionCount}
