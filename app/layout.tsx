@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import AppChrome from "@/components/layout/AppChrome";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,7 +64,9 @@ export default function RootLayout({
           }}
         />
         <ServiceWorkerRegister />
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <AppChrome>{children}</AppChrome>
+        </ToastProvider>
       </body>
     </html>
   );
