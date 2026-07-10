@@ -6,6 +6,8 @@ import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
 import ContentQA from '@/components/feed/ContentQA';
 import { setVideoLength } from '@/app/feed/actions';
+import { hms, computeReading } from '@/lib/summary/reading';
+import { formatKstDateTime } from '@/lib/time';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -31,42 +33,8 @@ const MODES: { mode: LengthMode; label: string }[] = [
   { mode: 'long', label: '길게' },
 ];
 
-// 한국어 평균 독서 속도(자/분). 압축 분량·압축률 산정 기준.
-const CHARS_PER_MIN = 500;
 // 길이 전환 시 인디케이터 이동 시간(ms). 이동 완료 후 본문 반영.
 const SLIDE_MS = 150;
-
-/** 초를 10초 단위로 올림(허용 초: 10/20/30/40/50, 최소 10초). 예 73초 → 80초. */
-function ceil10(sec: number): number {
-  return Math.max(10, Math.ceil(sec / 10) * 10);
-}
-
-/** 초 → "N시간 N분 N초"(0 단위 생략). 영상 길이(정확)·압축 분량(10초 올림) 공용. */
-function hms(sec: number): string {
-  const t = Math.max(0, Math.floor(sec));
-  const h = Math.floor(t / 3600);
-  const m = Math.floor((t % 3600) / 60);
-  const s = t % 60;
-  const parts: string[] = [];
-  if (h > 0) parts.push(`${h}시간`);
-  if (m > 0) parts.push(`${m}분`);
-  if (s > 0) parts.push(`${s}초`);
-  return parts.length > 0 ? parts.join(' ') : '0초';
-}
-
-/** 영상 업데이트 일시(published_at, UTC)를 KST yyyy-mm-dd hh:mm 으로. */
-function formatKstDateTime(iso: string | null): string {
-  if (!iso) return '';
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 /** published_at → KST yyyy-mm-dd (딥링크 date 파라미터용). */
 function kstDate(iso: string | null): string | null {
@@ -145,14 +113,8 @@ export default function SummaryCard({
   const hasBullets = shown.bullets.length > 0;
   const hasBody = shown.coreText.length > 0 || hasBullets;
 
-  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 압축률.
-  const bodyPlain = [shown.coreText, ...shown.bullets].join(' ').replace(/\s+/g, '');
-  const readSeconds = bodyPlain.length > 0 ? (bodyPlain.length / CHARS_PER_MIN) * 60 : 0;
-  const compressionPct =
-    durationSeconds && durationSeconds > 0 && readSeconds > 0
-      ? Math.max(0, Math.min(99.9, (1 - readSeconds / durationSeconds) * 100))
-      : null;
-  const readText = hms(ceil10(readSeconds)); // 압축 분량은 10초 단위 올림
+  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 압축률(홈 목록과 공용 계산).
+  const { readText, compressionPct } = computeReading(shown.coreText, shown.bullets, durationSeconds);
 
   // 복사/표시 공용 메타(플레인 텍스트). 압축률은 앞 파이프 없이 띄워 붙인다.
   const metaBase = [duration && `원본 영상 ${duration}`, hasBody && `읽는 시간 ${readText}`]
