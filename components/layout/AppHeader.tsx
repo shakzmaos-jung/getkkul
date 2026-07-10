@@ -1,49 +1,57 @@
-import Link from 'next/link';
-import ThemeToggle from '@/components/layout/ThemeToggle';
-import InstallButton from '@/components/pwa/InstallButton';
+'use client';
 
-/** 설정 진입 아이콘(톱니). 다른 아이콘 액션과 동일한 크기/스타일. */
-function SettingsIconLink() {
+import { useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import InstallButton from '@/components/pwa/InstallButton';
+import SideMenu from '@/components/layout/SideMenu';
+import { headerTitle } from '@/lib/nav/tabs';
+
+function HamburgerIcon() {
   return (
-    <Link
-      href="/settings"
-      aria-label="설정"
-      title="설정"
-      data-testid="nav-settings"
-      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-    >
-      <svg
-        width="17"
-        height="17"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    </Link>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
   );
 }
 
+/**
+ * 상단 헤더(심플·플랫, 바텀 GNB 와 같은 톤). 좌: 현재 화면 타이틀 · 우: 설치 + 햄버거.
+ * 브랜드/설정/테마 등 유틸리티는 햄버거로 여는 우측 SideMenu 로 이관.
+ */
 export default function AppHeader() {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+
+  function closeMenu() {
+    setMenuOpen(false);
+    // 닫으면 포커스를 햄버거로 복귀(접근성).
+    hamburgerRef.current?.focus();
+  }
+
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="text-base font-semibold tracking-tight">
-          🍯 겟꿀
-        </Link>
-        {/* 주요 메뉴는 하단 GNB 로 이동. 상단은 최소 헤더(설치·설정·테마)만 유지. */}
-        <nav className="flex items-center gap-1.5">
-          <InstallButton />
-          <SettingsIconLink />
-          <ThemeToggle />
-        </nav>
-      </div>
-    </header>
+    <>
+      <header className="sticky top-0 z-20 border-b border-border bg-background">
+        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4 sm:px-6">
+          <h1 className="text-base font-semibold tracking-tight">{headerTitle(pathname)}</h1>
+          <div className="flex items-center gap-1.5">
+            <InstallButton />
+            <button
+              ref={hamburgerRef}
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="메뉴 열기"
+              aria-haspopup="dialog"
+              aria-expanded={menuOpen}
+              data-testid="menu-open"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <HamburgerIcon />
+            </button>
+          </div>
+        </div>
+      </header>
+      <SideMenu open={menuOpen} onClose={closeMenu} />
+    </>
   );
 }

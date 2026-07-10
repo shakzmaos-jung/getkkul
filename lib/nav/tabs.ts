@@ -25,3 +25,18 @@ export function activeTabKey(pathname: string): NavKey | null {
   if (pathname === '/membership' || pathname.startsWith('/membership/')) return 'membership';
   return null;
 }
+
+const TAB_TITLE: Record<NavKey, string> = {
+  home: '홈',
+  feed: '다이제스트',
+  channels: '채널',
+  membership: '멤버십',
+};
+
+/** 상단 헤더 좌측 타이틀. 탭이면 탭 라벨, 설정은 '설정', 그 외는 앱명 '겟꿀'. */
+export function headerTitle(pathname: string): string {
+  const tab = activeTabKey(pathname);
+  if (tab) return TAB_TITLE[tab];
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return '설정';
+  return '겟꿀';
+}

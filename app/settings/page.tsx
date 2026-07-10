@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
 import { Card } from '@/components/ui/Card';
 import LengthModeForm from '@/components/settings/LengthModeForm';
 import DeliveryEmailForm from '@/components/settings/DeliveryEmailForm';
@@ -54,10 +53,6 @@ export default async function SettingsPage() {
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">설정</h1>
-        </header>
-
         <div className="flex flex-col gap-4">
           <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">요약 길이</h2>
@@ -117,7 +112,6 @@ export default async function SettingsPage() {
           <DeleteAccountButton />
         </div>
       </main>
-      <AppFooter />
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
 import MembershipScreen from '@/components/membership/MembershipScreen';
 import { getMembershipView } from '@/lib/membership/view';
 import { formatKst } from '@/lib/time';
@@ -52,7 +51,6 @@ export default async function MembershipPage() {
           billingHistory={billingHistory}
         />
       </main>
-      <AppFooter />
     </div>
   );
 }

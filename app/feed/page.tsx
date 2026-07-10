@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
 import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
 import {
   mapDigestRow,
@@ -132,7 +131,6 @@ export default async function FeedPage({
           />
         )}
       </main>
-      <AppFooter />
     </div>
   );
 }
