@@ -25,37 +25,44 @@ interface Props {
   nextBillingText: string;
   pocUntilText: string | null;
   graceUntilText: string | null;
-  creditSoonText: string | null;
   billingHistory: BillingRow[];
 }
 
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
-function Bar({ used, limit }: { used: number; limit: number }) {
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+/** 사용량 원형 링(도넛). 한도 대비 사용 비율 + 중앙 used/limit + 하단 라벨. 초과면 danger. */
+function UsageRing({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const R = 26;
+  const C = 2 * Math.PI * R;
+  const ratio = limit > 0 ? Math.min(1, used / limit) : 0;
   const over = used >= limit;
   return (
-    <div className="mt-1">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full ${over ? 'bg-danger' : 'bg-accent'}`}
-          style={{ width: `${pct}%` }}
-        />
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="relative h-16 w-16">
+        <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
+          <circle cx="32" cy="32" r={R} fill="none" strokeWidth="6" className="stroke-current text-muted-foreground/20" />
+          <circle
+            cx="32"
+            cy="32"
+            r={R}
+            fill="none"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - ratio)}
+            className={`stroke-current ${over ? 'text-danger' : 'text-accent'}`}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className={`text-[13px] font-semibold tabular-nums leading-none ${over ? 'text-danger' : ''}`}>
+            {used.toLocaleString('ko-KR')}
+          </span>
+          <span className="text-[10px] tabular-nums leading-tight text-muted-foreground">
+            /{limit.toLocaleString('ko-KR')}
+          </span>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function UsageRow({ label, used, limit }: { label: string; used: number; limit: number }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className={used >= limit ? 'font-semibold text-danger' : 'tabular-nums'}>
-          {used.toLocaleString('ko-KR')} / {limit.toLocaleString('ko-KR')}
-        </span>
-      </div>
-      <Bar used={used} limit={limit} />
+      <span className="text-xs text-muted-foreground">{label}</span>
     </div>
   );
 }
@@ -73,7 +80,6 @@ export default function MembershipScreen({
   nextBillingText,
   pocUntilText,
   graceUntilText,
-  creditSoonText,
   billingHistory,
 }: Props) {
   const router = useRouter();
@@ -116,13 +122,11 @@ export default function MembershipScreen({
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">멤버십</h1>
 
-      {/* PoC 무료 배너 */}
+      {/* 얼리버드 무료 배너 */}
       {view.pocActive && pocUntilText && (
         <Card className="border-accent/30 bg-accent/10 p-4">
-          <p className="text-sm font-medium">🎉 PoC 무료 체험 중 — Medium 혜택 무료</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {pocUntilText}까지 무료입니다. 이후 크레딧이 있으면 크레딧 결제로 전환, 없으면 Free 로 전환돼요.
-          </p>
+          <p className="text-sm font-medium">🎉 얼리버드 무료 체험 중 — Medium 혜택 무료</p>
+          <p className="mt-1 text-xs text-muted-foreground">{pocUntilText}까지 무료입니다.</p>
         </Card>
       )}
 
@@ -154,15 +158,15 @@ export default function MembershipScreen({
             <p className="text-xs text-muted-foreground">다음 결제일</p>
             <p className="text-sm font-medium">{nextBillingText}</p>
             <p className="text-xs text-muted-foreground">
-              {view.pocActive ? '무료(PoC)' : won(view.price) + '/월'}
+              {view.pocActive ? '얼리버드 무료 체험 중' : won(view.price) + '/월'}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          <UsageRow label="구독 채널" used={view.usage.channel} limit={view.limits.channel} />
-          <UsageRow label="다이제스트/월" used={view.usage.digest} limit={view.limits.digest} />
-          <UsageRow label="AI 질의/월" used={view.usage.ai} limit={view.limits.ai} />
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <UsageRing label="구독 채널" used={view.usage.channel} limit={view.limits.channel} />
+          <UsageRing label="다이제스트" used={view.usage.digest} limit={view.limits.digest} />
+          <UsageRing label="AI 질의" used={view.usage.ai} limit={view.limits.ai} />
         </div>
 
         {/* 예약된 변경 배지 + 취소 */}
@@ -182,19 +186,6 @@ export default function MembershipScreen({
         )}
       </Card>
 
-      {/* 크레딧 잔액 */}
-      <Card className="flex items-center justify-between p-4">
-        <div>
-          <p className="text-xs text-muted-foreground">사용 가능 크레딧</p>
-          <p className="text-lg font-semibold tabular-nums">{won(view.creditBalance)}</p>
-        </div>
-        {view.creditSoonExpire && creditSoonText && (
-          <p className="text-right text-xs text-muted-foreground">
-            {won(view.creditSoonExpire.amount)} · {creditSoonText} 만료 예정
-          </p>
-        )}
-      </Card>
-
       {/* 플랜 비교 카드 */}
       <div>
         <h2 className="mb-2 text-sm font-semibold">플랜 변경</h2>
@@ -204,26 +195,43 @@ export default function MembershipScreen({
             const isCurrent = code === cur;
             const up = planRank(code) > planRank(cur);
             const proration = view.upgradeProration[code];
+            // 얼리버드 기간엔 현재(Medium) 외 플랜은 잠금(추후 오픈).
+            const locked = view.pocActive && !isCurrent;
             return (
               <Card
                 key={code}
-                className={`flex flex-col gap-2 p-4 ${isCurrent ? 'border-accent bg-accent/5' : ''}`}
+                className={`relative flex flex-col gap-2 p-4 ${
+                  isCurrent
+                    ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
+                    : locked
+                      ? 'opacity-50'
+                      : ''
+                }`}
                 data-testid={`plan-${code}`}
               >
-                <div className="flex items-baseline justify-between">
+                {isCurrent && view.pocActive && (
+                  <span className="absolute right-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-background">
+                    얼리버드 무료
+                  </span>
+                )}
+                <div className="flex items-baseline justify-between pr-16">
                   <span className="font-semibold">{p.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {p.price === 0 ? '무료' : `${won(p.price)}/월`}
+                    {isCurrent && view.pocActive
+                      ? '얼리버드 무료'
+                      : p.price === 0
+                        ? '무료'
+                        : `${won(p.price)}/월`}
                   </span>
                 </div>
-                <ul className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-                  <li>채널 {p.channelLimit}</li>
-                  <li>다이제스트 {p.digestLimit.toLocaleString('ko-KR')}/월</li>
-                  <li>AI 질의 {p.aiQueryLimit}/월</li>
-                </ul>
+
                 {isCurrent ? (
-                  <span className="mt-auto rounded-lg bg-muted px-2 py-1.5 text-center text-xs text-muted-foreground">
+                  <span className="mt-auto rounded-lg border border-accent/40 bg-accent/15 px-2 py-1.5 text-center text-xs font-semibold text-accent">
                     현재 플랜
+                  </span>
+                ) : locked ? (
+                  <span className="mt-auto rounded-lg bg-muted px-2 py-1.5 text-center text-xs text-muted-foreground">
+                    추후 오픈
                   </span>
                 ) : (
                   <Button
@@ -235,11 +243,8 @@ export default function MembershipScreen({
                     data-testid={`change-${code}`}
                   >
                     {up ? '업그레이드' : code === 'free' ? '해지' : '다운그레이드'}
-                    {up && proration !== undefined && (
-                      <span className="ml-1 text-[11px] opacity-80">
-                        (+{won(proration)}
-                        {view.pocActive ? ' · 무료' : ''})
-                      </span>
+                    {up && proration !== undefined && !view.pocActive && (
+                      <span className="ml-1 text-[11px] opacity-80">(+{won(proration)})</span>
                     )}
                   </Button>
                 )}

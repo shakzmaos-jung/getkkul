@@ -49,7 +49,6 @@ export default async function MembershipPage() {
           nextBillingText={formatKst(view.nextBillingAt)}
           pocUntilText={view.pocFreeUntil ? formatKst(view.pocFreeUntil) : null}
           graceUntilText={view.graceUntil ? formatKst(view.graceUntil) : null}
-          creditSoonText={view.creditSoonExpire ? formatKst(view.creditSoonExpire.at) : null}
           billingHistory={billingHistory}
         />
       </main>

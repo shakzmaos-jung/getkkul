@@ -46,7 +46,7 @@ export default function ChannelFilter({
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-0 z-40 mt-1 max-h-72 w-64 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-lg">
+          <div className="absolute left-0 z-40 mt-1 max-h-72 w-64 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-lg">
             <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted">
               <input
                 type="checkbox"
