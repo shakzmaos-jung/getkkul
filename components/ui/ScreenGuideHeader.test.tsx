@@ -11,9 +11,9 @@ const props = {
 };
 
 describe('ScreenGuideHeader', () => {
-  it('타이틀과 이용 가이드 뱃지를 렌더하고, 초기엔 다이얼로그를 표시하지 않는다', () => {
+  it('이용 가이드 뱃지를 렌더하고(화면 타이틀은 상단 헤더 담당), 초기엔 다이얼로그를 표시하지 않는다', () => {
     render(<ScreenGuideHeader {...props} />);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('겟꿀 홈');
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
     expect(screen.getByTestId('guide-badge')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByText('첫 번째 안내')).toBeNull();

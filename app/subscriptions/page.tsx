@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
 import ChannelSearch from '@/components/subscriptions/ChannelSearch';
 import SubscriptionsList from '@/components/subscriptions/SubscriptionsList';
@@ -65,7 +64,6 @@ export default async function SubscriptionsPage() {
           <SubscriptionsList subs={list} />
         )}
       </main>
-      <AppFooter />
     </div>
   );
 }

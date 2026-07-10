@@ -11,15 +11,14 @@ interface Props {
 }
 
 /**
- * 화면 상단 헤더: 좌측 타이틀 + 우측 '이용 가이드' 뱃지. 뱃지를 누르면 화면 설명 + 사용법을
- * 다이얼로그로 연다(닫으면 원화면 복귀). 배너·접이식 사용법이 차지하던 세로 공간을 줄인다.
+ * 화면 '이용 가이드' 뱃지. 화면 타이틀은 전역 상단 헤더(AppHeader)가 담당하므로 여기선
+ * 뱃지만 노출한다. 뱃지를 누르면 화면 설명 + 사용법을 다이얼로그로 연다(닫으면 원화면 복귀).
  */
 export default function ScreenGuideHeader({ title, description, points }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-2">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+    <div className="flex items-center justify-end gap-2">
       <button
         type="button"
         onClick={() => setOpen(true)}

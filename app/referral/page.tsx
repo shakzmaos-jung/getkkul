@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
 import CreditLedgerCard from '@/components/settings/CreditLedgerCard';
 import ReferralStatusCard from '@/components/settings/ReferralStatusCard';
 import ReferralTabs from '@/components/settings/ReferralTabs';
@@ -56,7 +55,6 @@ export default async function ReferralPage() {
           credit={<CreditLedgerCard ledger={ledger} />}
         />
       </main>
-      <AppFooter />
     </div>
   );
 }

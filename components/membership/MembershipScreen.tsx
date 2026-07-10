@@ -120,8 +120,6 @@ export default function MembershipScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">멤버십</h1>
-
       {/* 얼리버드 무료 배너 */}
       {view.pocActive && pocUntilText && (
         <Card className="border-accent/30 bg-accent/10 p-4">

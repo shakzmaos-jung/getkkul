@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
 import HomeDashboard, { type HomeDigestItem } from '@/components/home/HomeDashboard';
 import ReferralBanner from '@/components/home/ReferralBanner';
 import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
@@ -115,7 +114,6 @@ export default async function Home() {
           today={today}
         />
       </main>
-      <AppFooter />
     </div>
   );
 }
