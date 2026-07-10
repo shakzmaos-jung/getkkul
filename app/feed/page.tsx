@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import FeedContent, { type FeedItem } from '@/components/feed/FeedContent';
 import AppHeader from '@/components/layout/AppHeader';
-import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
 import {
   mapDigestRow,
   preloadFromKstDate,
@@ -95,20 +94,6 @@ export default async function FeedPage({
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-        <div className="mb-6">
-          <ScreenGuideHeader
-            title="다이제스트"
-            description="구독한 채널의 새 영상 요약입니다. 카드마다 요약 길이를 바꿀 수 있어요."
-            points={[
-              '구독한 채널의 새 영상을 대신 보고, 핵심만 요약해 카드로 보여드려요.',
-              '카드마다 짧게 / 보통 / 길게로 요약 길이를 바꿀 수 있어요.',
-              '달력에서 날짜를 고르고 채널 필터로 좁혀 볼 수 있어요.',
-              '북마크(노란 아이콘)로 저장하면 상단 "북마크" 탭에서 모아볼 수 있어요.',
-              'AI 배지를 눌러 이 콘텐츠에 대해 궁금한 점을 물어볼 수 있어요.',
-            ]}
-          />
-        </div>
-
         {items.length === 0 && digestDates.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">아직 요약된 영상이 없습니다.</p>
