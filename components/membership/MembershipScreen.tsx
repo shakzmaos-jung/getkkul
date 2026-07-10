@@ -219,6 +219,24 @@ export default function MembershipScreen({
                   </span>
                 )}
 
+                {/* 한도: 라벨 좌 · 수치 우 */}
+                <div className="flex w-full flex-col gap-0.5 text-[10px] text-muted-foreground">
+                  <div className="flex justify-between">
+                    <span>채널</span>
+                    <span className="tabular-nums text-foreground/70">{p.channelLimit}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>다이제</span>
+                    <span className="tabular-nums text-foreground/70">
+                      {p.digestLimit.toLocaleString('ko-KR')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>AI질의</span>
+                    <span className="tabular-nums text-foreground/70">{p.aiQueryLimit}</span>
+                  </div>
+                </div>
+
                 {isCurrent ? (
                   <span className="mt-auto w-full rounded-lg border border-accent/40 bg-accent/15 px-1 py-1.5 text-[11px] font-semibold text-accent">
                     현재 플랜
