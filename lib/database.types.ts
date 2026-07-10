@@ -538,6 +538,7 @@ export type Database = {
           period_start: string
           plan_code: Database["public"]["Enums"]["membership_plan"]
           poc_free_until: string | null
+          poc_warned: boolean
           scheduled_change: Json | null
           status: Database["public"]["Enums"]["membership_status"]
           updated_at: string
@@ -553,6 +554,7 @@ export type Database = {
           period_start: string
           plan_code?: Database["public"]["Enums"]["membership_plan"]
           poc_free_until?: string | null
+          poc_warned?: boolean
           scheduled_change?: Json | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
@@ -568,6 +570,7 @@ export type Database = {
           period_start?: string
           plan_code?: Database["public"]["Enums"]["membership_plan"]
           poc_free_until?: string | null
+          poc_warned?: boolean
           scheduled_change?: Json | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
@@ -1023,6 +1026,31 @@ export type Database = {
       membership_try_consume: {
         Args: { p_kind: string; p_limit: number; p_period: string; p_user: string }
         Returns: boolean
+      }
+      membership_advance_period: {
+        Args: {
+          p_user: string
+          p_new_plan: Database["public"]["Enums"]["membership_plan"]
+          p_new_status: Database["public"]["Enums"]["membership_status"]
+          p_period_start: string
+          p_period_end: string
+          p_next_billing: string
+          p_charge: number
+          p_billing_status: Database["public"]["Enums"]["billing_status"]
+          p_channel_limit: number
+          p_idem: string
+          p_clear_poc: boolean
+        }
+        Returns: undefined
+      }
+      membership_poc_end: { Args: { p_user: string }; Returns: undefined }
+      membership_reconcile_channels: {
+        Args: { p_user: string; p_limit: number }
+        Returns: undefined
+      }
+      plan_channel_limit: {
+        Args: { p_plan: Database["public"]["Enums"]["membership_plan"] }
+        Returns: number
       }
     }
     Enums: {
