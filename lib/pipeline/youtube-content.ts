@@ -80,7 +80,15 @@ export async function ytdlpCaption(video: VideoRef): Promise<string | null> {
   return null;
 }
 
-/** 오디오 추출 → OpenAI Whisper 전사. (Whisper 파일 한도 25MB — 매우 긴 영상은 v1 한계) */
+/** Whisper 업로드 한도(25MiB). 이 이상은 API 가 413 을 반환한다. */
+const WHISPER_MAX_BYTES = 25 * 1024 * 1024;
+
+/**
+ * 오디오 추출 → OpenAI Whisper 전사(자막 없을 때 폴백).
+ * 32kbps 모노 16kHz 로 다운샘플해 파일을 작게 만든다(Whisper 는 내부적으로 16kHz 로 처리하므로
+ * 음성 인식 품질 손실 없이 ~1.7시간까지 25MB 한도 안에 들어온다). 그래도 초과하는 초장편은
+ * 413 을 유발하므로 업로드 전에 크기를 확인해 '영구 실패'로 던진다(무한 재시도 방지, retry-policy).
+ */
 export async function whisperAudio(video: VideoRef): Promise<string> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY 가 필요합니다.');
@@ -89,7 +97,19 @@ export async function whisperAudio(video: VideoRef): Promise<string> {
   try {
     await execFileAsync(
       'yt-dlp',
-      ['-x', ...cookieArgs(), '--audio-format', 'mp3', '--audio-quality', '5', '-o', join(dir, '%(id)s.%(ext)s'), video.url],
+      [
+        '-x',
+        ...cookieArgs(),
+        '--audio-format',
+        'mp3',
+        '--audio-quality',
+        '32K', // 32kbps CBR → 긴 영상도 25MB 한도 안에
+        '--postprocessor-args',
+        'ffmpeg:-ac 1 -ar 16000', // 모노 16kHz (Whisper 전사에 충분)
+        '-o',
+        join(dir, '%(id)s.%(ext)s'),
+        video.url,
+      ],
       { timeout: 300_000, maxBuffer: 32 * 1024 * 1024 },
     );
 
@@ -97,6 +117,12 @@ export async function whisperAudio(video: VideoRef): Promise<string> {
     if (!mp3) throw new Error('오디오 추출 실패');
 
     const buf = await readFile(join(dir, mp3));
+    if (buf.byteLength >= WHISPER_MAX_BYTES) {
+      // 다운샘플 후에도 한도 초과(초장편). 재시도해도 동일 → 영구 실패로 종점화한다.
+      throw new Error(
+        `audio too large: ${buf.byteLength} bytes (Whisper ${WHISPER_MAX_BYTES} 한도 초과) — 초장편 v1 한계`,
+      );
+    }
     const form = new FormData();
     form.append('file', new Blob([new Uint8Array(buf)], { type: 'audio/mpeg' }), 'audio.mp3');
     form.append('model', 'whisper-1');

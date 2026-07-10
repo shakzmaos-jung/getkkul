@@ -3,7 +3,7 @@ import { fetchContent, type FetchedContent, type VideoRef } from '@/lib/pipeline
 import { withRetry } from '@/lib/pipeline/retry';
 import { ytdlpCaption, whisperAudio } from '@/lib/pipeline/youtube-content';
 import { supadataCaption } from '@/lib/pipeline/supadata';
-import { planFailure } from '@/lib/pipeline/retry-policy';
+import { planFailure, classifyFailure } from '@/lib/pipeline/retry-policy';
 
 /**
  * 자막 획득 티어(REQ-C): yt-dlp 자막(무료·주경로) → 실패 시 Supadata 관리형 API(폴백, 키 있을 때만).
@@ -70,10 +70,13 @@ export async function acquireTranscripts(
   for (const v of pending ?? []) {
     await supabase.from('videos').update({ status: 'processing' }).eq('id', v.id);
     try {
-      const result = await withRetry(
-        () => run({ videoId: v.video_id, url: v.url ?? '' }),
-        { attempts: 3, baseMs, sleep: deps.sleep },
-      );
+      const result = await withRetry(() => run({ videoId: v.video_id, url: v.url ?? '' }), {
+        attempts: 3,
+        baseMs,
+        sleep: deps.sleep,
+        // 영구 실패(오디오 초과·삭제 등)는 같은 런에서 재시도해도 낭비 → 즉시 종점 분류로.
+        shouldRetry: (e) => classifyFailure((e as Error).message) !== 'permanent',
+      });
       await supabase
         .from('videos')
         .update({

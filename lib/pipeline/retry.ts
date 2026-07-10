@@ -6,6 +6,8 @@ export interface RetryOptions {
   attempts: number; // 총 시도 횟수
   baseMs: number; // 백오프 기준 (baseMs * 2^i)
   sleep?: (ms: number) => Promise<void>;
+  // false 를 반환하면 재시도하지 않고 즉시 던진다(영구 실패는 재시도가 낭비 — 예: 오디오 초과).
+  shouldRetry?: (err: unknown) => boolean;
 }
 
 export async function withRetry<T>(fn: () => Promise<T>, opts: RetryOptions): Promise<T> {
@@ -17,6 +19,7 @@ export async function withRetry<T>(fn: () => Promise<T>, opts: RetryOptions): Pr
       return await fn();
     } catch (e) {
       lastErr = e;
+      if (opts.shouldRetry && !opts.shouldRetry(e)) throw e; // 영구 실패 → 즉시 중단
       if (i < opts.attempts - 1) {
         await sleep(opts.baseMs * 2 ** i);
       }

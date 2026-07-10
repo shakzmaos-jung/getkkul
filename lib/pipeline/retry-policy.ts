@@ -34,6 +34,9 @@ const PERMANENT_PATTERNS: RegExp[] = [
   /no longer available/i,
   /this video is unavailable/i,
   /deleted video/i,
+  // 오디오가 Whisper 25MB 한도를 초과(초장편). 재시도해도 동일 크기 → 종점화(무한 재시도 방지).
+  /maximum content size/i, // Whisper API 413 본문
+  /audio too large/i, // whisperAudio 의 사전 크기 가드
 ];
 
 /** 실패 원인 분류. 명확한 영구 사유면 'permanent', 그 외(봇차단·429·네트워크·타임아웃)는 'transient'. */
