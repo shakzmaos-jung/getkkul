@@ -8,6 +8,7 @@ import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { passesDurationFilters } from '@/lib/youtube/duration';
 import { chunk, selectSummarizedRows, toDigestDates } from '@/lib/feed/digests';
+import { perfStart, perfEnd } from '@/lib/perf';
 import type { LengthMode } from '@/lib/summary/format';
 
 type ModeSummary = { coreText: string; bullets: string[] };
@@ -38,6 +39,8 @@ export default async function FeedPage({
   } = await supabase.auth.getSession();
   const user = session?.user;
   if (!user) redirect('/login');
+
+  const perfT0 = perfStart(); // [perf] 데이터페칭 총 소요 관측(다단계라 수동 계측)
 
   // 서로 독립적인 두 쿼리는 병렬로 (직렬 왕복 제거).
   const [{ data: subs }, { data: setting }] = await Promise.all([
@@ -170,6 +173,8 @@ export default async function FeedPage({
       }
     }
   }
+
+  perfEnd('/feed', perfT0);
 
   return (
     <div className="flex min-h-screen flex-col">

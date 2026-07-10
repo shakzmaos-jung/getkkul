@@ -7,6 +7,7 @@ import HomeDashboard, { type HomeDigestItem } from '@/components/home/HomeDashbo
 import ReferralBanner from '@/components/home/ReferralBanner';
 import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
 import { KST_TIME_ZONE } from '@/lib/time';
+import { timed } from '@/lib/perf';
 
 const GUIDE_LINK = 'font-medium text-accent hover:underline';
 
@@ -26,11 +27,13 @@ export default async function Home() {
 
   // 다이제스트 집계·최근 목록은 SQL 로 계산(피드와 동일 조건: 활성 구독·기준선·길이·ko요약).
   // 앱에서 모든 요약을 가져오면 API max-rows(1000) 상한에 걸려 최신분이 누락돼 과소집계됐다 → RPC 로 이전.
-  const [{ data: subs }, { data: summary }, { data: todayRows }] = await Promise.all([
-    supabase.from('subscriptions').select('channel_id, channel_title').eq('user_id', user.id),
-    supabase.rpc('get_digest_summary'),
-    supabase.rpc('get_today_digests'), // 오늘(KST) 다이제스트 전체(제한 없음)
-  ]);
+  const [{ data: subs }, { data: summary }, { data: todayRows }] = await timed('/', () =>
+    Promise.all([
+      supabase.from('subscriptions').select('channel_id, channel_title').eq('user_id', user.id),
+      supabase.rpc('get_digest_summary'),
+      supabase.rpc('get_today_digests'), // 오늘(KST) 다이제스트 전체(제한 없음)
+    ]),
+  );
   const subscriptionCount = (subs ?? []).length; // 구독 수는 일시정지 포함 전체
   const titleById = new Map((subs ?? []).map((s) => [s.channel_id, s.channel_title ?? '']));
 
