@@ -931,6 +931,20 @@ export type Database = {
           total_count: number
         }[]
       }
+      get_bookmarked_digests: {
+        Args: never
+        Returns: {
+          id: string
+          channel_id: string
+          title: string
+          url: string
+          published_at: string
+          duration_seconds: number
+          summaries: Json
+          pref_mode: string
+          bookmarked: boolean
+        }[]
+      }
       get_digest_dates: {
         Args: never
         Returns: {

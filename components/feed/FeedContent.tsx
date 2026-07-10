@@ -41,6 +41,7 @@ type Tab = 'digest' | 'bookmark';
  */
 export default function FeedContent({
   items,
+  bookmarkedItems,
   channels,
   digestDates,
   todayKst,
@@ -48,6 +49,7 @@ export default function FeedContent({
   preloadFrom,
 }: {
   items: FeedItem[];
+  bookmarkedItems: FeedItem[];
   channels: FeedChannel[];
   digestDates: { c: string; d: string; n: number }[];
   todayKst: string;
@@ -58,7 +60,10 @@ export default function FeedContent({
   const [selected, setSelected] = useState(() => initialDate ?? todayKst);
   const [checked, setChecked] = useState<Set<string>>(() => new Set(channels.map((c) => c.id)));
   const [bookmarks, setBookmarks] = useState<Set<string>>(
-    () => new Set(items.filter((i) => i.bookmarked).map((i) => i.id)),
+    () =>
+      new Set(
+        [...items, ...bookmarkedItems].filter((i) => i.bookmarked).map((i) => i.id),
+      ),
   );
   // 프리로드 창 밖 날짜의 온디맨드 캐시(date → items). 미존재 = 미조회(또는 조회 중).
   const [extraByDate, setExtraByDate] = useState<Record<string, FeedItem[]>>({});
@@ -121,10 +126,23 @@ export default function FeedContent({
   const selectedPreloaded = isPreloadedDate(selected, preloadFrom);
   const dateLoading = !selectedPreloaded && extraByDate[selected] === undefined;
   const digestSource = selectedPreloaded ? items : (extraByDate[selected] ?? []);
+
+  // 북마크 탭 소스: 전용 RPC 결과(창 밖 포함) ∪ 방금 창/온디맨드에서 북마크한 항목(중복 제거).
+  const bookmarkList = useMemo(() => {
+    const byId = new Map<string, FeedItem>();
+    for (const it of bookmarkedItems) byId.set(it.id, it);
+    for (const it of [...items, ...Object.values(extraByDate).flat()]) {
+      if (bookmarks.has(it.id)) byId.set(it.id, it);
+    }
+    return [...byId.values()]
+      .filter((it) => bookmarks.has(it.id) && checked.has(it.channelId))
+      .sort((a, b) => (a.publishedAt && b.publishedAt ? (a.publishedAt < b.publishedAt ? 1 : -1) : 0));
+  }, [bookmarkedItems, items, extraByDate, bookmarks, checked]);
+
   const list =
     tab === 'digest'
       ? digestSource.filter((it) => it.dateKst === selected && checked.has(it.channelId))
-      : items.filter((it) => bookmarks.has(it.id) && checked.has(it.channelId));
+      : bookmarkList;
 
   return (
     <>

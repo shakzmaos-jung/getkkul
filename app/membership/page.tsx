@@ -16,16 +16,19 @@ export default async function MembershipPage() {
   const user = session?.user;
   if (!user) redirect('/login');
 
-  const view = await timed('/membership', () => getMembershipView(user.id));
-
-  // 결제 내역(최근 20건) — 본인만.
   const admin = createAdminClient();
-  const { data: history } = await admin
-    .from('billing_history')
-    .select('billing_period, plan_code, amount, credit_used, status, created_at, memo')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(20);
+  // view 조립과 결제내역을 병렬로(직렬 왕복 제거).
+  const [view, { data: history }] = await timed('/membership', () =>
+    Promise.all([
+      getMembershipView(user.id),
+      admin
+        .from('billing_history')
+        .select('billing_period, plan_code, amount, credit_used, status, created_at, memo')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]),
+  );
 
   const billingHistory = (history ?? []).map((h) => ({
     period: h.billing_period,
