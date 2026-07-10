@@ -2,6 +2,7 @@ import { detectNewVideos, type DetectResult } from '@/lib/pipeline/detect';
 import { acquireTranscripts, type AcquireResult } from '@/lib/pipeline/acquire';
 import { renewWebSubSubscriptions } from '@/lib/pipeline/websub-subscribe';
 import { reconcileChannels } from '@/lib/pipeline/reconcile';
+import { runMembershipCycle } from '@/lib/membership/run-cycle';
 import { summarizePending } from '@/lib/pipeline/summarize-pending';
 import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
 import { getBotBlockCount } from '@/lib/pipeline/youtube-content';
@@ -102,6 +103,16 @@ async function main() {
     const rec = await reconcileChannels({ supabase });
     if (rec.ran) {
       console.log(`[reconcile] channels=${rec.channels} backfilled=${rec.backfilled} failed=${rec.failed}`);
+    }
+
+    // 멤버십 주기 전환(결제·PoC 종료·유예·7일전 안내). 멱등 — 매 런 안전.
+    try {
+      const mem = await runMembershipCycle();
+      if (mem.transitions > 0 || mem.warned > 0) {
+        console.log(`[membership] transitions=${mem.transitions} warned=${mem.warned}`);
+      }
+    } catch (e) {
+      console.warn(`[membership] cycle 실패(격리): ${(e as Error).message}`);
     }
 
     await recordPipelineRun(supabase, pipelineStarted, { det, acq, ws, dur, sum, rec } as unknown as Json, true);

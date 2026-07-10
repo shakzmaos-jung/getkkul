@@ -3,6 +3,7 @@ import { createNotifier } from '@/lib/notify/create-notifier';
 import { createPushNotifier } from '@/lib/notify/create-push-notifier';
 import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
 import { passesDurationFilters } from '@/lib/youtube/duration';
+import { PLANS, type PlanCode } from '@/lib/membership/plans';
 import type { Notifier } from '@/lib/notify/notify';
 import type { PushNotifier, PushSubscriptionRecord } from '@/lib/notify/web-push';
 import type { LengthMode } from '@/lib/summary/format';
@@ -68,6 +69,24 @@ export async function deliverAll(
     subsByUser.set(r.user_id, list);
   }
 
+  // 멤버십 다이제스트 월 한도(AC-D1.2): 현재 주기 사용량 기준 남은 수만큼만 신규 발송.
+  const { data: mems } = await supabase.from('membership').select('user_id, plan_code, period_start');
+  const memByUser = new Map((mems ?? []).map((m) => [m.user_id, m]));
+  const { data: usageRows } = await supabase
+    .from('membership_usage')
+    .select('user_id, period_start, digest_used');
+  const usageByKey = new Map(
+    (usageRows ?? []).map((u) => [`${u.user_id}:${u.period_start}`, u.digest_used]),
+  );
+  /** 남은 다이제스트 수(멤버십 없으면 null=무제한, 기존 동작 유지). */
+  function digestRemaining(userId: string): number | null {
+    const m = memByUser.get(userId);
+    if (!m) return null;
+    const limit = PLANS[m.plan_code as PlanCode].digestLimit;
+    const used = usageByKey.get(`${userId}:${m.period_start}`) ?? 0;
+    return Math.max(0, limit - used);
+  }
+
   let sent = 0;
   let empty = 0;
   let failed = 0;
@@ -95,6 +114,16 @@ export async function deliverAll(
     try {
       const candidates = await candidateVideos(supabase, user.id);
       selection = selectDigestVideos(candidates);
+      // 월 한도 초과분은 발송 보류(overflow 로 이월 표시). 한도 0이면 신규 없음.
+      const remaining = digestRemaining(user.id);
+      if (remaining !== null && selection.items.length > remaining) {
+        const dropped = selection.items.length - remaining;
+        selection = {
+          ...selection,
+          items: selection.items.slice(0, remaining),
+          overflow: selection.overflow + dropped,
+        };
+      }
       const hasItems = selection.items.length > 0;
 
       const skipEmail = setting?.skip_empty_email ?? true;
@@ -146,6 +175,19 @@ export async function deliverAll(
         );
         if (emailOk) sent++;
         if (pushOk) pushSent++;
+        // 다이제스트 월 사용량 증가(발송 성공분, AC-D1.2/D1.4).
+        const m = memByUser.get(user.id);
+        if (m) {
+          const key = `${user.id}:${m.period_start}`;
+          const next = (usageByKey.get(key) ?? 0) + selection.items.length;
+          usageByKey.set(key, next);
+          await supabase
+            .from('membership_usage')
+            .upsert(
+              { user_id: user.id, period_start: m.period_start, digest_used: next },
+              { onConflict: 'user_id,period_start' },
+            );
+        }
       } else if (hasItems && emailErr) {
         // 이메일 실패 + 푸시 미전달 → failed 기록(다음 슬롯 재시도, E3.3).
         failed++;

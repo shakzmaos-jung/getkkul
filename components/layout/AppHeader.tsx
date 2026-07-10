@@ -55,6 +55,7 @@ export default function AppHeader() {
         <nav className="flex items-center gap-1.5">
           <NavLink href="/feed">다이제스트</NavLink>
           <NavLink href="/subscriptions">채널</NavLink>
+          <NavLink href="/membership">멤버십</NavLink>
           <span className="mx-1 h-4 w-px bg-border" aria-hidden />
           <InstallButton />
           <SettingsIconLink />

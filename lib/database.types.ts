@@ -527,8 +527,129 @@ export type Database = {
           },
         ]
       }
+      membership: {
+        Row: {
+          anchor_day: number
+          created_at: string
+          grace_until: string | null
+          id: string
+          next_billing_at: string
+          period_end: string
+          period_start: string
+          plan_code: Database["public"]["Enums"]["membership_plan"]
+          poc_free_until: string | null
+          poc_warned: boolean
+          scheduled_change: Json | null
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_day: number
+          created_at?: string
+          grace_until?: string | null
+          id?: string
+          next_billing_at: string
+          period_end: string
+          period_start: string
+          plan_code?: Database["public"]["Enums"]["membership_plan"]
+          poc_free_until?: string | null
+          poc_warned?: boolean
+          scheduled_change?: Json | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_day?: number
+          created_at?: string
+          grace_until?: string | null
+          id?: string
+          next_billing_at?: string
+          period_end?: string
+          period_start?: string
+          plan_code?: Database["public"]["Enums"]["membership_plan"]
+          poc_free_until?: string | null
+          poc_warned?: boolean
+          scheduled_change?: Json | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      membership_usage: {
+        Row: {
+          ai_query_used: number
+          created_at: string
+          digest_used: number
+          id: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_query_used?: number
+          created_at?: string
+          digest_used?: number
+          id?: string
+          period_start: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_query_used?: number
+          created_at?: string
+          digest_used?: number
+          id?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      billing_history: {
+        Row: {
+          amount: number
+          billing_period: string
+          created_at: string
+          credit_used: number
+          id: string
+          idempotency_key: string
+          memo: string | null
+          plan_code: Database["public"]["Enums"]["membership_plan"]
+          status: Database["public"]["Enums"]["billing_status"]
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          billing_period: string
+          created_at?: string
+          credit_used?: number
+          id?: string
+          idempotency_key: string
+          memo?: string | null
+          plan_code: Database["public"]["Enums"]["membership_plan"]
+          status: Database["public"]["Enums"]["billing_status"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_period?: string
+          created_at?: string
+          credit_used?: number
+          id?: string
+          idempotency_key?: string
+          memo?: string | null
+          plan_code?: Database["public"]["Enums"]["membership_plan"]
+          status?: Database["public"]["Enums"]["billing_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
+          active: boolean
           active_since: string | null
           channel_handle: string | null
           channel_id: string
@@ -541,6 +662,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active?: boolean
           active_since?: string | null
           channel_handle?: string | null
           channel_id: string
@@ -553,6 +675,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active?: boolean
           active_since?: string | null
           channel_handle?: string | null
           channel_id?: string
@@ -864,8 +987,76 @@ export type Database = {
         Args: { p_payment_amount: number; p_user: string }
         Returns: number
       }
+      membership_bootstrap: {
+        Args: {
+          p_anchor: number
+          p_next_billing: string
+          p_period_end: string
+          p_period_start: string
+          p_plan: Database["public"]["Enums"]["membership_plan"]
+          p_poc_free_until: string
+          p_status: Database["public"]["Enums"]["membership_status"]
+          p_user: string
+        }
+        Returns: undefined
+      }
+      membership_apply_upgrade: {
+        Args: {
+          p_billing_period: string
+          p_charge: number
+          p_idem: string
+          p_proration_raw: number
+          p_to: Database["public"]["Enums"]["membership_plan"]
+          p_user: string
+        }
+        Returns: number
+      }
+      membership_schedule_change: {
+        Args: {
+          p_cancel: boolean
+          p_to: Database["public"]["Enums"]["membership_plan"]
+          p_user: string
+        }
+        Returns: undefined
+      }
+      membership_cancel_scheduled: {
+        Args: { p_user: string }
+        Returns: undefined
+      }
+      membership_try_consume: {
+        Args: { p_kind: string; p_limit: number; p_period: string; p_user: string }
+        Returns: boolean
+      }
+      membership_advance_period: {
+        Args: {
+          p_user: string
+          p_new_plan: Database["public"]["Enums"]["membership_plan"]
+          p_new_status: Database["public"]["Enums"]["membership_status"]
+          p_period_start: string
+          p_period_end: string
+          p_next_billing: string
+          p_charge: number
+          p_billing_status: Database["public"]["Enums"]["billing_status"]
+          p_channel_limit: number
+          p_idem: string
+          p_clear_poc: boolean
+        }
+        Returns: undefined
+      }
+      membership_poc_end: { Args: { p_user: string }; Returns: undefined }
+      membership_reconcile_channels: {
+        Args: { p_user: string; p_limit: number }
+        Returns: undefined
+      }
+      plan_channel_limit: {
+        Args: { p_plan: Database["public"]["Enums"]["membership_plan"] }
+        Returns: number
+      }
     }
     Enums: {
+      billing_status: "success" | "failed" | "grace" | "skipped_free" | "proration"
+      membership_plan: "free" | "small" | "medium" | "large"
+      membership_status: "active" | "grace" | "canceled" | "ended" | "poc_free"
       channel_catalog_source: "user_selected" | "api" | "detected"
       credit_grant_status: "active" | "exhausted" | "expired" | "forfeited"
       credit_source: "referrer" | "referee"
@@ -1007,6 +1198,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      billing_status: ["success", "failed", "grace", "skipped_free", "proration"],
+      membership_plan: ["free", "small", "medium", "large"],
+      membership_status: ["active", "grace", "canceled", "ended", "poc_free"],
       channel_catalog_source: ["user_selected", "api", "detected"],
       credit_grant_status: ["active", "exhausted", "expired", "forfeited"],
       credit_source: ["referrer", "referee"],
