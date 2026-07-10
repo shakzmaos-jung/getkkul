@@ -5,8 +5,7 @@ import AppFooter from '@/components/layout/AppFooter';
 import AddSubscriptionForm from '@/components/subscriptions/AddSubscriptionForm';
 import ChannelSearch from '@/components/subscriptions/ChannelSearch';
 import SubscriptionsList from '@/components/subscriptions/SubscriptionsList';
-import DismissibleBanner from '@/components/ui/DismissibleBanner';
-import FoldNote from '@/components/ui/FoldNote';
+import ScreenGuideHeader from '@/components/ui/ScreenGuideHeader';
 
 /** 채널 구독 관리 (SSR REQ-B2). 본인 구독만 최신순(구독 시작일 내림차순) 표시(AC-B2.1). */
 export default async function SubscriptionsPage() {
@@ -32,17 +31,10 @@ export default async function SubscriptionsPage() {
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-        <div className="mb-4">
-          <DismissibleBanner
-            storageKey="gk_subs_intro_dismissed"
-            title="구독 채널"
-            description="감시할 유튜브 채널을 관리하세요."
-          />
-        </div>
         <div className="mb-6">
-          <FoldNote
-            testId="subs-how-to"
-            title="채널 관리, 이렇게 해요"
+          <ScreenGuideHeader
+            title="채널"
+            description="감시할 유튜브 채널을 관리하세요."
             points={[
               '채널 이름으로 검색해서 바로 추가하세요. 안 나오면 URL·핸들(@…)로도 추가할 수 있어요.',
               '일시정지하면 그 채널의 새 다이제스트를 잠시 멈춰요.',
