@@ -35,6 +35,14 @@ describe('classifyFailure (영구/일시 구분, AC-B1.4)', () => {
     expect(classifyFailure('This video has been removed by the uploader')).toBe('permanent');
     expect(classifyFailure('This video is members-only content')).toBe('permanent');
   });
+  it('오디오 25MB 초과(Whisper 413·사전 가드)는 permanent(무한 재시도 방지)', () => {
+    expect(
+      classifyFailure('Whisper 413: {"error":{"message":"413: Maximum content size limit (26214400) exceeded'),
+    ).toBe('permanent');
+    expect(classifyFailure('audio too large: 26248340 bytes (Whisper 26214400 한도 초과)')).toBe(
+      'permanent',
+    );
+  });
   it('봇차단·네트워크·타임아웃은 transient(기본)', () => {
     expect(classifyFailure('Sign in to confirm you are not a bot')).toBe('transient');
     expect(classifyFailure('HTTP Error 429: Too Many Requests')).toBe('transient');

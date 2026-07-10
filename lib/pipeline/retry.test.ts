@@ -31,4 +31,17 @@ describe('withRetry (AC-C2.4 지수 백오프)', () => {
     await expect(withRetry(fn, { attempts: 3, baseMs: 100, sleep })).rejects.toThrow();
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([100, 200]); // 마지막 시도 후엔 sleep 안 함
   });
+
+  it('shouldRetry 가 false 면 재시도 없이 즉시 던진다 (영구 실패 낭비 방지)', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('audio too large'));
+    await expect(
+      withRetry(fn, {
+        attempts: 3,
+        baseMs: 1,
+        sleep: noSleep,
+        shouldRetry: (e) => !/audio too large/.test((e as Error).message),
+      }),
+    ).rejects.toThrow('audio too large');
+    expect(fn).toHaveBeenCalledTimes(1); // 재시도 안 함
+  });
 });
