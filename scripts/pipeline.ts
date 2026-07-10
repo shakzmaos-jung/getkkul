@@ -82,7 +82,7 @@ async function main() {
 
     const acq = await recordRun(supabase, 'acquire', () => acquireTranscripts());
     console.log(
-      `[acquire] processed=${acq.processed} done=${acq.done} failed=${acq.failed} rescheduled=${acq.rescheduled}`,
+      `[acquire] processed=${acq.processed} done=${acq.done} failed=${acq.failed} rescheduled=${acq.rescheduled} skipped=${acq.skipped}`,
     );
 
     // 봇차단이 다수(≈영상 1개 이상, 재시도 포함)이고 성공이 0이면 쿠키 만료로 보고 알림

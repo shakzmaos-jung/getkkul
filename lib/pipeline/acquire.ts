@@ -24,6 +24,7 @@ export interface AcquireResult {
   done: number;
   failed: number; // 종점 failed (영구·최대초과)
   rescheduled: number; // 일시 실패로 재큐(next_retry_at)
+  skipped: number; // 시간 예산 초과로 이번 런에서 처리 안 함(다음 런 이월)
 }
 
 type SupabaseClient = ReturnType<typeof createPipelineClient>;
@@ -36,12 +37,19 @@ export async function acquireTranscripts(
     baseMs?: number;
     sleep?: (ms: number) => Promise<void>;
     nowIso?: string;
+    budgetMs?: number; // 이 시간 지나면 남은 pending 은 다음 런으로 양보(요약 단계 굶김 방지)
+    now?: () => number; // 예산 측정용 시계(주입 가능)
   } = {},
 ): Promise<AcquireResult> {
   const supabase = deps.supabase ?? createPipelineClient();
   const limit = deps.limit ?? 100;
   const baseMs = deps.baseMs ?? 1000;
   const nowIso = deps.nowIso ?? new Date().toISOString();
+  // 전사 획득이 느린 백로그(자막 없는 오디오 전사)에 45분 잡 전체를 소진해 이후 단계
+  // (fillDurations·summarize)가 매 런 굶던 문제를 막는다. 예산을 넘으면 루프를 중단하고
+  // 나머지는 다음 런으로 넘긴다(개별 영상은 끝까지 처리 — 중도 절단 없음).
+  const budgetMs = deps.budgetMs ?? 15 * 60_000;
+  const nowMs = deps.now ?? (() => Date.now());
   const run =
     deps.fetchContentFn ??
     ((v: VideoRef) =>
@@ -66,8 +74,16 @@ export async function acquireTranscripts(
   let done = 0;
   let failed = 0;
   let rescheduled = 0;
+  let skipped = 0;
 
+  const startedMs = nowMs();
   for (const v of pending ?? []) {
+    if (nowMs() - startedMs > budgetMs) {
+      // 시간 예산 도달 — 남은 pending 은 다음 런에서(요약 단계에 시간 양보).
+      skipped = (pending ?? []).length - (done + failed + rescheduled);
+      console.log(`[acquire] 시간 예산 도달 — 남은 ${skipped}건은 다음 런으로 이월`);
+      break;
+    }
     await supabase.from('videos').update({ status: 'processing' }).eq('id', v.id);
     try {
       const result = await withRetry(() => run({ videoId: v.video_id, url: v.url ?? '' }), {
@@ -110,5 +126,5 @@ export async function acquireTranscripts(
     }
   }
 
-  return { processed: (pending ?? []).length, done, failed, rescheduled };
+  return { processed: done + failed + rescheduled, done, failed, rescheduled, skipped };
 }
