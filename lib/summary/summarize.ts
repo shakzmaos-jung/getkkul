@@ -1,10 +1,12 @@
 import OpenAI from 'openai';
 import {
   LENGTH_SPECS,
+  LENGTH_MODES,
   validateSummaryFormat,
   type LengthMode,
   type SummaryLanguage,
   type Summary,
+  type AllModeSummaries,
 } from '@/lib/summary/format';
 
 /**
@@ -15,10 +17,11 @@ import {
  */
 
 const MODEL = 'gpt-5-nano';
-// 요약은 추론 부하가 낮아 reasoning_effort 를 낮게 둬 토큰·지연을 아낀다(품질 미달 시 'medium' 로 상향).
-const REASONING_EFFORT = 'low' as const;
-// reasoning + 출력 토큰 합산 상한. reasoning 모델은 상한이 빡빡하면 빈 응답이 나므로 여유를 둔다.
-const MAX_COMPLETION_TOKENS = 8192;
+// 요약은 추론 부하가 낮으므로 reasoning_effort 를 'minimal' 로 둬 reasoning 토큰(출력 과금)을 최소화한다
+// (비용 최적화 WO-COST-001; 품질 미달 시 'low'/'medium' 로 상향). 프로바이더 전환 없이 gpt-5-nano 유지.
+const REASONING_EFFORT = 'minimal' as const;
+// reasoning + 출력 토큰 합산 상한. 3종 동시 생성(단일 호출) 여유값.
+const MAX_COMPLETION_TOKENS = 12288;
 
 const SUMMARY_SCHEMA = {
   type: 'object',
@@ -116,4 +119,116 @@ export async function summarize(
   // 형식 미달이어도 best-effort 로 반환(발송 자체는 막지 않음).
   console.warn('[summarize] 형식 검증 최종 실패 — best-effort 반환');
   return last;
+}
+
+// ── REQ-CO1: 단일 호출 3종 생성 ──────────────────────────────────────────────
+
+/** 3모드 중첩 스키마(각 모드 {headline, coreText}). 향후 terms 등은 각 모드 프로퍼티로 확장(AC-CO1.6). */
+const ALL_MODE_SCHEMA = {
+  type: 'object',
+  properties: { short: SUMMARY_SCHEMA, normal: SUMMARY_SCHEMA, long: SUMMARY_SCHEMA },
+  required: ['short', 'normal', 'long'],
+  additionalProperties: false,
+} as const;
+
+export interface SummaryUsage {
+  promptTokens: number;
+  completionTokens: number;
+  calls: number; // 이 영상·언어 요약에 든 LLM 호출 수(정상 1, 재시도 시 증가) — 회귀 감시(AC-CO5.2)
+}
+
+function allModesSystemPrompt(language: SummaryLanguage): string {
+  const s = LENGTH_SPECS;
+  const lang =
+    language === 'ko'
+      ? '요약은 반드시 한국어로 작성한다(원문이 영어여도 한국어로).'
+      : 'Write every summary in English.';
+  return [
+    '너는 유튜브 영상 전사를 핵심만 뽑아 요약하는 전문가다.',
+    lang,
+    '하나의 전사에 대해 서로 다른 3가지 길이 요약을 한 번에 생성한다. 각 요약은 { headline: 한 줄 제목, coreText: 핵심 문장 } 형식이다.',
+    `- short.coreText: 핵심만 ${s.short.coreSentencesMin}~${s.short.coreSentencesMax}문장 간결히.`,
+    `- normal.coreText: ${s.normal.coreSentencesMin}~${s.normal.coreSentencesMax}문장.`,
+    `- long.coreText: ${s.long.coreSentencesMin}~${s.long.coreSentencesMax}문장. 구체적 수치·사례·실행 요점 등 세부까지 문장으로 빠짐없이 상세히.`,
+    '광고·인사말·잡담은 제외하고 정보 가치가 높은 내용만 담아라.',
+  ].join('\n');
+}
+
+function extractAllModes(content: string | null): AllModeSummaries {
+  if (!content || !content.trim()) throw new Error('요약 응답이 비어 있습니다.');
+  const p = JSON.parse(content) as Partial<
+    Record<LengthMode, { headline?: string; coreText?: string }>
+  >;
+  const one = (m: LengthMode): Summary => ({
+    headline: p[m]?.headline ?? '',
+    coreText: p[m]?.coreText ?? '',
+    bullets: [], // 불릿 폐지 — 저장 호환 위해 빈 배열
+  });
+  return { short: one('short'), normal: one('normal'), long: one('long') };
+}
+
+/**
+ * 전사를 1회만 전송해 short/normal/long 3종을 단일 호출로 생성한다(REQ-CO1).
+ * 모드별 `validateSummaryFormat` 검증 → 미달 시 최대 3회 교정 재시도하되, 재시도 요청엔
+ * 전사를 포함하지 않는다(직전 JSON 자체를 재정형, REQ-CO3). 토큰 usage 를 함께 반환(REQ-CO5).
+ */
+export async function summarizeAllModes(
+  transcript: string,
+  language: SummaryLanguage,
+  deps: { client?: OpenAI } = {},
+): Promise<{ summaries: AllModeSummaries; usage: SummaryUsage }> {
+  const client = deps.client ?? new OpenAI();
+  const sys: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+    role: 'system',
+    content: allModesSystemPrompt(language),
+  };
+  let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    sys,
+    { role: 'user', content: `다음 영상 전사를 요약하라:\n\n${transcript}` },
+  ];
+  const usage: SummaryUsage = { promptTokens: 0, completionTokens: 0, calls: 0 };
+  let last: AllModeSummaries | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
+      reasoning_effort: REASONING_EFFORT,
+      messages,
+      response_format: {
+        type: 'json_schema',
+        json_schema: { name: 'all_mode_summary', strict: true, schema: ALL_MODE_SCHEMA },
+      },
+    });
+    usage.calls += 1;
+    usage.promptTokens += res.usage?.prompt_tokens ?? 0;
+    usage.completionTokens += res.usage?.completion_tokens ?? 0;
+
+    let parsed: AllModeSummaries;
+    try {
+      parsed = extractAllModes(res.choices[0]?.message?.content ?? null);
+    } catch (e) {
+      console.warn(`[summarize] 응답 파싱 실패(재시도): ${(e as Error).message}`);
+      messages = [sys, { role: 'user', content: '반드시 유효한 JSON 으로만 응답하라.' }];
+      continue;
+    }
+    last = parsed;
+
+    const failures = LENGTH_MODES.filter((m) => !validateSummaryFormat(parsed[m], m).valid);
+    if (failures.length === 0) return { summaries: parsed, usage };
+
+    const errs = failures
+      .map((m) => `${m}(${validateSummaryFormat(parsed[m], m).errors.join(' ')})`)
+      .join(' / ');
+    // 교정 재시도 — 전사 미포함(REQ-CO3). 직전 출력(JSON)만으로 형식 재정형.
+    messages = [
+      sys,
+      { role: 'assistant', content: JSON.stringify(parsed) },
+      { role: 'user', content: `다음 모드의 형식을 고쳐 3모드 전체를 다시 JSON 으로 출력하라: ${errs}` },
+    ];
+  }
+
+  if (!last) throw new Error('요약 JSON 파싱에 반복 실패했습니다.');
+  console.warn('[summarize] 형식 검증 최종 실패 — best-effort 반환');
+  return { summaries: last, usage };
 }

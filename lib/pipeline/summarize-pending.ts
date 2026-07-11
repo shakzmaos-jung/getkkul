@@ -1,5 +1,5 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
-import { getOrCreateSummary } from '@/lib/summary/get-or-create-summary';
+import { getOrCreateSummaries } from '@/lib/summary/get-or-create-summary';
 import { LENGTH_MODES } from '@/lib/summary/format';
 import { CONTENT_CUTOFF_PUBLISHED_AT } from '@/lib/pipeline/content-cutoff';
 
@@ -13,6 +13,9 @@ type SupabaseClient = ReturnType<typeof createPipelineClient>;
 export interface SummarizeResult {
   videos: number;
   generated: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  calls: number; // 총 요약 LLM 호출 수(영상당 정상 1 — 회귀 감시, AC-CO5.2)
 }
 
 export async function summarizePending(
@@ -38,7 +41,8 @@ export async function summarizePending(
     .order('created_at', { ascending: false });
   if (error) throw new Error(`done 영상 조회 실패: ${error.message}`);
   const doneList = videos ?? [];
-  if (doneList.length === 0) return { videos: 0, generated: 0 };
+  if (doneList.length === 0)
+    return { videos: 0, generated: 0, prompt_tokens: 0, completion_tokens: 0, calls: 0 };
 
   const { data: sums } = await supabase
     .from('summaries')
@@ -57,21 +61,34 @@ export async function summarizePending(
     .slice(0, limit);
 
   let generated = 0;
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let calls = 0;
   for (const v of targets) {
-    // 한 영상의 3개 모드는 서로 독립이라 병렬 생성(모드당 UNIQUE라 충돌 없음).
-    const results = await Promise.all(
-      LENGTH_MODES.map(async (mode) => {
-        try {
-          const r = await getOrCreateSummary(supabase, v.id, mode, 'ko');
-          return !r.cached; // 새로 생성했으면 true
-        } catch (e) {
-          console.warn(`[summarize] ${v.id} (${mode}) 실패: ${(e as Error).message}`);
-          return false;
-        }
-      }),
-    );
-    generated += results.filter(Boolean).length;
+    // 영상당 전사 1회 전송으로 3종 동시 생성(REQ-CO1). 개별 실패는 전체를 막지 않는다(H6).
+    try {
+      const r = await getOrCreateSummaries(supabase, v.id, 'ko');
+      generated += r.generated;
+      if (r.usage) {
+        promptTokens += r.usage.promptTokens;
+        completionTokens += r.usage.completionTokens;
+        calls += r.usage.calls;
+        // 토큰 usage 구조화 로그(전사 원문·키 미로그, AC-CO5.1/5.3).
+        console.log(
+          `[summarize] usage video=${v.id} provider=openai model=gpt-5-nano ` +
+            `calls=${r.usage.calls} prompt_tokens=${r.usage.promptTokens} completion_tokens=${r.usage.completionTokens}`,
+        );
+      }
+    } catch (e) {
+      console.warn(`[summarize] ${v.id} 실패: ${(e as Error).message}`);
+    }
   }
 
-  return { videos: targets.length, generated };
+  return {
+    videos: targets.length,
+    generated,
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    calls,
+  };
 }

@@ -51,3 +51,28 @@ Language: ko
     expect(vttToText('WEBVTT\n\n')).toBe('');
   });
 });
+
+describe('vttToText 부분겹침 병합 (REQ-CO4)', () => {
+  const cue = (t: string, i: number) =>
+    `00:00:0${i}.000 --> 00:00:0${i + 1}.000\n${t}`;
+
+  it('AC-CO4.1 접미–접두 겹침(2어절)을 한 번만 남기고 병합', () => {
+    const vtt = `WEBVTT\n\n${cue('금리 인상 우려가', 0)}\n\n${cue('인상 우려가 커지면서', 1)}`;
+    expect(vttToText(vtt)).toBe('금리 인상 우려가 커지면서');
+  });
+
+  it('AC-CO4.2 롤링 자막 병합 후 어절 ≥15% 감소', () => {
+    const parts = ['주가 상승 흐름이 이어지며', '흐름이 이어지며 투자 심리가', '투자 심리가 개선되고 있다'];
+    const vtt = `WEBVTT\n\n${parts.map((t, i) => cue(t, i)).join('\n\n')}`;
+    const out = vttToText(vtt);
+    expect(out).toBe('주가 상승 흐름이 이어지며 투자 심리가 개선되고 있다');
+    const before = parts.join(' ').split(/\s+/).length; // 12
+    const after = out.split(/\s+/).length; // 8
+    expect(after).toBeLessThanOrEqual(before * 0.85);
+  });
+
+  it('AC-CO4.3 단일 어절 겹침은 병합하지 않음(오병합 방지)', () => {
+    const vtt = `WEBVTT\n\n${cue('금리 인하', 0)}\n\n${cue('인하 기대', 1)}`;
+    expect(vttToText(vtt)).toBe('금리 인하\n인하 기대');
+  });
+});
