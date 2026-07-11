@@ -1,6 +1,7 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { getOrCreateSummary } from '@/lib/summary/get-or-create-summary';
 import { LENGTH_MODES } from '@/lib/summary/format';
+import { CONTENT_CUTOFF_PUBLISHED_AT } from '@/lib/pipeline/content-cutoff';
 
 /**
  * done 영상에 대해 모든 길이 모드(짧게/보통/길게) × 한국어 요약을 미리 생성·캐시한다
@@ -23,15 +24,17 @@ export async function summarizePending(
   // 백로그는 fillMissingDurations 가 duration 을 풀어주는 한 매 런 100건씩 꾸준히 소진된다.
   const limit = deps.limit ?? 100;
 
-  // done 영상 전체(최신순)와 이미 있는 ko 요약(video_id, mode)을 조회.
+  // done 영상(최신순)과 이미 있는 ko 요약(video_id, mode)을 조회.
   // duration >= 120초만 요약 대상. NULL(라이브/예정/미취득)·2분 미만(Shorts 등)은 제외.
-  // (fillDurations 를 먼저 돌려 정식 영상은 길이를 채운 뒤이므로, 남은 제외분은 라이브 또는 Shorts.)
+  // 멤버십 컷오프(2026-07-10 KST) 이전 업로드는 비조회라 요약 대상에서 제외(NULL 은 미상이라 통과).
+  //   → 조회 대상(컷오프 이후)만 가져오므로 결과 집합이 작아져 PostgREST 행 상한 문제도 자연 우회.
   // 2시간 이상은 여기서 요약은 하되(사용자별 설정), 노출/발송 단계에서 필터한다.
   const { data: videos, error } = await supabase
     .from('videos')
     .select('id')
     .eq('status', 'done')
     .gte('duration_seconds', 120)
+    .or(`published_at.gte.${CONTENT_CUTOFF_PUBLISHED_AT},published_at.is.null`)
     .order('created_at', { ascending: false });
   if (error) throw new Error(`done 영상 조회 실패: ${error.message}`);
   const doneList = videos ?? [];

@@ -3,6 +3,7 @@ import { channelFeedUrl, parseChannelFeed, type FeedVideo } from '@/lib/pipeline
 import { fetchVideoDurations } from '@/lib/youtube/fetch-durations';
 import { fetchChannelUploads } from '@/lib/youtube/channel-uploads';
 import { youtubeCookieHeader } from '@/lib/pipeline/youtube-cookies';
+import { CONTENT_CUTOFF_MS } from '@/lib/pipeline/content-cutoff';
 
 // RSS 요청에 로그인 세션(쿠키)+브라우저 UA 를 붙여 데이터센터 IP 차단(404) 우회 시도.
 const RSS_UA =
@@ -33,6 +34,7 @@ export async function detectNewVideos(
   let registered = 0;
   let detectFailures = 0;
   let apiFallbacks = 0;
+  let cutoffSkipped = 0; // 멤버십 컷오프(2026-07-10 KST) 이전 업로드 — 비조회라 감지 생략
   const insertedIds: string[] = [];
 
   // 로그인 쿠키를 RSS 요청에 붙인다(IP 차단 우회 시도). 파일 없으면 UA 만.
@@ -70,14 +72,23 @@ export async function detectNewVideos(
 
     if (videos.length === 0) continue;
 
-    const rows = videos.map((v) => ({
-      channel_id: channelId,
-      video_id: v.videoId,
-      title: v.title,
-      url: v.url,
-      published_at: v.publishedAt || null,
-      status: 'pending' as const,
-    }));
+    // 멤버십 컷오프 이전(published_at < 2026-07-10 KST) 업로드는 어떤 회원도 못 보므로 감지 생략.
+    // published_at 미상(NULL)은 '오래된 것'이 아니므로 통과.
+    const rows = videos
+      .filter((v) => {
+        const keep = !v.publishedAt || Date.parse(v.publishedAt) >= CONTENT_CUTOFF_MS;
+        if (!keep) cutoffSkipped++;
+        return keep;
+      })
+      .map((v) => ({
+        channel_id: channelId,
+        video_id: v.videoId,
+        title: v.title,
+        url: v.url,
+        published_at: v.publishedAt || null,
+        status: 'pending' as const,
+      }));
+    if (rows.length === 0) continue;
 
     // ignoreDuplicates: 이미 있는 video_id 는 건드리지 않고(상태/전사 보존), 새 것만 삽입.
     const { data: inserted, error: upErr } = await supabase
@@ -92,6 +103,7 @@ export async function detectNewVideos(
     for (const r of inserted ?? []) insertedIds.push(r.video_id);
   }
   if (apiFallbacks > 0) console.log(`[detect] API 폴백 사용 채널=${apiFallbacks}`);
+  if (cutoffSkipped > 0) console.log(`[detect] 컷오프 이전(비조회) 감지 생략=${cutoffSkipped}`);
 
   // 새로 등록된 영상의 길이(초)를 YouTube Data API 로 채운다 (best-effort, 비핵심 데이터).
   if (insertedIds.length > 0) {

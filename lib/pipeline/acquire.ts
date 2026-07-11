@@ -4,6 +4,7 @@ import { withRetry } from '@/lib/pipeline/retry';
 import { ytdlpCaption, whisperAudio } from '@/lib/pipeline/youtube-content';
 import { supadataCaption } from '@/lib/pipeline/supadata';
 import { planFailure, classifyFailure } from '@/lib/pipeline/retry-policy';
+import { CONTENT_CUTOFF_PUBLISHED_AT } from '@/lib/pipeline/content-cutoff';
 
 /**
  * 자막 획득 티어(REQ-C): yt-dlp 자막(무료·주경로) → 실패 시 Supadata 관리형 API(폴백, 키 있을 때만).
@@ -66,6 +67,8 @@ export async function acquireTranscripts(
     .eq('status', 'pending')
     // 재시도 큐 소비(AC-B1.2): 신규(next_retry_at NULL) + 도래한 재시도만.
     .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
+    // 멤버십 컷오프(2026-07-10 KST) 이전 업로드는 비조회라 전사하지 않음(NULL 은 미상이라 통과).
+    .or(`published_at.gte.${CONTENT_CUTOFF_PUBLISHED_AT},published_at.is.null`)
     // 최신 영상 우선(사용자가 곧바로 보는 것). 폭주로 백로그가 쌓여도 오늘 콘텐츠가 굶지 않도록.
     .order('published_at', { ascending: false, nullsFirst: false })
     .limit(limit);

@@ -20,19 +20,13 @@ function fakeSupabase(pending: { id: string; video_id: string; url: string; retr
           };
         },
         select() {
-          return {
-            eq() {
-              return {
-                or() {
-                  return {
-                    order() {
-                      return { limit: () => Promise.resolve({ data: pending, error: null }) };
-                    },
-                  };
-                },
-              };
-            },
+          // eq/or 는 체이닝(임의 개수) 지원, order → limit 에서 결과 반환.
+          const chain = {
+            eq: () => chain,
+            or: () => chain,
+            order: () => ({ limit: () => Promise.resolve({ data: pending, error: null }) }),
           };
+          return chain;
         },
       };
     },
