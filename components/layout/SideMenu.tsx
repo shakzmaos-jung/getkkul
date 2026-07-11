@@ -46,6 +46,11 @@ const LicenseIcon = () => (
     <path d="M14 2v6h6M9 13h6M9 17h4" />
   </svg>
 );
+const GiftIcon = () => (
+  <svg {...iconProps()}>
+    <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+  </svg>
+);
 const MoonIcon = () => (
   <svg {...iconProps()}>
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -62,8 +67,9 @@ const CloseIcon = () => (
   </svg>
 );
 
-// "메뉴" 그룹 — 네 항목 모두 동일한 이동 패턴(아이콘 + 라벨 + chevron, AC-B1.1/D1.5).
+// "메뉴" 그룹 — 항목 모두 동일한 이동 패턴(아이콘 + 라벨 + chevron, AC-B1.1/D1.5).
 const MENU_ITEMS = [
+  { href: '/referral', label: '친구 초대 & 크레딧', Icon: GiftIcon, testid: 'menu-referral' },
   { href: '/settings', label: '설정', Icon: SettingsIcon, testid: 'menu-settings' },
   { href: '/about', label: '서비스 소개', Icon: AboutIcon, testid: 'menu-about' },
   { href: '/developer', label: '개발자 정보', Icon: DeveloperIcon, testid: 'menu-developer' },
@@ -264,7 +270,7 @@ export default function SideMenu({ open, onClose }: Props) {
               <div className={NAV_ROW}>
                 <span className="flex items-center gap-2.5">
                   <MoonIcon />
-                  다크 모드
+                  테마
                 </span>
                 <ThemeToggle />
               </div>

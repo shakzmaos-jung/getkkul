@@ -62,6 +62,14 @@ export default async function SettingsPage() {
           </Card>
 
           <Card className="p-5">
+            <h2 className="mb-1 text-sm font-semibold">영상 길이 필터</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              너무 짧거나 긴 영상을 다이제스트에서 제외합니다.
+            </p>
+            <VideoDurationFilterForm excludeOver2h={excludeOver2h} />
+          </Card>
+
+          <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">이메일 알림</h2>
             <p className="mb-3 text-xs text-muted-foreground">선택한 시간에만 이메일을 받습니다.</p>
             <DeliverySlotsForm current={deliverySlots} />
@@ -87,14 +95,6 @@ export default async function SettingsPage() {
               담을 새 영상이 없는 시간대의 발송을 생략할지 정합니다.
             </p>
             <SkipEmptyForm skip={skip} />
-          </Card>
-
-          <Card className="p-5">
-            <h2 className="mb-1 text-sm font-semibold">영상 길이 필터</h2>
-            <p className="mb-3 text-xs text-muted-foreground">
-              너무 짧거나 긴 영상을 다이제스트에서 제외합니다.
-            </p>
-            <VideoDurationFilterForm excludeOver2h={excludeOver2h} />
           </Card>
 
           <Card className="p-5">
