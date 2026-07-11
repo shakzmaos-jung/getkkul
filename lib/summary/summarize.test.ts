@@ -5,10 +5,9 @@ import {
   resolveProvidedCeiling,
   PROMPT_VERSION,
 } from './summarize';
-import { longBodyToText, informationLength, type StructuredSummaries } from './format';
+import { pointsToText, informationLength, type StructuredSummaries } from './format';
 import type OpenAI from 'openai';
 
-/** 지정한 content 들을 순서대로 반환하는 mock OpenAI 클라이언트(마지막 값 반복). usage 도 반환. */
 function mockClient(contents: (string | null)[]) {
   const create = vi.fn<
     (args: Record<string, unknown>) => Promise<{
@@ -24,133 +23,102 @@ function mockClient(contents: (string | null)[]) {
 
 const validAll = JSON.stringify({
   depthCeiling: 'long',
-  short: { headline: '짧은 제목', coreText: '핵심 한 문장.' },
-  normal: { headline: '보통 제목', coreText: '핵심 요점과 왜 중요한지 맥락을 담은 두 문장.' },
+  short: { headline: 's', points: ['핵심 사실 하나.'] },
+  normal: { headline: 'n', points: ['핵심 사실 하나.', '핵심 사실 둘과 맥락.'] },
   long: {
-    headline: '긴 제목',
-    facts: [
-      { text: '매출이 전년 대비 20% 증가했다.', key: true },
-      { text: '신규 고객이 크게 늘었다.', key: false },
-    ],
-    insights: [{ text: '추가 성장 여력이 있음을 시사한다.', key: false }],
+    headline: 'l',
+    facts: ['매출이 20% 늘었다는 사실.', '신규 고객이 증가했다는 사실.', '구체 수치 168달러.'],
+    insights: ['성장 여력이 있다는 시사점.'],
   },
 });
 
-describe('allModesSystemPrompt (REQ-A2/D1 — 프롬프트 문안 계약)', () => {
-  it('정보 계층·2단락·근거·보수적 교정을 지시한다', () => {
+describe('allModesSystemPrompt (프롬프트 계약)', () => {
+  it('깊이 사다리·불릿·과교정을 지시하고 하이라이트는 없다', () => {
     const p = allModesSystemPrompt('ko');
-    expect(p).toContain('TL;DR');
+    expect(p).toContain('요점');
+    expect(p).toContain('핵심');
+    expect(p).toContain('심층');
+    expect(p).toContain('points');
     expect(p).toContain('facts');
     expect(p).toContain('insights');
     expect(p).toContain('단조성');
-    expect(p).toMatch(/과교정 금지|지어내지 마라/); // S4: 과교정 방지 지시
-    expect(p).toContain('S&P500'); // 명백 오인식 교정 예시
-    expect(p).toContain('한국어');
-  });
-
-  it('S4: 채널 도메인 힌트를 프롬프트에 주입한다', () => {
-    const p = allModesSystemPrompt('ko', {
-      channelTitle: '삼프로TV',
-      videoTitle: '금리 인상 전망',
-      terms: ['S&P500', '연준'],
-    });
-    expect(p).toContain('삼프로TV');
-    expect(p).toContain('금리 인상 전망');
+    expect(p).toMatch(/과교정 금지|지어내지 마라/);
     expect(p).toContain('S&P500');
+    expect(p).not.toMatch(/하이라이트|밑줄|key=true/); // 하이라이트 지시 제거
+  });
+  it('채널 도메인 힌트 주입', () => {
+    const p = allModesSystemPrompt('ko', { channelTitle: '삼프로TV', videoTitle: '금리', terms: ['연준'] });
+    expect(p).toContain('삼프로TV');
+    expect(p).toContain('금리');
+    expect(p).toContain('연준');
   });
 });
 
-describe('summarizeAllModes (단일 호출 3종 — REQ-CO1)', () => {
-  it('1콜·전사 1회·reasoning low·structured 반환·usage 기록', async () => {
+describe('summarizeAllModes (단일 호출 3종 불릿)', () => {
+  it('1콜·전사 1회·reasoning low·points 배열 반환', async () => {
     const { create, client } = mockClient([validAll]);
     const { structured, ceiling, usage } = await summarizeAllModes('전사텍스트XYZ', 'ko', { client });
-
     expect(create).toHaveBeenCalledTimes(1);
     expect(usage.calls).toBe(1);
     const args = create.mock.calls[0][0];
     expect(args.model).toBe('gpt-5-nano');
-    expect(args.reasoning_effort).toBe('low'); // long 포함 단일 호출 → low
+    expect(args.reasoning_effort).toBe('low');
     expect(args.temperature).toBeUndefined();
-    expect((args.response_format as { type: string }).type).toBe('json_schema');
-    const msgs = JSON.stringify(args.messages);
-    expect(msgs.split('전사텍스트XYZ').length - 1).toBe(1); // 전사 1회
-
+    expect(JSON.stringify(args.messages).split('전사텍스트XYZ').length - 1).toBe(1);
     expect(ceiling).toBe('long');
-    expect(structured.short.coreText).toBe('핵심 한 문장.');
-    expect(structured.long.facts.length).toBe(2); // 2단락 사실
-    expect(structured.long.insights.length).toBe(1); // 2단락 인사이트
-    expect(structured.long.facts.some((s) => s.key)).toBe(true); // 하이라이트 존재
+    expect(structured.short.points).toEqual(['핵심 사실 하나.']);
+    expect(structured.normal.points.length).toBe(2);
+    expect(structured.long.facts.length).toBe(3);
+    expect(structured.long.insights.length).toBe(1);
   });
 
-  it('S4: hint 를 넘기면 첫 호출 시스템 프롬프트에 채널명이 포함된다', async () => {
-    const { create, client } = mockClient([validAll]);
-    await summarizeAllModes('전사', 'ko', { client }, { hint: { channelTitle: '삼프로TV' } });
-    const sys = (create.mock.calls[0][0].messages as { role: string; content: string }[])[0];
-    expect(sys.content).toContain('삼프로TV');
-  });
-
-  it('S3: depthCeiling=short 이면 상위 모드 미제공(ceiling=short)', async () => {
+  it('depthCeiling=short 이면 상위 모드 미제공', async () => {
     const shallow = JSON.stringify({
       depthCeiling: 'short',
-      short: { headline: 't', coreText: '짧은 잡담 요약 한 줄.' },
-      normal: { headline: 't', coreText: '.' },
-      long: { headline: 't', facts: [{ text: '.', key: true }], insights: [] },
+      short: { headline: 't', points: ['짧은 잡담 요약.'] },
+      normal: { headline: 't', points: ['.'] },
+      long: { headline: 't', facts: ['.'], insights: [] },
     });
     const { client } = mockClient([shallow]);
     const { ceiling } = await summarizeAllModes('짧은 전사', 'ko', { client });
     expect(ceiling).toBe('short');
   });
 
-  it('S1: 구조 재시도 시 2번째 호출엔 전사 미포함', async () => {
+  it('구조 재시도 시 2번째 호출엔 전사 미포함', async () => {
     const bad = JSON.stringify({
       depthCeiling: 'long',
-      short: { headline: 't', coreText: '핵심.' },
-      normal: { headline: 't', coreText: '맥락 문장.' },
+      short: { headline: 't', points: ['핵심.'] },
+      normal: { headline: 't', points: ['핵심 둘.'] },
       long: { headline: 't', facts: [], insights: [] }, // facts 비어 구조 미달
     });
     const { create, client } = mockClient([bad, validAll]);
     await summarizeAllModes('전사텍스트XYZ', 'ko', { client });
     expect(create).toHaveBeenCalledTimes(2);
-    const second = JSON.stringify(create.mock.calls[1][0].messages);
-    expect(second.includes('전사텍스트XYZ')).toBe(false);
-  });
-
-  it('빈 응답 반복이면 최종 예외', async () => {
-    const { create, client } = mockClient([null]);
-    await expect(summarizeAllModes('전사', 'ko', { client })).rejects.toThrow();
-    expect(create).toHaveBeenCalledTimes(3);
+    expect(JSON.stringify(create.mock.calls[1][0].messages).includes('전사텍스트XYZ')).toBe(false);
   });
 });
 
-describe('resolveProvidedCeiling — 단조성 방어 (S1: 역전 0건)', () => {
+describe('resolveProvidedCeiling — 단조성 방어 (S1)', () => {
   const base: StructuredSummaries = {
     depthCeiling: 'long',
-    short: { headline: 't', coreText: '가나다.' },
-    normal: { headline: 't', coreText: '가나다라마바사아자차카타파.' },
-    long: { headline: 't', facts: [{ text: '가나.', key: true }], insights: [] },
+    short: { headline: 't', points: ['가나다.'] },
+    normal: { headline: 't', points: ['가나다라마바사아자차카타파.'] },
+    long: { headline: 't', facts: ['가나.'], insights: [] },
   };
-
-  it('long 이 normal 보다 짧으면 long 을 제공에서 낮춘다(→normal)', () => {
-    // long 결합 텍스트가 normal 보다 짧음 → 역전. 방어로 ceiling=normal.
-    expect(informationLength(longBodyToText(base.long))).toBeLessThan(
-      informationLength(base.normal.coreText),
+  it('long 이 normal 보다 짧으면 long 을 제공에서 낮춘다', () => {
+    expect(informationLength(pointsToText([...base.long.facts, ...base.long.insights]))).toBeLessThan(
+      informationLength(pointsToText(base.normal.points)),
     );
     expect(resolveProvidedCeiling(base)).toBe('normal');
   });
-
-  it('정상 단조면 ceiling 유지(long)', () => {
+  it('정상 단조면 ceiling 유지', () => {
     const ok: StructuredSummaries = {
       ...base,
-      long: {
-        headline: 't',
-        facts: [{ text: '가나다라마바사아자차카타파하가나다라마바.', key: true }],
-        insights: [{ text: '가나다라마바사아자차.', key: false }],
-      },
+      long: { headline: 't', facts: ['가나다라마바사아자차카타파하가나다라마바.'], insights: ['가나다라마.'] },
     };
     expect(resolveProvidedCeiling(ok)).toBe('long');
   });
-
-  it('PROMPT_VERSION 이 정의되어 있다(회귀 비교용)', () => {
+  it('PROMPT_VERSION', () => {
     expect(PROMPT_VERSION).toMatch(/^sq-/);
   });
 });

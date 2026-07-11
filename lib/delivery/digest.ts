@@ -116,7 +116,7 @@ export function renderDigest(
       (v) => `
       <li style="margin-bottom:16px">
         <a href="${escapeHtml(v.url)}" style="font-weight:600;font-size:16px">${escapeHtml(v.headline)}</a>
-        <p style="margin:6px 0;color:#374151">${escapeHtml(v.coreText)}</p>
+        <p style="margin:6px 0;color:#374151">${escapeHtml(v.coreText).replace(/\n/g, '<br>')}</p>
         <a href="${escapeHtml(v.url)}" style="font-size:13px;color:#6b7280">원본 영상 →</a>
       </li>`,
     )

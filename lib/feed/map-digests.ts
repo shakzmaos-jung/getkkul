@@ -1,4 +1,4 @@
-import { LENGTH_MODES, type LengthMode, type LongBody, type Sentence } from '@/lib/summary/format';
+import { LENGTH_MODES, type LengthMode, type LongBody } from '@/lib/summary/format';
 
 /**
  * get_feed_digests RPC 행 → 피드 카드(FeedItem) 매핑 + 하이브리드 프리로드 창 판정.
@@ -7,9 +7,10 @@ import { LENGTH_MODES, type LengthMode, type LongBody, type Sentence } from '@/l
 
 export type FeedbackRating = 'up' | 'down';
 
-/** 카드 모드별 요약: 평면 coreText + (long) 2단락 body + 제공 안 함 상태(요약품질 REQ-A/C). */
+/** 카드 모드별 요약: 불릿(points) + (long) 2단락 body + 제공 안 함 상태(요약품질 REQ-A/C). */
 export interface ModeSummary {
-  coreText: string;
+  coreText: string; // 정본 평문(폴백·복사·읽기시간)
+  points?: string[]; // 요점/핵심 불릿(제공 시)
   long?: LongBody; // long 제공 시 2단락(핵심 사실 / 맥락·인사이트)
   notProvided?: boolean; // 콘텐츠 깊이 초과로 미제공(AC-C1.3)
 }
@@ -50,14 +51,17 @@ export interface MappedDigest {
   feedback: Partial<Record<LengthMode, FeedbackRating>>;
 }
 
-function toSentences(v: unknown): Sentence[] {
+/** 문자열 배열로 정규화. 구버전 {text,key} 객체(v0.3.0)도 문자열로 흡수(하위호환). */
+function toStrings(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v
     .map((x) => {
-      const o = (x ?? {}) as { text?: unknown; key?: unknown };
-      return { text: typeof o.text === 'string' ? o.text : '', key: o.key === true };
+      if (typeof x === 'string') return x;
+      const o = (x ?? {}) as { text?: unknown };
+      return typeof o.text === 'string' ? o.text : '';
     })
-    .filter((s) => s.text.trim().length > 0);
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function parseSummaries(raw: unknown): Partial<Record<LengthMode, ModeSummary>> {
@@ -67,16 +71,19 @@ function parseSummaries(raw: unknown): Partial<Record<LengthMode, ModeSummary>> 
     if (!v || typeof v !== 'object') continue;
     const rec = v as { coreText?: unknown; body?: unknown };
     const body = (rec.body && typeof rec.body === 'object' ? rec.body : {}) as {
+      points?: unknown;
       facts?: unknown;
       insights?: unknown;
       notProvided?: unknown;
     };
-    const facts = toSentences(body.facts);
-    const insights = toSentences(body.insights);
+    const points = toStrings(body.points);
+    const facts = toStrings(body.facts);
+    const insights = toStrings(body.insights);
     out[mode as LengthMode] = {
       coreText: typeof rec.coreText === 'string' ? rec.coreText : '',
-      notProvided: body.notProvided === true,
+      points: points.length > 0 ? points : undefined,
       long: facts.length > 0 || insights.length > 0 ? { facts, insights } : undefined,
+      notProvided: body.notProvided === true,
     };
   }
   return out;

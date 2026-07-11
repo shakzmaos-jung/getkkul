@@ -5,14 +5,7 @@ import { updateSummaryLength, type SettingsState } from '@/app/settings/actions'
 import { useToast } from '@/components/ui/ToastProvider';
 import { Spinner } from '@/components/ui/Spinner';
 import { CheckIcon } from '@/components/ui/CheckIcon';
-import type { LengthMode } from '@/lib/summary/format';
-
-const LABELS: Record<LengthMode, string> = { short: '짧게', normal: '보통', long: '길게' };
-const DESC: Record<LengthMode, string> = {
-  short: '핵심 1~3문장',
-  normal: '핵심 1~7문장',
-  long: '핵심 1~12문장',
-};
+import { MODE_LABELS as LABELS, MODE_DESC as DESC, type LengthMode } from '@/lib/summary/format';
 
 const initial: SettingsState = {};
 
