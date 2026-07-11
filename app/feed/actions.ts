@@ -9,7 +9,7 @@ import {
   extractTerms,
   validateQuestion,
   MAX_CONTEXT_LEN,
-  type QAAnswer,
+  type QASection,
 } from '@/lib/qa/answer';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
@@ -146,12 +146,12 @@ async function loadContentContext(
 
 /**
  * 콘텐츠 Q&A (사용자 요청 기능). 이 영상의 맥락(전사 우선, 없으면 요약)에 근거해
- * 질문에 답한다. 단일 턴(질문 1 · 답변 1). 답변은 짧게/보통/길게 3종을 한 번에 생성해 반환한다.
+ * 질문에 답한다. 단일 턴(질문 1 · 답변 1). 답변은 '길게(자세히)' 1종만 생성해 반환한다.
  */
 export async function askAboutContent(
   videoId: string,
   question: string,
-): Promise<{ ok: true; answer: QAAnswer } | { ok: false; error: string }> {
+): Promise<{ ok: true; answer: QASection } | { ok: false; error: string }> {
   const v = validateQuestion(question);
   if (!v.ok) return { ok: false, error: v.error! };
   if (!videoId) return { ok: false, error: '잘못된 요청입니다.' };
