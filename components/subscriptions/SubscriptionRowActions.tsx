@@ -6,20 +6,24 @@ import { removeSubscription, setSubscriptionPause } from '@/app/subscriptions/ac
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/ToastProvider';
+import { isAutoPaused, type PauseReason } from '@/lib/subscriptions/pause';
 
 /**
  * 구독 행 액션: [일시정지/정지해제] [삭제].
- * - 일시정지/정지해제: 버튼 내 스피너 → 완료 토스트 → 해당 상태 탭으로 이동(onPausedChange).
+ * - 다운그레이드 자동 정지(downgrade)는 수동 해제 불가 → 토글 버튼 숨김(업그레이드 시 자동 복원).
+ * - 일시정지/정지해제: 스피너 → 결과 토스트(한도 초과 등 에러 시 상태 유지) → 해당 탭 이동.
  * - 삭제: 확인 모달(삭제/취소). 배경 클릭·ESC 로 닫힘.
  */
 export default function SubscriptionRowActions({
   id,
   paused,
+  pauseReason,
   title,
   onPausedChange,
 }: {
   id: string;
   paused: boolean;
+  pauseReason: PauseReason;
   title: string;
   onPausedChange?: (nextPaused: boolean) => void;
 }) {
@@ -45,7 +49,11 @@ export default function SubscriptionRowActions({
       const fd = new FormData();
       fd.set('id', id);
       fd.set('paused', String(next));
-      await setSubscriptionPause(fd);
+      const res = await setSubscriptionPause(fd);
+      if (!res.ok) {
+        showToast(res.error ?? '상태 변경에 실패했습니다');
+        return; // 상태 유지(예: 정지해제 한도 초과)
+      }
       onPausedChange?.(next); // 해당 상태 탭으로 이동
       showToast(next ? '일시정지되었습니다' : '정지 해제되었습니다');
       router.refresh(); // 최신 목록 반영(항목이 다른 탭으로 이동)
@@ -56,20 +64,24 @@ export default function SubscriptionRowActions({
     }
   }
 
+  const autoPaused = paused && isAutoPaused(pauseReason);
+
   return (
     <div className="flex shrink-0 items-center gap-2">
-      {/* 일시정지 / 정지해제 — 저장 중엔 텍스트 숨기고 스피너만(너비 고정으로 흔들림 방지) */}
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        disabled={pending}
-        onClick={togglePause}
-        data-testid="toggle-pause-subscription"
-        className="min-w-[72px]"
-      >
-        {pending ? <Spinner size={14} /> : paused ? '정지해제' : '일시정지'}
-      </Button>
+      {/* 다운그레이드 자동 정지는 수동 토글 숨김(업그레이드 시 자동 복원) */}
+      {!autoPaused && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={pending}
+          onClick={togglePause}
+          data-testid="toggle-pause-subscription"
+          className="min-w-[72px]"
+        >
+          {pending ? <Spinner size={14} /> : paused ? '정지해제' : '일시정지'}
+        </Button>
+      )}
 
       {/* 삭제(모달 확인) */}
       <Button

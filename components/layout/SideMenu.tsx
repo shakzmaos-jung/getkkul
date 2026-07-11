@@ -51,6 +51,12 @@ const GiftIcon = () => (
     <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
   </svg>
 );
+const CoinIcon = () => (
+  <svg {...iconProps()}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M14.8 9.2A3 3 0 0 0 12 8c-1.7 0-3 1-3 2.2 0 2.8 6 1.2 6 3.6 0 1.2-1.3 2.2-3 2.2a3 3 0 0 1-2.8-1.2M12 6.5v11" />
+  </svg>
+);
 const MoonIcon = () => (
   <svg {...iconProps()}>
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -69,7 +75,8 @@ const CloseIcon = () => (
 
 // "메뉴" 그룹 — 항목 모두 동일한 이동 패턴(아이콘 + 라벨 + chevron, AC-B1.1/D1.5).
 const MENU_ITEMS = [
-  { href: '/referral', label: '친구 초대 & 크레딧', Icon: GiftIcon, testid: 'menu-referral' },
+  { href: '/referral', label: '친구 초대', Icon: GiftIcon, testid: 'menu-referral' },
+  { href: '/credits', label: '크레딧', Icon: CoinIcon, testid: 'menu-credits' },
   { href: '/settings', label: '설정', Icon: SettingsIcon, testid: 'menu-settings' },
   { href: '/about', label: '서비스 소개', Icon: AboutIcon, testid: 'menu-about' },
   { href: '/developer', label: '개발자 정보', Icon: DeveloperIcon, testid: 'menu-developer' },

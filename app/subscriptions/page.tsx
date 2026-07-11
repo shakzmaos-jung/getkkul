@@ -20,7 +20,7 @@ export default async function SubscriptionsPage() {
     supabase
       .from('subscriptions')
       .select(
-        'id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at, paused',
+        'id, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, created_at, paused, pause_reason',
       )
       .order('created_at', { ascending: false }),
   );

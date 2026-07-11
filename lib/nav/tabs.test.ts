@@ -53,9 +53,10 @@ describe('headerTitle (현재 경로 → 상단 헤더 타이틀)', () => {
     expect(headerTitle('/account')).toBe('계정');
     expect(headerTitle('/about')).toBe('서비스 소개');
     expect(headerTitle('/developer')).toBe('개발자 정보');
+    expect(headerTitle('/referral')).toBe('친구 초대');
+    expect(headerTitle('/credits')).toBe('크레딧');
   });
   it('그 외 경로는 앱명 "겟꿀"', () => {
-    expect(headerTitle('/referral')).toBe('겟꿀');
     expect(headerTitle('/anything')).toBe('겟꿀');
   });
 });

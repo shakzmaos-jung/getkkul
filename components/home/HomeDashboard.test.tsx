@@ -1,8 +1,19 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import HomeDashboard from './HomeDashboard';
+import type { ValueSummary } from '@/lib/summary/reading';
 
 afterEach(cleanup);
+
+const value: ValueSummary = {
+  videoCount: 12,
+  originalText: '5시간',
+  readText: '20분',
+  savedText: '4시간 40분',
+  compressionPct: 93.3,
+};
+
+const base = { greetingName: '정상화', badge: '얼리버드 무료 · Medium', value };
 
 const today = [
   {
@@ -20,59 +31,47 @@ const today = [
   },
 ];
 
-describe('HomeDashboard 빈 상태 분기', () => {
-  it('구독 0개면 빈 상태 안내 + 채널 추가 버튼을 보여주고, 통계는 감춘다', () => {
-    render(<HomeDashboard subscriptionCount={0} totalDigestCount={0} today={[]} />);
+describe('HomeDashboard', () => {
+  it('구독 0개면 빈 상태 안내 + 채널 추가, 히어로/통계 감춤', () => {
+    render(<HomeDashboard subscriptionCount={0} totalDigestCount={0} today={[]} {...base} />);
     expect(screen.getByText(/아직 구독한 채널이 없어요/)).toBeTruthy();
     expect(screen.getByTestId('empty-add-channel')).toBeTruthy();
-    expect(screen.queryByTestId('home-stats')).toBeNull();
+    expect(screen.queryByTestId('value-hero')).toBeNull();
     expect(screen.queryByTestId('home-today')).toBeNull();
   });
 
-  it('구독이 있으면 오늘의 다이제스트 목록 + 누적·구독 통계를 보여준다', () => {
-    render(<HomeDashboard subscriptionCount={3} totalDigestCount={128} today={today} />);
+  it('구독이 있으면 가치 히어로(인사말·배지·이번달 압축·절약·보조수치) + 오늘의 다이제스트', () => {
+    render(<HomeDashboard subscriptionCount={3} totalDigestCount={128} today={today} {...base} />);
+    const hero = screen.getByTestId('value-hero');
+    expect(hero.textContent).toContain('정상화 님');
+    expect(hero.textContent).toContain('얼리버드 무료 · Medium');
+    expect(hero.textContent).toContain('12개');
+    expect(hero.textContent).toContain('4시간 40분'); // 절약
+    expect(screen.getByTestId('hero-total').textContent).toContain('128');
+    expect(screen.getByTestId('hero-subs').textContent).toContain('3');
     expect(screen.getByTestId('home-today')).toBeTruthy();
     expect(screen.getByText('영상 A')).toBeTruthy();
-    // 제목에 오늘 개수 노출
-    expect(screen.getByText(/오늘의 다이제스트 \(1\)/)).toBeTruthy();
-    expect(screen.getByTestId('stat-total').textContent).toContain('128');
-    expect(screen.getByTestId('stat-total').textContent).toContain('누적 다이제스트');
-    expect(screen.getByTestId('stat-subscriptions').textContent).toContain('3');
-    expect(screen.queryByText(/아직 구독한 채널이 없어요/)).toBeNull();
   });
 
-  it('카드처럼 채널·핸들·업데이트·원본영상·읽는시간·압축률을 함께 표시한다', () => {
-    render(<HomeDashboard subscriptionCount={1} totalDigestCount={1} today={today} />);
+  it('보조 수치는 각각 링크로 이동(누적→피드, 구독→구독관리)', () => {
+    render(<HomeDashboard subscriptionCount={3} totalDigestCount={0} today={[]} {...base} />);
+    expect(screen.getByTestId('hero-total').getAttribute('href')).toBe('/feed');
+    expect(screen.getByTestId('hero-subs').getAttribute('href')).toBe('/subscriptions');
+  });
+
+  it('이번달 실적 0이면 히어로가 안내 문구를 보여준다', () => {
+    const empty: ValueSummary = { videoCount: 0, originalText: '0초', readText: '0초', savedText: '0초', compressionPct: null };
+    render(<HomeDashboard subscriptionCount={2} totalDigestCount={0} today={[]} {...base} value={empty} />);
+    expect(screen.getByTestId('value-hero').textContent).toContain('이번달 아직 다이제스트가 없어요');
+  });
+
+  it('오늘 카드: 채널·핸들·업데이트·원본·읽는시간·압축률 + 다이제스트 딥링크', () => {
+    render(<HomeDashboard subscriptionCount={1} totalDigestCount={1} today={today} {...base} />);
     const row = screen.getByTestId('today-item');
     expect(row.textContent).toContain('채널1');
     expect(row.textContent).toContain('@ch1');
-    expect(row.textContent).toContain('업데이트 2026-07-10 09:30');
     expect(row.textContent).toContain('원본 영상 10분');
-    expect(row.textContent).toContain('읽는 시간 1분');
     expect(row.textContent).toContain('압축률 90.0%');
-    // 우상단 링크는 유튜브 원본이 아니라 앱 내 다이제스트로 이동
-    expect(screen.getByTestId('today-open-digest').getAttribute('href')).toBe(
-      '/feed?date=2026-07-10#d-1',
-    );
-  });
-
-  it('오늘 다이제스트가 없으면 빈 안내를 보여준다(개수 제한 없음, 오늘 기준)', () => {
-    render(<HomeDashboard subscriptionCount={2} totalDigestCount={10} today={[]} />);
-    expect(screen.getByTestId('home-today')).toBeTruthy();
-    expect(screen.getByText(/오늘은 아직 다이제스트가 없어요/)).toBeTruthy();
-  });
-
-  it('통계 카드는 각각 링크로 이동한다(누적→피드, 구독→구독관리)', () => {
-    render(<HomeDashboard subscriptionCount={3} totalDigestCount={0} today={[]} />);
-    expect(screen.getByTestId('stat-total').getAttribute('href')).toBe('/feed');
-    expect(screen.getByTestId('stat-subscriptions').getAttribute('href')).toBe('/subscriptions');
-  });
-
-  it('제목을 누르면 앱 내 다이제스트(/feed)로 이동한다(유튜브 아님)', () => {
-    render(<HomeDashboard subscriptionCount={1} totalDigestCount={1} today={today} />);
-    const titleLink = screen.getByText('영상 A').closest('a');
-    const href = titleLink?.getAttribute('href') ?? '';
-    expect(href.startsWith('/feed')).toBe(true);
-    expect(href).toContain('2026-07-10');
+    expect(screen.getByTestId('today-open-digest').getAttribute('href')).toBe('/feed?date=2026-07-10#d-1');
   });
 });

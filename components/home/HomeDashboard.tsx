@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
+import ValueHero from '@/components/home/ValueHero';
+import type { ValueSummary } from '@/lib/summary/reading';
 
 export interface HomeDigestItem {
   id: string;
@@ -28,55 +30,22 @@ interface Props {
   subscriptionCount: number;
   totalDigestCount: number;
   today: HomeDigestItem[];
-}
-
-/** 클릭 시 관련 화면으로 이동하는 통계 카드(우상단 화살표 + hover). */
-function StatLink({
-  href,
-  label,
-  value,
-  testId,
-}: {
-  href: string;
-  label: string;
-  value: string;
-  testId: string;
-}) {
-  return (
-    <Link
-      href={href}
-      data-testid={testId}
-      className="group relative rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-foreground/25 hover:bg-muted"
-    >
-      <div className="text-2xl font-semibold tracking-tight">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-        className="absolute right-2 top-2 text-muted-foreground/40 transition-colors group-hover:text-foreground"
-      >
-        <path d="M9 18l6-6-6-6" />
-      </svg>
-    </Link>
-  );
+  greetingName: string;
+  badge: string;
+  value: ValueSummary;
 }
 
 /**
- * 홈 관제판(notification-first). 콘텐츠 리더가 아니라 설정·상태 확인용 가벼운 화면.
- * 구독 0개면 통계 대신 빈 상태 안내 + 채널 추가 버튼을 크게 노출한다.
- * 채널 관리 진입은 '구독 채널' 통계 카드 클릭으로 통합(별도 버튼 제거).
+ * 홈 관제판(notification-first). 상단에 지불가치 히어로(이번달 압축·절약 + 인사말·배지),
+ * 그 아래 오늘의 다이제스트. 구독 0개면 빈 상태 안내 + 채널 추가 버튼.
  */
 export default function HomeDashboard({
   subscriptionCount,
   totalDigestCount,
   today,
+  greetingName,
+  badge,
+  value,
 }: Props) {
   const isEmpty = subscriptionCount === 0;
 
@@ -98,7 +67,16 @@ export default function HomeDashboard({
         </Card>
       ) : (
         <>
-          {/* 3. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
+          {/* 1. 가치 히어로 — 진입 즉시 이번달 압축·절약 상기(인사말·배지·보조수치) */}
+          <ValueHero
+            name={greetingName}
+            badge={badge}
+            value={value}
+            subscriptionCount={subscriptionCount}
+            totalDigestCount={totalDigestCount}
+          />
+
+          {/* 2. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
           <div data-testid="home-today">
             <h2 className="mb-2 text-sm font-semibold">
               오늘의 다이제스트{today.length > 0 ? ` (${today.length})` : ''}
@@ -163,22 +141,6 @@ export default function HomeDashboard({
                 <p className="text-sm text-muted-foreground">오늘은 아직 다이제스트가 없어요.</p>
               </Card>
             )}
-          </div>
-
-          {/* 4. 누적 다이제스트 · 구독 채널 통계(순서: 누적 → 구독) */}
-          <div data-testid="home-stats" className="grid grid-cols-2 gap-3">
-            <StatLink
-              href="/feed"
-              testId="stat-total"
-              label="누적 다이제스트"
-              value={String(totalDigestCount)}
-            />
-            <StatLink
-              href="/subscriptions"
-              testId="stat-subscriptions"
-              label="구독 채널"
-              value={String(subscriptionCount)}
-            />
           </div>
         </>
       )}

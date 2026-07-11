@@ -96,7 +96,7 @@
 
 - **profiles**(id=auth.uid PK, email, created_at)
 - **user_settings**(user_id PK→profiles, summary_length enum['short','normal','long'] default 'normal' — ADR-0002; 표시 라벨 짧게/보통/길게는 i18n)
-- **subscriptions**(id PK, user_id→profiles, channel_id, channel_title, channel_url, created_at, UNIQUE(user_id, channel_id))
+- **subscriptions**(id PK, user_id→profiles, channel_id, channel_title, channel_url, channel_thumbnail, channel_handle, active_since, paused, pause_reason enum['manual','downgrade'], created_at, UNIQUE(user_id, channel_id)) — 다운그레이드 초과 채널은 삭제 아닌 `paused=true, pause_reason='downgrade'`(업그레이드 시 자동 복원), 채널 한도는 `paused=false`(수신중) 기준 (ADR-0015)
 - **videos**(id PK, channel_id, video_id UNIQUE, title, url, published_at, transcript, transcript_source enum['caption','audio','none'], status enum['pending','processing','done','failed'], created_at)
 - **summaries**(id PK, video_id→videos, length_mode enum['short','normal','long'], language enum['ko','en'] default 'ko', headline, core_text, body jsonb{points|facts,insights|notProvided}, prompt_version, created_at, UNIQUE(video_id, length_mode, language))
 - **content_feedback**(id PK, user_id→profiles, video_id→videos, length_mode, language, rating enum['up','down'], created_at, updated_at, UNIQUE(user_id, video_id, length_mode, language)) — 요약 품질 👍/👎 (요약품질 부록 REQ-F, RLS 본인 행)

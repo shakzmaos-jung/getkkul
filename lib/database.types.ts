@@ -707,6 +707,7 @@ export type Database = {
           created_at: string
           id: string
           paused: boolean
+          pause_reason: Database["public"]["Enums"]["pause_reason"] | null
           user_id: string
         }
         Insert: {
@@ -720,6 +721,7 @@ export type Database = {
           created_at?: string
           id?: string
           paused?: boolean
+          pause_reason?: Database["public"]["Enums"]["pause_reason"] | null
           user_id: string
         }
         Update: {
@@ -733,6 +735,7 @@ export type Database = {
           created_at?: string
           id?: string
           paused?: boolean
+          pause_reason?: Database["public"]["Enums"]["pause_reason"] | null
           user_id?: string
         }
         Relationships: [
@@ -1036,6 +1039,14 @@ export type Database = {
           feedback: Json
         }[]
       }
+      get_month_value_stats: {
+        Args: { p_from: string; p_mode?: string }
+        Returns: {
+          read_chars: number
+          video_count: number
+          video_seconds: number
+        }[]
+      }
       get_recent_digests: {
         Args: { p_limit?: number }
         Returns: {
@@ -1149,6 +1160,7 @@ export type Database = {
       delivery_status: "pending" | "sent" | "failed"
       failure_kind: "transient" | "permanent"
       feedback_rating: "up" | "down"
+      pause_reason: "manual" | "downgrade"
       referral_status: "pending" | "activated" | "void"
       summary_language: "ko" | "en"
       summary_length: "short" | "normal" | "long"
@@ -1294,6 +1306,7 @@ export const Constants = {
       delivery_status: ["pending", "sent", "failed"],
       failure_kind: ["transient", "permanent"],
       feedback_rating: ["up", "down"],
+      pause_reason: ["manual", "downgrade"],
       referral_status: ["pending", "activated", "void"],
       summary_language: ["ko", "en"],
       summary_length: ["short", "normal", "long"],
