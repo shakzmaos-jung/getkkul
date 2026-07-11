@@ -1,89 +1,117 @@
 import type OpenAI from 'openai';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/database.types';
-import { summarize, summarizeAllModes, type SummaryUsage } from '@/lib/summary/summarize';
-import { LENGTH_MODES, type LengthMode, type SummaryLanguage, type Summary } from '@/lib/summary/format';
+import type { Database, Json } from '@/lib/database.types';
+import {
+  summarizeAllModes,
+  PROMPT_VERSION,
+  type SummaryUsage,
+  type DomainHint,
+} from '@/lib/summary/summarize';
+import {
+  LENGTH_MODES,
+  isProvided,
+  longBodyToText,
+  type LengthMode,
+  type SummaryLanguage,
+  type StructuredSummaries,
+  type DepthCeiling,
+} from '@/lib/summary/format';
 
 /**
- * (video_id, length_mode, language) 요약 캐시 (SSR AC-D2.3, D3.2).
- * 있으면 재사용, 없으면 생성 후 저장. 서로 다른 사용자가 같은 채널을 봐도 (모드,언어)별 1회만 연산.
- * service_role 클라이언트를 주입받는다(파이프라인=pipeline client, 웹 영어전환=admin client).
+ * (video_id, length_mode, language) 요약 캐시 (요약품질 SSR 부록).
+ * 있으면 재사용, 없으면 단일 호출로 3종 정보 계층 요약을 생성해 저장한다.
+ * service_role 클라이언트를 주입받는다(파이프라인=pipeline client).
+ *
+ * 저장 구조:
+ * - short/normal(제공): core_text + body {v}.
+ * - long(제공): core_text = facts+insights 결합(QA·읽기시간 호환), body {facts, insights, v}.
+ * - 제공 안 함(depthCeiling 초과, AC-C1.3): core_text='' + body {notProvided:true, ceiling, v}.
  */
 type DB = SupabaseClient<Database>;
-
-export interface CachedSummary extends Summary {
-  cached: boolean;
-}
-
-export async function getOrCreateSummary(
-  supabase: DB,
-  videoId: string,
-  mode: LengthMode,
-  language: SummaryLanguage,
-  deps: { client?: OpenAI } = {},
-): Promise<CachedSummary> {
-  // 1) 캐시 조회
-  const existing = await supabase
-    .from('summaries')
-    .select('headline, core_text, body')
-    .eq('video_id', videoId)
-    .eq('length_mode', mode)
-    .eq('language', language)
-    .maybeSingle();
-  if (existing.data) {
-    return toSummary(existing.data, true);
-  }
-
-  // 2) 전사 확보 검증 (AC-D1.2: 전사가 있는 영상만)
-  const video = await supabase
-    .from('videos')
-    .select('transcript, status')
-    .eq('id', videoId)
-    .single();
-  if (video.error) throw new Error(`영상 조회 실패: ${video.error.message}`);
-  if (video.data.status !== 'done' || !video.data.transcript) {
-    throw new Error(`전사가 준비되지 않은 영상: ${videoId}`);
-  }
-
-  // 3) 생성
-  const summary = await summarize(video.data.transcript, mode, language, deps);
-
-  // 4) 저장 (race 는 UNIQUE 로 방지 — 충돌 시 캐시 재조회)
-  const inserted = await supabase.from('summaries').insert({
-    video_id: videoId,
-    length_mode: mode,
-    language,
-    headline: summary.headline,
-    core_text: summary.coreText,
-    body: { bullets: summary.bullets },
-  });
-
-  if (inserted.error) {
-    if (inserted.error.code === '23505') {
-      const raced = await supabase
-        .from('summaries')
-        .select('headline, core_text, body')
-        .eq('video_id', videoId)
-        .eq('length_mode', mode)
-        .eq('language', language)
-        .single();
-      if (raced.data) return toSummary(raced.data, true);
-    }
-    throw new Error(`요약 저장 실패: ${inserted.error.message}`);
-  }
-
-  return { ...summary, cached: false };
-}
 
 export interface BatchSummaryResult {
   generated: number; // 이번에 새로 생성·저장한 모드 수(0 = 전부 캐시)
   usage: SummaryUsage | null; // LLM 미호출(전부 캐시)이면 null
 }
 
+type SummaryRow = Database['public']['Tables']['summaries']['Insert'];
+
+/** 보수적 용어 교정용 채널 도메인 힌트를 best-effort 로 조립한다(REQ-D1, 실패해도 요약은 진행). */
+async function loadDomainHint(
+  supabase: DB,
+  channelId: string,
+  videoTitle: string | null,
+  videoId: string,
+): Promise<DomainHint> {
+  const hint: DomainHint = { videoTitle };
+  try {
+    const cat = await supabase
+      .from('channel_catalog')
+      .select('title')
+      .eq('channel_id', channelId)
+      .maybeSingle();
+    hint.channelTitle = cat.data?.title ?? null;
+    if (!hint.channelTitle) {
+      const sub = await supabase
+        .from('subscriptions')
+        .select('channel_title')
+        .eq('channel_id', channelId)
+        .not('channel_title', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      hint.channelTitle = sub.data?.channel_title ?? null;
+    }
+    const terms = await supabase
+      .from('content_terms')
+      .select('terms')
+      .eq('video_id', videoId)
+      .maybeSingle();
+    if (Array.isArray(terms.data?.terms) && terms.data!.terms.length > 0) {
+      hint.terms = terms.data!.terms;
+    }
+  } catch (e) {
+    console.warn(`[summarize] 도메인 힌트 조회 실패(무시): ${(e as Error).message}`);
+  }
+  return hint;
+}
+
+/** 구조화 결과 + ceiling 으로 특정 모드의 저장 row 를 만든다. */
+function rowFor(
+  videoId: string,
+  mode: LengthMode,
+  language: SummaryLanguage,
+  s: StructuredSummaries,
+  ceiling: DepthCeiling,
+): SummaryRow {
+  const base = { video_id: videoId, length_mode: mode, language, prompt_version: PROMPT_VERSION };
+  if (!isProvided(mode, ceiling)) {
+    return {
+      ...base,
+      headline: '',
+      core_text: '',
+      body: { notProvided: true, ceiling, v: PROMPT_VERSION } as unknown as Json,
+    };
+  }
+  if (mode === 'long') {
+    return {
+      ...base,
+      headline: s.long.headline,
+      core_text: longBodyToText(s.long),
+      body: { facts: s.long.facts, insights: s.long.insights, v: PROMPT_VERSION } as unknown as Json,
+    };
+  }
+  return {
+    ...base,
+    headline: s[mode].headline,
+    core_text: s[mode].coreText,
+    body: { v: PROMPT_VERSION } as unknown as Json,
+  };
+}
+
 /**
  * (video_id, language) 의 short/normal/long 3종을 확보한다 — REQ-CO1.
- * 이미 있는 모드는 재사용하고, 누락 모드가 있으면 전사를 1회만 전송하는 단일 호출로 3종을 생성해
- * 누락분만 저장한다(기존행 보존, UNIQUE 충돌은 ignoreDuplicates 로 무해). 3종 모두 있으면 LLM 호출 0.
+ * 누락 모드가 있으면 전사를 1회만 전송하는 단일 호출로 3종을 생성해 누락분만 저장한다
+ * (기존행 보존, UNIQUE 충돌은 ignoreDuplicates 로 무해). 3종 모두 있으면 LLM 호출 0.
  */
 export async function getOrCreateSummaries(
   supabase: DB,
@@ -99,11 +127,11 @@ export async function getOrCreateSummaries(
   if (existing.error) throw new Error(`요약 조회 실패: ${existing.error.message}`);
   const have = new Set((existing.data ?? []).map((r) => r.length_mode));
   const missing = LENGTH_MODES.filter((m) => !have.has(m));
-  if (missing.length === 0) return { generated: 0, usage: null }; // 조회 경로 LLM 0 (AC-CO1.4)
+  if (missing.length === 0) return { generated: 0, usage: null }; // 조회 경로 LLM 0
 
   const video = await supabase
     .from('videos')
-    .select('transcript, status')
+    .select('transcript, status, title, channel_id')
     .eq('id', videoId)
     .single();
   if (video.error) throw new Error(`영상 조회 실패: ${video.error.message}`);
@@ -111,36 +139,19 @@ export async function getOrCreateSummaries(
     throw new Error(`전사가 준비되지 않은 영상: ${videoId}`);
   }
 
-  const { summaries, usage } = await summarizeAllModes(video.data.transcript, language, deps);
-
-  const rows = missing.map((m) => ({
-    video_id: videoId,
-    length_mode: m,
+  const hint = await loadDomainHint(supabase, video.data.channel_id, video.data.title, videoId);
+  const { structured, ceiling, usage } = await summarizeAllModes(
+    video.data.transcript,
     language,
-    headline: summaries[m].headline,
-    core_text: summaries[m].coreText,
-    body: { bullets: summaries[m].bullets },
-  }));
+    deps,
+    { hint },
+  );
+
+  const rows = missing.map((m) => rowFor(videoId, m, language, structured, ceiling));
   const inserted = await supabase
     .from('summaries')
     .upsert(rows, { onConflict: 'video_id,length_mode,language', ignoreDuplicates: true });
   if (inserted.error) throw new Error(`요약 저장 실패: ${inserted.error.message}`);
 
   return { generated: missing.length, usage };
-}
-
-function toSummary(
-  row: { headline: string | null; core_text: string | null; body: unknown },
-  cached: boolean,
-): CachedSummary {
-  const bullets =
-    row.body && typeof row.body === 'object' && 'bullets' in row.body
-      ? ((row.body as { bullets?: unknown }).bullets as string[]) ?? []
-      : [];
-  return {
-    headline: row.headline ?? '',
-    coreText: row.core_text ?? '',
-    bullets: Array.isArray(bullets) ? bullets : [],
-    cached,
-  };
 }

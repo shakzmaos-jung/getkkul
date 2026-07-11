@@ -1,193 +1,218 @@
 import OpenAI from 'openai';
 import {
-  LENGTH_SPECS,
   LENGTH_MODES,
-  validateSummaryFormat,
-  type LengthMode,
+  providedModes,
+  longBodyToText,
+  hasHighlight,
+  checkMonotonicity,
   type SummaryLanguage,
-  type Summary,
-  type AllModeSummaries,
+  type StructuredSummaries,
+  type LengthMode,
+  type DepthCeiling,
 } from '@/lib/summary/format';
 
 /**
- * 전사 텍스트 → 구조화 요약 (SSR REQ-D1/D2). OpenAI GPT-5-nano + 구조화 출력(json_schema strict).
- * 요약은 한국어 기본, language='en' 이면 영어(AC-D1.1/D3). summarize() 인터페이스 뒤에
- * 프로바이더를 격리한다(ADR-0001). 저비용 목적으로 Haiku 4.5 → GPT-5-nano 로 교체(2026-07-06).
- * GPT-5-nano 는 reasoning 모델: max_completion_tokens 사용, temperature 미지원, reasoning_effort 로 깊이 조절.
+ * 전사 텍스트 → 정보 계층 구조화 요약 (요약품질 SSR 부록 REQ-A/B/C/D/E).
+ * OpenAI GPT-5-nano + 구조화 출력(json_schema strict). summarize() 인터페이스 뒤에 프로바이더 격리(ADR-0001).
+ *
+ * 재설계: 문장 수가 아니라 **정보 계층**으로 3종을 단일 호출로 생성한다(전사 1회 전송, REQ-CO1).
+ * - short=TL;DR / normal=핵심+맥락 / long=[핵심 사실] + [맥락·인사이트] 2단락(문장별 핵심 마킹).
+ * - depthCeiling 으로 적응형 깊이(빈약 콘텐츠는 상위 모드 미제공), 단조성 방어로 길이 역전 차단.
+ * - 채널 도메인 힌트로 보수적 용어 교정(과교정 금지).
  */
 
 const MODEL = 'gpt-5-nano';
-// 요약은 추론 부하가 낮으므로 reasoning_effort 를 'minimal' 로 둬 reasoning 토큰(출력 과금)을 최소화한다
-// (비용 최적화 WO-COST-001; 품질 미달 시 'low'/'medium' 로 상향). 프로바이더 전환 없이 gpt-5-nano 유지.
-const REASONING_EFFORT = 'minimal' as const;
-// reasoning + 출력 토큰 합산 상한. 3종 동시 생성(단일 호출) 여유값.
-const MAX_COMPLETION_TOKENS = 12288;
+// long 이 정보 계층·2단락·근거·교정 지시를 포함 → 단일 3종 호출을 reasoning_effort='low' 로 둔다
+// (전사 1회 전송 제약상 모드별 분리 불가; 💰 영상당 0.05→0.15센트 수준으로 무시 가능, 스펙 I절).
+const REASONING_EFFORT = 'low' as const;
+const MAX_COMPLETION_TOKENS = 16384;
 
-const SUMMARY_SCHEMA = {
+/** 시스템 프롬프트 버전(회귀 비교·피드백 지표 연결용, AC-A2.2/F2.2). 변경 시 반드시 증가. */
+export const PROMPT_VERSION = 'sq-2026-07-12.1';
+
+/** 요약 생성에 주입하는 채널/콘텐츠 힌트(보수적 용어 교정 근거, REQ-D1). */
+export interface DomainHint {
+  channelTitle?: string | null;
+  videoTitle?: string | null;
+  terms?: string[]; // content_terms 용어집(선택, AC-D1.4)
+}
+
+const SENTENCE_SCHEMA = {
   type: 'object',
-  properties: {
-    headline: { type: 'string' },
-    coreText: { type: 'string' },
-  },
+  properties: { text: { type: 'string' }, key: { type: 'boolean' } },
+  required: ['text', 'key'],
+  additionalProperties: false,
+} as const;
+
+const FLAT_SCHEMA = {
+  type: 'object',
+  properties: { headline: { type: 'string' }, coreText: { type: 'string' } },
   required: ['headline', 'coreText'],
   additionalProperties: false,
 } as const;
 
-function systemPrompt(mode: LengthMode, language: SummaryLanguage): string {
-  const spec = LENGTH_SPECS[mode];
-  const lang =
-    language === 'ko'
-      ? '요약은 반드시 한국어로 작성한다(원문이 영어여도 한국어로).'
-      : 'Write the entire summary in English.';
-  const detail =
-    mode === 'long'
-      ? 'coreText 에는 핵심뿐 아니라 구체적 수치·사례·실행 요점 등 정보 가치가 높은 세부까지 문장으로 빠짐없이 담아 상세하게 작성한다.'
-      : 'coreText 에는 정보 가치가 높은 핵심만 간결하게 담는다.';
-  return [
-    '너는 유튜브 영상 전사를 핵심만 뽑아 요약하는 전문가다.',
-    lang,
-    '다음 형식을 지켜라:',
-    `- headline: 한 줄 제목`,
-    `- coreText: 핵심 내용 ${spec.coreSentencesMin}~${spec.coreSentencesMax}문장`,
-    detail,
-    '광고·인사말·잡담은 제외하고 정보 가치가 높은 내용만 담아라.',
-  ].join('\n');
-}
+const LONG_SCHEMA = {
+  type: 'object',
+  properties: {
+    headline: { type: 'string' },
+    facts: { type: 'array', items: SENTENCE_SCHEMA },
+    insights: { type: 'array', items: SENTENCE_SCHEMA },
+  },
+  required: ['headline', 'facts', 'insights'],
+  additionalProperties: false,
+} as const;
 
-function extractSummary(content: string | null): Summary {
-  if (!content || !content.trim()) {
-    throw new Error('요약 응답이 비어 있습니다.');
-  }
-  const parsed = JSON.parse(content) as Pick<Summary, 'headline' | 'coreText'>;
-  return {
-    headline: parsed.headline,
-    coreText: parsed.coreText,
-    bullets: [], // 불릿 폐지 — 저장 호환 위해 빈 배열.
-  };
-}
-
-export async function summarize(
-  transcript: string,
-  mode: LengthMode,
-  language: SummaryLanguage,
-  deps: { client?: OpenAI } = {},
-): Promise<Summary> {
-  const client = deps.client ?? new OpenAI();
-  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt(mode, language) },
-    { role: 'user', content: `다음 영상 전사를 요약하라:\n\n${transcript}` },
-  ];
-
-  let last: Summary | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await client.chat.completions.create({
-      model: MODEL,
-      max_completion_tokens: MAX_COMPLETION_TOKENS,
-      reasoning_effort: REASONING_EFFORT,
-      messages,
-      response_format: {
-        type: 'json_schema',
-        json_schema: { name: 'summary', strict: true, schema: SUMMARY_SCHEMA },
-      },
-    });
-
-    // strict json_schema 로 형식은 보장되지만 드물게 빈 응답/파싱 실패를 재시도로 흡수한다.
-    let candidate: Summary;
-    try {
-      candidate = extractSummary(res.choices[0]?.message?.content ?? null);
-    } catch (e) {
-      console.warn(`[summarize] 응답 파싱 실패(재시도): ${(e as Error).message}`);
-      messages.push({ role: 'user', content: '반드시 유효한 JSON 으로만 응답하라.' });
-      continue;
-    }
-    last = candidate;
-
-    const check = validateSummaryFormat(candidate, mode);
-    if (check.valid) return candidate;
-
-    // 형식(문장 수/불릿 수) 미달이면 교정 요청
-    messages.push(
-      { role: 'assistant', content: JSON.stringify(candidate) },
-      {
-        role: 'user',
-        content: `형식 조건을 지키지 못했다: ${check.errors.join(' ')} 형식에 맞게 다시 작성하라.`,
-      },
-    );
-  }
-
-  if (!last) throw new Error('요약 JSON 파싱에 반복 실패했습니다.');
-  // 형식 미달이어도 best-effort 로 반환(발송 자체는 막지 않음).
-  console.warn('[summarize] 형식 검증 최종 실패 — best-effort 반환');
-  return last;
-}
-
-// ── REQ-CO1: 단일 호출 3종 생성 ──────────────────────────────────────────────
-
-/** 3모드 중첩 스키마(각 모드 {headline, coreText}). 향후 terms 등은 각 모드 프로퍼티로 확장(AC-CO1.6). */
+/** 3모드 + 콘텐츠 깊이 판정을 한 번에 내는 구조화 스키마(REQ-A1/C1). */
 const ALL_MODE_SCHEMA = {
   type: 'object',
-  properties: { short: SUMMARY_SCHEMA, normal: SUMMARY_SCHEMA, long: SUMMARY_SCHEMA },
-  required: ['short', 'normal', 'long'],
+  properties: {
+    depthCeiling: { type: 'string', enum: ['short', 'normal', 'long'] },
+    short: FLAT_SCHEMA,
+    normal: FLAT_SCHEMA,
+    long: LONG_SCHEMA,
+  },
+  required: ['depthCeiling', 'short', 'normal', 'long'],
   additionalProperties: false,
 } as const;
 
 export interface SummaryUsage {
   promptTokens: number;
   completionTokens: number;
-  calls: number; // 이 영상·언어 요약에 든 LLM 호출 수(정상 1, 재시도 시 증가) — 회귀 감시(AC-CO5.2)
+  calls: number; // 이 영상·언어 요약에 든 LLM 호출 수(정상 1, 재시도 시 증가) — 회귀 감시
 }
 
-function allModesSystemPrompt(language: SummaryLanguage): string {
-  const s = LENGTH_SPECS;
+/** 채널/제목/용어집 힌트를 프롬프트 문장으로. 없으면 빈 문자열. */
+function hintLines(hint?: DomainHint): string[] {
+  if (!hint) return [];
+  const lines: string[] = [];
+  const meta = [
+    hint.channelTitle && `채널 «${hint.channelTitle}»`,
+    hint.videoTitle && `제목 «${hint.videoTitle}»`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  if (meta) lines.push(`이 영상의 맥락: ${meta}. 이 도메인을 근거로 전사의 명백한 용어 오인식만 판단하라.`);
+  if (hint.terms && hint.terms.length > 0) {
+    lines.push(`이 채널에서 자주 쓰는 용어(참고): ${hint.terms.slice(0, 12).join(', ')}.`);
+  }
+  return lines;
+}
+
+/**
+ * 정보 계층 3종 생성 시스템 프롬프트(REQ-A2). "몇 문장"이 아니라 "무엇을·어떤 층위로"를 지시한다.
+ * 테스트·문서에서 문안을 직접 검증할 수 있도록 export 한다(AC-A2.2).
+ */
+export function allModesSystemPrompt(language: SummaryLanguage, hint?: DomainHint): string {
   const lang =
     language === 'ko'
-      ? '요약은 반드시 한국어로 작성한다(원문이 영어여도 한국어로).'
+      ? '모든 요약은 반드시 한국어로 작성한다(원문이 영어여도 한국어로).'
       : 'Write every summary in English.';
   return [
-    '너는 유튜브 영상 전사를 핵심만 뽑아 요약하는 전문가다.',
+    '너는 유튜브 영상 전사에서 정보 가치가 높은 핵심을 정보 계층으로 요약하는 전문가다.',
     lang,
-    '하나의 전사에 대해 서로 다른 3가지 길이 요약을 한 번에 생성한다. 각 요약은 { headline: 한 줄 제목, coreText: 핵심 문장 } 형식이다.',
-    `- short.coreText: 핵심만 ${s.short.coreSentencesMin}~${s.short.coreSentencesMax}문장 간결히.`,
-    `- normal.coreText: ${s.normal.coreSentencesMin}~${s.normal.coreSentencesMax}문장.`,
-    `- long.coreText: ${s.long.coreSentencesMin}~${s.long.coreSentencesMax}문장. 구체적 수치·사례·실행 요점 등 세부까지 문장으로 빠짐없이 상세히.`,
-    '광고·인사말·잡담은 제외하고 정보 가치가 높은 내용만 담아라.',
+    '하나의 전사에 대해 서로 다른 3가지 깊이의 요약을 한 번에 생성한다. 길이가 아니라 "무엇을 어떤 층위로 담느냐"로 구분한다:',
+    '- short: 이 영상이 무엇을 다뤘는지 TL;DR. 가장 중요한 한두 요점만.',
+    '- normal: 핵심 요점 + 왜 중요한지 맥락까지.',
+    '- long: 두 부분으로 나눠 담는다. (1) facts = 전사에서 뽑은 핵심 "사실·수치·사례"를 문장 배열로, (2) insights = 그 사실에서 도출한 "맥락·시사점·인사이트"를 문장 배열로. 각 문장은 { text, key } 이며, 특히 중요한 문장은 key=true 로 표시한다(facts·insights 통틀어 최소 1개).',
+    '정보 계층(단조성): 상위 깊이는 하위를 포함하고 확장한다. 반드시 정보량이 short ≤ normal ≤ long 이 되도록, 상위일수록 더 깊고 구체적으로 쓴다. 상위가 하위보다 얕거나 짧아서는 안 된다.',
+    '적응형 깊이: 콘텐츠가 빈약해 깊은 요약이 무리라면 depthCeiling 을 낮게 판정한다(예: 잡담·아주 짧은 영상 → "short"). depthCeiling 위의 모드는 억지로 내용을 부풀리지 말고 핵심만 간단히 두라(우리가 사용자에게 제공하지 않는다). 내용이 충분하면 "long".',
+    '근거 준수: 원문 전사에 없는 내용을 지어내지 않는다. 인사이트도 반드시 전사의 사실에 근거한다.',
+    '보수적 용어 교정: 전사의 음성인식 오류 중 "잘 알려진 고유명사·전문용어의 명백한 오인식"만 교정한다(예: "SMP 500"→"S&P500"). 발음이 비슷하다는 이유로 원문에 없던 고유명사·개체를 지어내지 마라. 확실하지 않으면 원문 표현을 그대로 둔다(과교정 금지).',
+    ...hintLines(hint),
+    '광고·인사말·잡담·구독요청은 제외하고 정보 가치가 높은 내용만 담아라.',
   ].join('\n');
 }
 
-function extractAllModes(content: string | null): AllModeSummaries {
+/** depthCeiling 문자열을 유효 모드로 정규화(불명확하면 long = 전부 제공). */
+function normalizeCeiling(v: unknown): DepthCeiling {
+  return typeof v === 'string' && (LENGTH_MODES as readonly string[]).includes(v)
+    ? (v as DepthCeiling)
+    : 'long';
+}
+
+/** 모드별 렌더 텍스트(단조성 판정 기준). long 은 facts+insights 결합. */
+function textOf(s: StructuredSummaries, mode: LengthMode): string {
+  if (mode === 'long') return longBodyToText(s.long);
+  return s[mode].coreText ?? '';
+}
+
+/**
+ * 최종 제공 깊이(ceiling)를 정한다: 모델 판정 ceiling 에서 시작해, 제공 모드들이 단조성을
+ * 만족할 때까지 상위 모드를 낮춘다(AC-B1.2 방어 — 역전은 사용자에게 노출하지 않는다).
+ * short 만 남으면 항상 단조 → 종료. 반환 ceiling 이하만 사용자에게 제공한다.
+ */
+export function resolveProvidedCeiling(s: StructuredSummaries): DepthCeiling {
+  let ceiling = normalizeCeiling(s.depthCeiling);
+  const order: LengthMode[] = ['long', 'normal', 'short'];
+  for (;;) {
+    const provided = providedModes(ceiling);
+    const textByMode: Partial<Record<LengthMode, string>> = {};
+    for (const m of provided) textByMode[m] = textOf(s, m);
+    if (checkMonotonicity(textByMode).valid) return ceiling;
+    if (ceiling === 'short') return 'short';
+    ceiling = order[order.indexOf(ceiling) + 1];
+  }
+}
+
+function extractStructured(content: string | null): StructuredSummaries {
   if (!content || !content.trim()) throw new Error('요약 응답이 비어 있습니다.');
-  const p = JSON.parse(content) as Partial<
-    Record<LengthMode, { headline?: string; coreText?: string }>
-  >;
-  const one = (m: LengthMode): Summary => ({
+  const p = JSON.parse(content) as Partial<StructuredSummaries>;
+  const flat = (m: 'short' | 'normal') => ({
     headline: p[m]?.headline ?? '',
     coreText: p[m]?.coreText ?? '',
-    bullets: [], // 불릿 폐지 — 저장 호환 위해 빈 배열
   });
-  return { short: one('short'), normal: one('normal'), long: one('long') };
+  return {
+    depthCeiling: normalizeCeiling(p.depthCeiling),
+    short: flat('short'),
+    normal: flat('normal'),
+    long: {
+      headline: p.long?.headline ?? '',
+      facts: Array.isArray(p.long?.facts) ? p.long!.facts : [],
+      insights: Array.isArray(p.long?.insights) ? p.long!.insights : [],
+    },
+  };
+}
+
+/** 구조 검증: 제공되는 모드 내용이 채워졌고 long(제공 시) 2단락·하이라이트가 있는지(REQ-A1/E1). */
+function structuralErrors(s: StructuredSummaries): string[] {
+  const errs: string[] = [];
+  const provided = providedModes(normalizeCeiling(s.depthCeiling));
+  for (const m of provided) {
+    if (m === 'long') {
+      const n = s.long.facts.length + s.long.insights.length;
+      if (s.long.facts.length === 0) errs.push('long.facts 가 비어 있다');
+      if (n > 0 && !hasHighlight(s.long)) errs.push('long 에 핵심(key=true) 문장이 없다');
+      if (!s.long.headline?.trim()) errs.push('long.headline 이 비어 있다');
+    } else {
+      if (!s[m].coreText?.trim()) errs.push(`${m}.coreText 가 비어 있다`);
+      if (!s[m].headline?.trim()) errs.push(`${m}.headline 이 비어 있다`);
+    }
+  }
+  return errs;
 }
 
 /**
  * 전사를 1회만 전송해 short/normal/long 3종을 단일 호출로 생성한다(REQ-CO1).
- * 모드별 `validateSummaryFormat` 검증 → 미달 시 최대 3회 교정 재시도하되, 재시도 요청엔
- * 전사를 포함하지 않는다(직전 JSON 자체를 재정형, REQ-CO3). 토큰 usage 를 함께 반환(REQ-CO5).
+ * 구조 검증 미달 시 최대 3회 교정(전사 미포함 재정형, REQ-CO3). 단조성은 항상 방어 적용(resolveProvidedCeiling).
+ * 반환: 구조화 요약 + 최종 제공 ceiling + usage.
  */
 export async function summarizeAllModes(
   transcript: string,
   language: SummaryLanguage,
   deps: { client?: OpenAI } = {},
-): Promise<{ summaries: AllModeSummaries; usage: SummaryUsage }> {
+  opts: { hint?: DomainHint } = {},
+): Promise<{ structured: StructuredSummaries; ceiling: DepthCeiling; usage: SummaryUsage }> {
   const client = deps.client ?? new OpenAI();
   const sys: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
     role: 'system',
-    content: allModesSystemPrompt(language),
+    content: allModesSystemPrompt(language, opts.hint),
   };
   let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     sys,
     { role: 'user', content: `다음 영상 전사를 요약하라:\n\n${transcript}` },
   ];
   const usage: SummaryUsage = { promptTokens: 0, completionTokens: 0, calls: 0 };
-  let last: AllModeSummaries | null = null;
+  let last: StructuredSummaries | null = null;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await client.chat.completions.create({
@@ -197,16 +222,16 @@ export async function summarizeAllModes(
       messages,
       response_format: {
         type: 'json_schema',
-        json_schema: { name: 'all_mode_summary', strict: true, schema: ALL_MODE_SCHEMA },
+        json_schema: { name: 'hierarchical_summary', strict: true, schema: ALL_MODE_SCHEMA },
       },
     });
     usage.calls += 1;
     usage.promptTokens += res.usage?.prompt_tokens ?? 0;
     usage.completionTokens += res.usage?.completion_tokens ?? 0;
 
-    let parsed: AllModeSummaries;
+    let parsed: StructuredSummaries;
     try {
-      parsed = extractAllModes(res.choices[0]?.message?.content ?? null);
+      parsed = extractStructured(res.choices[0]?.message?.content ?? null);
     } catch (e) {
       console.warn(`[summarize] 응답 파싱 실패(재시도): ${(e as Error).message}`);
       messages = [sys, { role: 'user', content: '반드시 유효한 JSON 으로만 응답하라.' }];
@@ -214,21 +239,19 @@ export async function summarizeAllModes(
     }
     last = parsed;
 
-    const failures = LENGTH_MODES.filter((m) => !validateSummaryFormat(parsed[m], m).valid);
-    if (failures.length === 0) return { summaries: parsed, usage };
-
-    const errs = failures
-      .map((m) => `${m}(${validateSummaryFormat(parsed[m], m).errors.join(' ')})`)
-      .join(' / ');
-    // 교정 재시도 — 전사 미포함(REQ-CO3). 직전 출력(JSON)만으로 형식 재정형.
+    const errs = structuralErrors(parsed);
+    if (errs.length === 0) {
+      return { structured: parsed, ceiling: resolveProvidedCeiling(parsed), usage };
+    }
+    // 교정 재시도 — 전사 미포함(REQ-CO3). 직전 출력(JSON)만으로 구조 재정형.
     messages = [
       sys,
       { role: 'assistant', content: JSON.stringify(parsed) },
-      { role: 'user', content: `다음 모드의 형식을 고쳐 3모드 전체를 다시 JSON 으로 출력하라: ${errs}` },
+      { role: 'user', content: `다음 구조 조건을 고쳐 전체를 다시 JSON 으로 출력하라: ${errs.join(' / ')}` },
     ];
   }
 
   if (!last) throw new Error('요약 JSON 파싱에 반복 실패했습니다.');
-  console.warn('[summarize] 형식 검증 최종 실패 — best-effort 반환');
-  return { summaries: last, usage };
+  console.warn('[summarize] 구조 검증 최종 실패 — best-effort 반환');
+  return { structured: last, ceiling: resolveProvidedCeiling(last), usage };
 }

@@ -5,12 +5,11 @@ import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
 import ContentQA from '@/components/feed/ContentQA';
-import { setVideoLength } from '@/app/feed/actions';
+import { setVideoLength, setContentFeedback } from '@/app/feed/actions';
 import { hms, computeReading } from '@/lib/summary/reading';
 import { formatKstDateTime } from '@/lib/time';
-import type { LengthMode } from '@/lib/summary/format';
-
-type ModeSummary = { coreText: string; bullets: string[] };
+import type { LengthMode, Sentence } from '@/lib/summary/format';
+import type { ModeSummary, FeedbackRating } from '@/lib/feed/map-digests';
 
 interface Props {
   videoId: string;
@@ -23,8 +22,18 @@ interface Props {
   durationSeconds: number | null;
   initialMode: LengthMode;
   summaries: Partial<Record<LengthMode, ModeSummary>>;
+  feedback: Partial<Record<LengthMode, FeedbackRating>>;
   bookmarked: boolean;
   onToggleBookmark: (next: boolean) => void;
+}
+
+/** long 문장 렌더 — 핵심(key) 문장은 밑줄 강조(REQ-E1 하이라이트). */
+function HiSentence({ s }: { s: Sentence }) {
+  return (
+    <span className={s.key ? 'underline decoration-accent decoration-2 underline-offset-4' : undefined}>
+      {s.text}{' '}
+    </span>
+  );
 }
 
 const MODES: { mode: LengthMode; label: string }[] = [
@@ -90,6 +99,7 @@ export default function SummaryCard({
   durationSeconds,
   initialMode,
   summaries,
+  feedback,
   bookmarked,
   onToggleBookmark,
 }: Props) {
@@ -105,11 +115,20 @@ export default function SummaryCard({
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
-  const shown = summaries[mode] ??
-    summaries.normal ??
-    summaries.short ??
-    summaries.long ?? { coreText: '', bullets: [] };
+  const shown: ModeSummary =
+    summaries[mode] ?? summaries.normal ?? summaries.short ?? summaries.long ?? { coreText: '' };
   const hasBody = shown.coreText.trim().length > 0;
+
+  // 적응형 깊이: 제공되는 가장 깊은 모드(미제공 안내 문구용, AC-C1.3).
+  const highestProvided = [...MODES].reverse().find((o) => summaries[o.mode] && !summaries[o.mode]!.notProvided);
+
+  // 피드백(👍/👎): 현재 모드 기준. 낙관적 로컬 상태(재탭 취소·변경, AC-F1.1).
+  const [fb, setFb] = useState<Partial<Record<LengthMode, FeedbackRating>>>(feedback);
+  function rate(r: FeedbackRating) {
+    const next: FeedbackRating | null = fb[mode] === r ? null : r;
+    setFb((prev) => ({ ...prev, [mode]: next ?? undefined }));
+    startTransition(() => setContentFeedback(videoId, mode, next));
+  }
 
   // 시간 절약 어필: 표시 본문(coreText) 글자수 → 읽는 시간, 영상 대비 압축률(홈 목록과 공용 계산).
   const { readText, compressionPct } = computeReading(shown.coreText, durationSeconds);
@@ -308,9 +327,80 @@ export default function SummaryCard({
         </p>
       )}
 
-      <p data-testid="summary-body" className="mt-3 text-sm leading-relaxed text-foreground/80">
-        {shown.coreText}
-      </p>
+      {/* 본문: 미제공 안내 / long 2단락(핵심 사실·인사이트, 핵심문장 밑줄) / 평면 요약 */}
+      {shown.notProvided ? (
+        <p
+          data-testid="summary-not-provided"
+          className="mt-3 rounded-lg bg-muted/50 px-3 py-4 text-sm text-muted-foreground"
+        >
+          이 영상은 내용이 짧아 ‘{highestProvided?.label ?? '짧게'}’까지만 제공해요.
+        </p>
+      ) : mode === 'long' && shown.long ? (
+        <div
+          data-testid="summary-body"
+          className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-foreground/80"
+        >
+          {shown.long.facts.length > 0 && (
+            <section data-testid="long-facts">
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                핵심 사실
+              </h4>
+              <p>
+                {shown.long.facts.map((s, i) => (
+                  <HiSentence key={i} s={s} />
+                ))}
+              </p>
+            </section>
+          )}
+          {shown.long.insights.length > 0 && (
+            <section data-testid="long-insights">
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                맥락·인사이트
+              </h4>
+              <p>
+                {shown.long.insights.map((s, i) => (
+                  <HiSentence key={i} s={s} />
+                ))}
+              </p>
+            </section>
+          )}
+        </div>
+      ) : (
+        <p data-testid="summary-body" className="mt-3 text-sm leading-relaxed text-foreground/80">
+          {shown.coreText}
+        </p>
+      )}
+
+      {/* 피드백: 이 요약 어때요? 👍/👎 (제공 모드에서만) */}
+      {!shown.notProvided && (
+        <div className="mt-4 flex items-center gap-1.5 border-t border-border pt-3">
+          <span className="mr-1 text-xs text-muted-foreground">이 요약 어때요?</span>
+          <button
+            type="button"
+            onClick={() => rate('up')}
+            aria-label="좋아요"
+            aria-pressed={fb[mode] === 'up'}
+            data-testid="feedback-up"
+            className={`inline-flex h-7 items-center gap-1 rounded-lg px-2 text-sm transition-colors hover:bg-muted ${
+              fb[mode] === 'up' ? 'bg-accent/15 text-accent' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            👍
+          </button>
+          <button
+            type="button"
+            onClick={() => rate('down')}
+            aria-label="별로예요"
+            aria-pressed={fb[mode] === 'down'}
+            data-testid="feedback-down"
+            className={`inline-flex h-7 items-center gap-1 rounded-lg px-2 text-sm transition-colors hover:bg-muted ${
+              fb[mode] === 'down' ? 'bg-danger/15 text-danger' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            👎
+          </button>
+        </div>
+      )}
     </Card>
   );
 }
