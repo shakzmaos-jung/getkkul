@@ -1,12 +1,19 @@
 name: deliver
 
 # 다이제스트 발송 (ADR-0005). KST 07:30 / 11:30 / 17:30 = UTC 22:30 / 02:30 / 08:30.
+# 정시성은 Supabase pg_cron(dispatch_deliver)이 담당하고, 아래 GitHub 네이티브 크론은
+# pg_cron 장애 대비 백업이다(지연 발화해도 scripts/deliver.ts 의 시각 가드가 off-slot 을 차단).
 on:
   schedule:
     - cron: '30 22 * * *' # 07:30 KST
     - cron: '30 2 * * *' # 11:30 KST
     - cron: '30 8 * * *' # 17:30 KST
   workflow_dispatch:
+    inputs:
+      force:
+        description: '슬롯 시각창을 무시하고 강제 발송(테스트용)'
+        type: boolean
+        default: false
 
 concurrency:
   group: deliver
@@ -35,4 +42,5 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          DELIVER_FORCE: ${{ github.event.inputs.force }}
         run: npm run deliver

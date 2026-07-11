@@ -1,21 +1,23 @@
 import { deliverAll } from '@/lib/delivery/deliver';
-import { slotForKstHour } from '@/lib/delivery/digest';
+import { resolveDeliverySlot } from '@/lib/delivery/digest';
 import { runReferralActivations } from '@/lib/referral/run-activations';
 
 /**
- * 발송 진입점 (ADR-0005, GitHub Actions KST 3슬롯 스케줄).
- * 현재 KST 시각으로 슬롯을 판정해 사용자별 다이제스트를 발송한다.
+ * 발송 진입점 (ADR-0005). pg_cron 이 07:30/11:30/17:30 KST 에 정시 디스패치한다.
+ * wall-clock 가드: 실행 시각이 슬롯 허용창(±SLOT_TOLERANCE_MIN) 밖이면 발송하지 않는다
+ * (지연 크론·수동 실행 off-slot 차단). DELIVER_FORCE=true 로 가드 우회(테스트용).
+ * 스킵된 영상은 다음 슬롯에서 미발송분으로 다시 선택돼 이월된다.
  */
 async function main() {
-  const kstHour = Number(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Seoul',
-      hour: '2-digit',
-      hour12: false,
-    }).format(new Date()),
-  );
-  const slot = slotForKstHour(kstHour);
-  console.log(`[deliver] KST ${kstHour}시 → slot=${slot}`);
+  const { slot, offsetMin, withinWindow } = resolveDeliverySlot(new Date());
+  const forced = process.env.DELIVER_FORCE === 'true';
+  if (!withinWindow && !forced) {
+    console.log(
+      `[deliver] off-slot (최근접 ${slot}, ${offsetMin}분 벗어남) — 발송 스킵. 내용은 다음 슬롯으로 이월.`,
+    );
+    return;
+  }
+  console.log(`[deliver] slot=${slot} (offset ${offsetMin}분)${forced ? ' [forced]' : ''}`);
 
   const r = await deliverAll(slot);
   console.log(

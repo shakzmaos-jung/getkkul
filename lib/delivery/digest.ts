@@ -1,4 +1,4 @@
-import type { SlotCode } from '@/lib/time';
+import { SLOT_CODES, type SlotCode } from '@/lib/time';
 import type { NotifyMessage } from '@/lib/notify/notify';
 
 /**
@@ -32,11 +32,46 @@ export function selectDigestVideos(
   };
 }
 
-/** KST 시(hour)로 발송 슬롯을 판정한다(07:30/11:30/17:30 스케줄 기준). */
-export function slotForKstHour(hour: number): SlotCode {
-  if (hour < 11) return '0730';
-  if (hour < 17) return '1130';
-  return '1730';
+/** 슬롯별 KST 분(minute-of-day). 07:30=450 / 11:30=690 / 17:30=1050. */
+const SLOT_MINUTES: Record<SlotCode, number> = { '0730': 450, '1130': 690, '1730': 1050 };
+
+/**
+ * 발송 슬롯 허용 오차(분). pg_cron 정시 디스패치(+1-2분)는 통과하고,
+ * 지연 크론·수동 실행 같은 off-slot 은 차단하는 경계값.
+ */
+export const SLOT_TOLERANCE_MIN = 10;
+
+/**
+ * 현재 시각(KST)에서 가장 가까운 발송 슬롯과 그 거리를 판정한다(07:30/11:30/17:30).
+ * 최근접 방식이라 '시' 버킷팅의 경계 오라벨(11:00/17:00)이 없다.
+ * withinWindow=false 면 off-slot 실행 → 호출자가 발송을 스킵한다.
+ */
+export function resolveDeliverySlot(now: Date): {
+  slot: SlotCode;
+  offsetMin: number;
+  withinWindow: boolean;
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+  // hour12:false 는 자정을 '24' 로 주는 구현이 있어 24→0 정규화.
+  const hh = Number(parts.find((p) => p.type === 'hour')?.value ?? '0') % 24;
+  const mm = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
+  const nowMin = hh * 60 + mm;
+
+  let slot: SlotCode = '0730';
+  let offsetMin = Infinity;
+  for (const code of SLOT_CODES) {
+    const dist = Math.abs(nowMin - SLOT_MINUTES[code]);
+    if (dist < offsetMin) {
+      offsetMin = dist;
+      slot = code;
+    }
+  }
+  return { slot, offsetMin, withinWindow: offsetMin <= SLOT_TOLERANCE_MIN };
 }
 
 function escapeHtml(s: string): string {
