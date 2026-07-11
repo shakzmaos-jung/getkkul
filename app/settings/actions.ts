@@ -67,7 +67,7 @@ export async function updateDeliverySlots(
 
 /**
  * 영상 길이 필터. "2시간 이상 제외"(exclude_over_2h) 토글만 저장한다.
- * "1분 미만 제외"는 항상 적용되는 정책이라 저장하지 않는다(코드 상수). RLS 로 본인 행만 수정.
+ * "2분 미만 제외"는 항상 적용되는 정책이라 저장하지 않는다(코드 상수 MIN_DIGEST_DURATION_SEC). RLS 로 본인 행만 수정.
  */
 export async function updateExcludeLong(
   _prev: SettingsState,
