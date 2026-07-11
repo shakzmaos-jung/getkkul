@@ -23,7 +23,7 @@ export interface LimitCheck {
   limit: number;
 }
 
-/** 채널 추가 가능 여부(활성 구독 수 < 채널 한도, AC-D1.1). 소비는 실제 insert 로. */
+/** 채널 추가 가능 여부(수신중=paused=false 구독 수 < 채널 한도, AC-D1.1). 소비는 실제 insert 로. */
 export async function checkChannelLimit(userId: string): Promise<LimitCheck> {
   const { plan } = await planContext(userId);
   const limit = PLANS[plan].channelLimit;
@@ -32,7 +32,7 @@ export async function checkChannelLimit(userId: string): Promise<LimitCheck> {
     .from('subscriptions')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .eq('active', true);
+    .eq('paused', false);
   const used = count ?? 0;
   return { allowed: used < limit, used, limit };
 }

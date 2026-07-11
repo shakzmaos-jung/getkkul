@@ -45,7 +45,7 @@ export async function getMembershipView(
         .from('subscriptions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .eq('active', true),
+        .eq('paused', false),
       admin
         .from('credit_grants')
         .select('remaining_amount, expires_at')

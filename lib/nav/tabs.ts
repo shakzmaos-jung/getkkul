@@ -36,6 +36,8 @@ const TAB_TITLE: Record<NavKey, string> = {
 // 탭이 아닌 화면의 헤더 타이틀(사이드 메뉴 진입 화면 포함).
 const ROUTE_TITLE: { prefix: string; title: string }[] = [
   { prefix: '/settings', title: '설정' },
+  { prefix: '/referral', title: '친구 초대' },
+  { prefix: '/credits', title: '크레딧' },
   { prefix: '/licenses', title: '오픈소스 라이선스' },
   { prefix: '/account', title: '계정' },
   { prefix: '/about', title: '서비스 소개' },

@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-13
+
+### Added
+- 홈 **가치 히어로**: 진입 시 인사말·플랜 배지 + 이번달 압축·절약 시간(원본 대비)을 상기.
+- 사이드 메뉴 **크레딧** 메뉴 신설(`/credits`) — 총 획득/사용/잔여 + 적립·사용 내역(적립→친구 초대, 사용→결제 내역 이동).
+
+### Changed
+- '친구 초대 & 크레딧' 메뉴를 **친구 초대 / 크레딧** 둘로 분리. 친구 초대는 초대하기·초대한 내역 카드 분리.
+- 홈 지표(누적·구독)를 가치 히어로로 흡수, '오늘의 다이제스트' 위로 배치. 홈 친구추천 배너 숨김(복원 가능).
+- 멤버십 **다운그레이드 시 초과 채널을 삭제 아닌 사유 있는 일시정지**로(업그레이드 시 자동 복원) — `pause_reason`, 피드·발송 실제 제외(gap 해소, ADR-0015).
+- 채널 카드 가독성(채널명·핸들 짤림 개선, "구독 시작일시", 정지 사유 표시). 멤버십 얼리버드 배너 시각 강조.
+
 ## [0.4.0] - 2026-07-13
 
 ### Changed
@@ -48,7 +60,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.0
 [0.4.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.4.0
 [0.3.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.3.0
 [0.2.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.2.0

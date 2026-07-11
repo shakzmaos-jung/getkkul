@@ -1,33 +1,15 @@
-import ReferralShareButton from '@/components/settings/ReferralShareButton';
 import { REFERRAL_STATUS_LABEL } from '@/lib/referral/format';
 import { ACTIVATION_MIN_CHANNELS, ACTIVATION_MIN_SUMMARIES } from '@/lib/referral/constants';
 import type { ReferralProgressRow } from '@/lib/referral/queries';
 
 /**
- * 추천 현황 (REQ-G2). 상단에 내 추천 링크(공유), 아래에 초대한 친구별로
- * 이메일 + 진행률(구독 채널 x/3, 다이제스트 y/10) + 목표 달성률 + 상태를 표시한다.
- * 친구가 가입하면 대기 상태로 즉시 나타나고(카운트 0부터), 활성화되면 지급 완료로 바뀐다.
+ * 초대한 내역 (REQ-G2). 초대한 친구별로 이메일 + 진행률(구독 채널 x/3, 다이제스트 y/10) +
+ * 목표 달성률 + 상태를 표시한다. 각 행에 id=referral-<id> 앵커(크레딧 적립 내역 딥링크 대상).
  */
-export default function ReferralStatusCard({
-  link,
-  rows,
-}: {
-  link: string;
-  rows: ReferralProgressRow[];
-}) {
+export default function ReferralStatusCard({ rows }: { rows: ReferralProgressRow[] }) {
   const visible = rows.filter((r) => r.status !== 'void');
   return (
     <div>
-      <ReferralShareButton link={link} />
-      <p className="mt-2 mb-4 text-xs text-muted-foreground">
-        친구가{' '}
-        <span className="font-medium text-foreground">
-          이 링크로 가입해 채널 {ACTIVATION_MIN_CHANNELS}개 구독 + 다이제스트 {ACTIVATION_MIN_SUMMARIES}개
-        </span>
-        를 받으면, 친구와 나 모두 <span className="font-medium text-foreground">크레딧 2,000원</span>을
-        받아요.
-      </p>
-
       {visible.length === 0 ? (
         <p className="py-3 text-center text-xs text-muted-foreground">
           아직 초대한 친구가 없어요. 링크를 공유해 보세요.
@@ -42,8 +24,12 @@ export default function ReferralStatusCard({
             const rate = Math.min(100, Math.round(((chCapped + sumCapped) / denom) * 100));
             const done = r.status === 'activated';
             return (
-              // 활성화(지급 완료) 후에도 카드는 남긴다(기록 관리).
-              <li key={r.referral_id} className="rounded-lg border border-border p-3">
+              // 활성화(지급 완료) 후에도 카드는 남긴다(기록 관리). id 앵커 = 크레딧 적립 딥링크 대상.
+              <li
+                key={r.referral_id}
+                id={`referral-${r.referral_id}`}
+                className="scroll-mt-20 rounded-lg border border-border p-3"
+              >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="min-w-0 truncate text-sm font-medium" title={r.referee_email ?? ''}>
                     {r.referee_email ?? '친구'}

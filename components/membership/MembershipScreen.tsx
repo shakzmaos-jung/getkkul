@@ -120,11 +120,19 @@ export default function MembershipScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 얼리버드 무료 배너 */}
+      {/* 얼리버드 무료 배너 — 강조(진한 accent 배경 + 큰 텍스트) */}
       {view.pocActive && pocUntilText && (
-        <Card className="border-accent/30 bg-accent/10 p-4">
-          <p className="text-sm font-medium">🎉 얼리버드 무료 체험 중 — Medium 혜택 무료</p>
-          <p className="mt-1 text-xs text-muted-foreground">{pocUntilText}까지 무료입니다.</p>
+        <Card
+          data-testid="poc-banner"
+          className="border-transparent bg-accent p-5 text-white shadow-sm"
+        >
+          <p className="flex items-center gap-2 text-base font-bold">
+            <span aria-hidden className="text-lg">🎉</span>
+            얼리버드 무료 체험 중 — Medium 혜택 무료
+          </p>
+          <p className="mt-1 text-sm font-medium text-white/90">
+            {pocUntilText}까지 모든 Medium 기능을 무료로 쓸 수 있어요.
+          </p>
         </Card>
       )}
 

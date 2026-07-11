@@ -43,17 +43,35 @@ export interface CreditTxnRow {
   kind: Database['public']['Enums']['credit_txn_kind'];
   memo: string | null;
   created_at: string;
+  /** 적립(grant) 트랜잭션의 출처 referral id — 적립 내역 → 친구 초대 딥링크용(없으면 null). */
+  sourceReferralId: string | null;
 }
 
 export interface CreditLedger {
   balance: number;
   expiringSoon: number;
-  /** 지급받은 크레딧 건수(로트 수) — 탭 배지 표시용. */
+  /** 지급받은 크레딧 건수(로트 수). */
   grantCount: number;
+  /** 총 획득(지급 합) · 총 사용(사용 합). */
+  totalEarned: number;
+  totalUsed: number;
   transactions: CreditTxnRow[];
 }
 
-/** 크레딧 원장: 잔액(로트 합)·곧 만료·트랜잭션 내역 (REQ-G1). */
+/** 트랜잭션에서 총 획득(kind=grant 합)·총 사용(kind=usage 절대합)을 집계한다(순수). */
+export function computeCreditTotals(
+  txns: Pick<CreditTxnRow, 'delta' | 'kind'>[],
+): { totalEarned: number; totalUsed: number } {
+  let totalEarned = 0;
+  let totalUsed = 0;
+  for (const t of txns) {
+    if (t.kind === 'grant') totalEarned += t.delta;
+    else if (t.kind === 'usage') totalUsed += Math.abs(t.delta);
+  }
+  return { totalEarned, totalUsed };
+}
+
+/** 크레딧 원장: 잔액(로트 합)·곧 만료·총획득/사용·트랜잭션 내역 (REQ-G1). */
 export async function getCreditLedger(
   supabase: Client,
   userId: string,
@@ -61,7 +79,7 @@ export async function getCreditLedger(
 ): Promise<CreditLedger> {
   const { data: grants } = await supabase
     .from('credit_grants')
-    .select('id, remaining_amount, expires_at, granted_at')
+    .select('id, remaining_amount, expires_at, granted_at, source_referral_id')
     .eq('user_id', userId);
   const lots: CreditLot[] = (grants ?? []).map((g) => ({
     id: g.id,
@@ -69,19 +87,31 @@ export async function getCreditLedger(
     expiresAt: g.expires_at,
     grantedAt: g.granted_at,
   }));
+  // grant_id → source_referral_id (적립 내역 딥링크).
+  const refByGrant = new Map((grants ?? []).map((g) => [g.id, g.source_referral_id]));
 
   const { data: txns } = await supabase
     .from('credit_transactions')
-    .select('id, delta, kind, memo, created_at')
+    .select('id, delta, kind, memo, created_at, grant_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(100);
+
+  const transactions: CreditTxnRow[] = (txns ?? []).map((t) => ({
+    id: t.id,
+    delta: t.delta,
+    kind: t.kind,
+    memo: t.memo,
+    created_at: t.created_at,
+    sourceReferralId: t.grant_id ? (refByGrant.get(t.grant_id) ?? null) : null,
+  }));
 
   return {
     balance: computeBalance(lots, nowIso),
     expiringSoon: expiringSoon(lots, nowIso),
     grantCount: lots.length,
-    transactions: txns ?? [],
+    ...computeCreditTotals(transactions),
+    transactions,
   };
 }
 

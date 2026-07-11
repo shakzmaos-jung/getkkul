@@ -11,6 +11,7 @@ describe('SideMenu (재설계 — 프로필·이동 통일·그룹)', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByTestId('menu-profile')).toBeTruthy();
     expect(screen.getByTestId('menu-referral')).toBeTruthy();
+    expect(screen.getByTestId('menu-credits')).toBeTruthy();
     expect(screen.getByTestId('menu-settings')).toBeTruthy();
     expect(screen.getByTestId('menu-about')).toBeTruthy();
     expect(screen.getByTestId('menu-developer')).toBeTruthy();
@@ -20,10 +21,11 @@ describe('SideMenu (재설계 — 프로필·이동 통일·그룹)', () => {
     expect(screen.queryByTestId('menu-logout')).toBeNull();
   });
 
-  it('V1: "메뉴" 5항목이 모두 이동(a[href]) — 아코디언 0개', () => {
+  it('V1: "메뉴" 6항목이 모두 이동(a[href]) — 아코디언 0개', () => {
     render(<SideMenu open onClose={() => {}} />);
     const items: [string, string][] = [
       ['menu-referral', '/referral'],
+      ['menu-credits', '/credits'],
       ['menu-settings', '/settings'],
       ['menu-about', '/about'],
       ['menu-developer', '/developer'],

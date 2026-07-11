@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { TabCards } from '@/components/ui/TabCards';
 import SubscriptionRowActions from '@/components/subscriptions/SubscriptionRowActions';
+import { pauseReasonLabel, type PauseReason } from '@/lib/subscriptions/pause';
 
 export type SubItem = {
   id: string;
@@ -15,6 +16,7 @@ export type SubItem = {
   channel_handle: string | null;
   created_at: string;
   paused: boolean;
+  pause_reason: PauseReason;
 };
 
 type Tab = 'active' | 'paused';
@@ -64,45 +66,57 @@ export default function SubscriptionsList({ subs }: { subs: SubItem[] }) {
             <div
               key={s.id}
               data-testid="subscription-item"
-              className={`flex items-center justify-between gap-3 px-4 py-3 ${
+              className={`flex items-start justify-between gap-3 px-4 py-3 ${
                 s.paused ? 'bg-muted' : ''
               }`}
             >
-              <div className={`flex min-w-0 items-center gap-3 ${s.paused ? 'opacity-55' : ''}`}>
+              <div className={`flex min-w-0 flex-1 items-start gap-3 ${s.paused ? 'opacity-70' : ''}`}>
                 <ChannelAvatar
                   src={s.channel_thumbnail}
                   title={s.channel_title ?? s.channel_id}
                   size={36}
                 />
-                <div className="min-w-0">
-                  <div className="flex items-baseline gap-1.5">
-                    <a
-                      href={s.channel_url ?? undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate text-sm font-medium hover:underline"
-                    >
-                      {s.channel_title ?? s.channel_id}
-                    </a>
-                    {s.channel_handle && (
-                      <span className="shrink-0 text-xs text-muted-foreground/70">
-                        {s.channel_handle}
-                      </span>
-                    )}
-                    {s.paused && (
-                      <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
-                        ⏸ 일시정지됨
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    구독시작일시 {formatSubscribedDateTime(s.created_at)}
+                <div className="min-w-0 flex-1">
+                  {/* 채널명(자체 줄, 넉넉히) */}
+                  <a
+                    href={s.channel_url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-sm font-medium hover:underline"
+                  >
+                    {s.channel_title ?? s.channel_id}
+                  </a>
+                  {/* 핸들 + 정지 배지 */}
+                  {(s.channel_handle || s.paused) && (
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                      {s.channel_handle && (
+                        <span className="truncate text-xs text-muted-foreground/70">
+                          {s.channel_handle}
+                        </span>
+                      )}
+                      {s.paused && (
+                        <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
+                          ⏸ 일시정지됨
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {/* 구독 시작일시(줄바꿈 방지) */}
+                  <p className="mt-0.5 whitespace-nowrap text-xs text-muted-foreground">
+                    구독 시작일시 {formatSubscribedDateTime(s.created_at)}
                   </p>
+                  {/* 정지 사유 */}
+                  {s.paused && (
+                    <p data-testid="pause-reason" className="mt-0.5 text-[11px] text-muted-foreground/80">
+                      {pauseReasonLabel(s.pause_reason)}
+                    </p>
+                  )}
                 </div>
               </div>
               <SubscriptionRowActions
                 id={s.id}
                 paused={s.paused}
+                pauseReason={s.pause_reason}
                 title={s.channel_title ?? s.channel_id}
                 onPausedChange={(next) => setTab(next ? 'paused' : 'active')}
               />

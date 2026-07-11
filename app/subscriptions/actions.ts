@@ -230,12 +230,16 @@ export async function addSubscriptionById(channelId: string): Promise<AddSubscri
 
 /**
  * 구독 일시정지/해제. paused=true 면 해당 채널 다이제스트를 피드·홈·발송에서 제외한다.
- * RLS('own subs - update')로 본인 행만 갱신된다. 감지는 채널 공유라 전역 유지.
+ * 수동 정지는 pause_reason='manual'. 정지해제 시 수신 채널이 플랜 한도를 넘으면 차단한다
+ * (다운그레이드 자동정지 채널은 업그레이드 시 자동 복원되므로 수동 해제 대상 아님).
+ * RLS('own subs - update')로 본인 행만 갱신. 감지는 채널 공유라 전역 유지.
  */
-export async function setSubscriptionPause(formData: FormData): Promise<void> {
+export async function setSubscriptionPause(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
   const id = String(formData.get('id') ?? '');
   const paused = String(formData.get('paused') ?? '') === 'true';
-  if (!id) return;
+  if (!id) return { ok: false };
 
   const supabase = await createClient();
   const {
@@ -243,17 +247,31 @@ export async function setSubscriptionPause(formData: FormData): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // 정지해제 시 active_since=now 로 기준선을 세운다 → 일시정지 동안 밀린 콘텐츠가
-  // 피드·홈·발송에 한꺼번에 노출/발송되지 않고, 정지해제 이후 감지된 영상만 제공된다.
-  // 일시정지는 paused=true 로 채널을 통째 제외(active_since 는 유지). RLS('own subs - update').
-  const patch = paused
-    ? { paused: true }
-    : { paused: false, active_since: new Date().toISOString() };
-  await supabase.from('subscriptions').update(patch).eq('id', id);
+  if (paused) {
+    await supabase
+      .from('subscriptions')
+      .update({ paused: true, active: false, pause_reason: 'manual' })
+      .eq('id', id);
+  } else {
+    // 정지해제: 수신 채널(paused=false) 한도 초과면 차단.
+    const check = await checkChannelLimit(user.id);
+    if (!check.allowed) {
+      return {
+        ok: false,
+        error: `플랜 한도(${check.limit}개)를 넘어 정지해제할 수 없어요. 다른 채널을 정지하거나 업그레이드하세요.`,
+      };
+    }
+    // 정지해제 시 active_since=now 로 기준선 → 밀린 콘텐츠 일괄 노출 방지.
+    await supabase
+      .from('subscriptions')
+      .update({ paused: false, active: true, pause_reason: null, active_since: new Date().toISOString() })
+      .eq('id', id);
+  }
 
   revalidatePath('/subscriptions');
   revalidatePath('/feed');
   revalidatePath('/');
+  return { ok: true };
 }
 
 /** 구독 삭제 (AC-B2.2). RLS 로 본인 행만 삭제된다. */

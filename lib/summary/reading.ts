@@ -41,3 +41,35 @@ export function computeReading(coreText: string, durationSeconds: number | null)
       : null;
   return { hasBody, readText: hms(ceil10(readSeconds)), compressionPct };
 }
+
+export interface ValueSummary {
+  videoCount: number;
+  originalText: string; // 원본 영상 시간 합계
+  readText: string; // 압축된 읽을거리 시간 합계
+  savedText: string; // 절약된 시간(원본 − 읽을거리)
+  compressionPct: number | null; // 전체 압축률
+}
+
+/**
+ * 기간 집계(영상 수 · 원본 영상 초 합계 · 본문 글자수 합계) → 지불가치 요약(홈 히어로).
+ * 읽는 시간은 글자수/독서속도, 절약 = 원본 − 읽는 시간.
+ */
+export function computeValueSummary(
+  videoCount: number,
+  videoSeconds: number,
+  readChars: number,
+): ValueSummary {
+  const readSeconds = readChars > 0 ? (readChars / CHARS_PER_MIN) * 60 : 0;
+  const compressionPct =
+    videoSeconds > 0 && readSeconds > 0
+      ? Math.max(0, Math.min(99.9, (1 - readSeconds / videoSeconds) * 100))
+      : null;
+  const savedSeconds = Math.max(0, videoSeconds - readSeconds);
+  return {
+    videoCount,
+    originalText: hms(videoSeconds),
+    readText: hms(ceil10(readSeconds)),
+    savedText: hms(savedSeconds),
+    compressionPct,
+  };
+}
