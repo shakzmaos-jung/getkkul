@@ -38,5 +38,6 @@ export function headerTitle(pathname: string): string {
   const tab = activeTabKey(pathname);
   if (tab) return TAB_TITLE[tab];
   if (pathname === '/settings' || pathname.startsWith('/settings/')) return '설정';
+  if (pathname === '/licenses' || pathname.startsWith('/licenses/')) return '오픈소스 라이선스';
   return '겟꿀';
 }
