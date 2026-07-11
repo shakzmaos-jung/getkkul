@@ -20,11 +20,12 @@ const row = (over: Partial<FeedDigestRow> = {}): FeedDigestRow => ({
   published_at: '2026-07-10T01:00:00Z',
   duration_seconds: 300,
   summaries: {
-    normal: { coreText: '핵심', bullets: ['a', 'b'] },
-    short: { coreText: '짧게', bullets: [] },
+    normal: { coreText: '핵심', body: {} },
+    short: { coreText: '짧게', body: {} },
   },
   pref_mode: null,
   bookmarked: false,
+  feedback: null,
   ...over,
 });
 
@@ -32,12 +33,10 @@ describe('mapDigestRow', () => {
   it('RPC 행을 카드로 매핑한다(채널 메타·KST 일자·요약 파싱)', () => {
     const m = mapDigestRow(row(), channels, 'normal', kst)!;
     expect(m.channelTitle).toBe('채널1');
-    expect(m.channelHandle).toBe('@c1');
     expect(m.dateKst).toBe('2026-07-10');
     expect(m.summaries.normal?.coreText).toBe('핵심');
-    expect(m.summaries.normal?.bullets).toEqual(['a', 'b']);
-    expect(m.initialMode).toBe('normal'); // 글로벌 모드 존재 → 사용
-    expect(m.bookmarked).toBe(false);
+    expect(m.initialMode).toBe('normal');
+    expect(m.feedback).toEqual({}); // 피드백 없음
   });
 
   it('영상별 선택(pref_mode)이 있으면 우선한다', () => {
@@ -45,17 +44,53 @@ describe('mapDigestRow', () => {
     expect(m.initialMode).toBe('short');
   });
 
-  it('글로벌 모드 요약이 없으면 존재하는 첫 모드로 폴백', () => {
+  it('long 2단락 body(facts/insights + 하이라이트)를 파싱한다', () => {
     const m = mapDigestRow(
-      row({ summaries: { long: { coreText: 'L', bullets: [] } } }),
+      row({
+        summaries: {
+          long: {
+            coreText: '사실. 인사이트.',
+            body: {
+              facts: [{ text: '사실 하나.', key: true }],
+              insights: [{ text: '인사이트 하나.', key: false }],
+            },
+          },
+        },
+      }),
       channels,
       'normal',
       kst,
     )!;
     expect(m.initialMode).toBe('long');
+    expect(m.summaries.long?.long?.facts.length).toBe(1);
+    expect(m.summaries.long?.long?.facts[0].key).toBe(true);
+    expect(m.summaries.long?.long?.insights.length).toBe(1);
   });
 
-  it('요약이 비면 null(카드 성립 안 함)', () => {
+  it('AC-C1.3: notProvided 모드는 초기 모드 후보에서 제외', () => {
+    const m = mapDigestRow(
+      row({
+        summaries: {
+          short: { coreText: '짧게', body: {} },
+          normal: { coreText: '', body: { notProvided: true } },
+          long: { coreText: '', body: { notProvided: true } },
+        },
+      }),
+      channels,
+      'normal', // 글로벌 normal 이지만 미제공 → short 로
+      kst,
+    )!;
+    expect(m.initialMode).toBe('short');
+    expect(m.summaries.normal?.notProvided).toBe(true);
+  });
+
+  it('본인 피드백(👍/👎)을 모드별로 매핑', () => {
+    const m = mapDigestRow(row({ feedback: { normal: 'up', short: 'down' } }), channels, 'normal', kst)!;
+    expect(m.feedback.normal).toBe('up');
+    expect(m.feedback.short).toBe('down');
+  });
+
+  it('제공 요약이 없으면 null', () => {
     expect(mapDigestRow(row({ summaries: {} }), channels, 'normal', kst)).toBeNull();
     expect(mapDigestRow(row({ summaries: null }), channels, 'normal', kst)).toBeNull();
   });

@@ -62,6 +62,46 @@ export async function toggleBookmark(videoId: string, next: boolean): Promise<{ 
 }
 
 /**
+ * 콘텐츠 카드 👍/👎 피드백 저장(요약품질 REQ-F1). (user_id, video_id, length_mode, language=ko)
+ * 단위로 upsert, rating=null 이면 취소(삭제). 재탭으로 변경·취소. RLS 로 본인 행만.
+ */
+export async function setContentFeedback(
+  videoId: string,
+  mode: string,
+  rating: 'up' | 'down' | null,
+): Promise<void> {
+  if (!videoId || !isLengthMode(mode)) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  if (rating === null) {
+    await supabase
+      .from('content_feedback')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('video_id', videoId)
+      .eq('length_mode', mode)
+      .eq('language', 'ko');
+  } else {
+    await supabase.from('content_feedback').upsert(
+      {
+        user_id: user.id,
+        video_id: videoId,
+        length_mode: mode,
+        language: 'ko',
+        rating,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,video_id,length_mode,language' },
+    );
+  }
+}
+
+/**
  * 특정 KST 일자의 다이제스트 카드 온디맨드 조회(하이브리드 프리로드 밖 날짜, plan F1).
  * get_feed_digests RPC(p_from=일자 00:00 KST, p_to=+1일)를 페이지와 동일 매핑으로 반환한다.
  */
@@ -123,19 +163,15 @@ async function loadContentContext(
     .maybeSingle();
   let context = (video?.transcript ?? '').trim();
   if (!context) {
+    // 전사가 없으면 한국어 요약 core_text 로 대체(long core_text 는 사실+인사이트 결합).
     const { data: sums } = await supabase
       .from('summaries')
-      .select('core_text, body')
+      .select('core_text')
       .eq('video_id', videoId)
       .eq('language', 'ko');
     context = (sums ?? [])
-      .map((s) => {
-        const bullets =
-          s.body && typeof s.body === 'object' && 'bullets' in s.body
-            ? ((s.body as { bullets?: unknown }).bullets as string[]) ?? []
-            : [];
-        return [s.core_text ?? '', ...(Array.isArray(bullets) ? bullets : [])].join('\n');
-      })
+      .map((s) => s.core_text ?? '')
+      .filter(Boolean)
       .join('\n\n')
       .trim();
   }

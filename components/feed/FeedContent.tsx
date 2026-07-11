@@ -7,10 +7,12 @@ import ChannelFilter from '@/components/feed/ChannelFilter';
 import { TabCards } from '@/components/ui/TabCards';
 import { Spinner } from '@/components/ui/Spinner';
 import { toggleBookmark, fetchDigestsForDate } from '@/app/feed/actions';
-import { isPreloadedDate } from '@/lib/feed/map-digests';
+import {
+  isPreloadedDate,
+  type ModeSummary,
+  type FeedbackRating,
+} from '@/lib/feed/map-digests';
 import type { LengthMode } from '@/lib/summary/format';
-
-type ModeSummary = { coreText: string; bullets: string[] };
 
 export type FeedChannel = { id: string; title: string; thumbnail: string | null };
 
@@ -28,6 +30,7 @@ export type FeedItem = {
   initialMode: LengthMode;
   summaries: Partial<Record<LengthMode, ModeSummary>>;
   bookmarked: boolean;
+  feedback: Partial<Record<LengthMode, FeedbackRating>>;
 };
 
 type Tab = 'digest' | 'bookmark';
@@ -220,6 +223,7 @@ export default function FeedContent({
               durationSeconds={it.durationSeconds}
               initialMode={it.initialMode}
               summaries={it.summaries}
+              feedback={it.feedback}
               bookmarked={bookmarks.has(it.id)}
               onToggleBookmark={(next) => onToggleBookmark(it.id, next)}
             />

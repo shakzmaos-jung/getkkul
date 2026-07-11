@@ -161,6 +161,54 @@ export type Database = {
         }
         Relationships: []
       }
+      content_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          language: Database["public"]["Enums"]["summary_language"]
+          length_mode: Database["public"]["Enums"]["summary_length"]
+          rating: Database["public"]["Enums"]["feedback_rating"]
+          updated_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: Database["public"]["Enums"]["summary_language"]
+          length_mode: Database["public"]["Enums"]["summary_length"]
+          rating: Database["public"]["Enums"]["feedback_rating"]
+          updated_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: Database["public"]["Enums"]["summary_language"]
+          length_mode?: Database["public"]["Enums"]["summary_length"]
+          rating?: Database["public"]["Enums"]["feedback_rating"]
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_feedback_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_terms: {
         Row: {
           created_at: string
@@ -706,6 +754,7 @@ export type Database = {
           id: string
           language: Database["public"]["Enums"]["summary_language"]
           length_mode: Database["public"]["Enums"]["summary_length"]
+          prompt_version: string | null
           video_id: string
         }
         Insert: {
@@ -716,6 +765,7 @@ export type Database = {
           id?: string
           language?: Database["public"]["Enums"]["summary_language"]
           length_mode: Database["public"]["Enums"]["summary_length"]
+          prompt_version?: string | null
           video_id: string
         }
         Update: {
@@ -726,6 +776,7 @@ export type Database = {
           id?: string
           language?: Database["public"]["Enums"]["summary_language"]
           length_mode?: Database["public"]["Enums"]["summary_length"]
+          prompt_version?: string | null
           video_id?: string
         }
         Relationships: [
@@ -950,6 +1001,16 @@ export type Database = {
           summaries: Json
           pref_mode: string
           bookmarked: boolean
+          feedback: Json
+        }[]
+      }
+      get_content_feedback_metrics: {
+        Args: never
+        Returns: {
+          channel_id: string
+          down_count: number
+          length_mode: string
+          up_count: number
         }[]
       }
       get_digest_dates: {
@@ -972,6 +1033,7 @@ export type Database = {
           summaries: Json
           pref_mode: string
           bookmarked: boolean
+          feedback: Json
         }[]
       }
       get_recent_digests: {
@@ -1086,6 +1148,7 @@ export type Database = {
       delivery_slot: "0730" | "1130" | "1730" | "2130"
       delivery_status: "pending" | "sent" | "failed"
       failure_kind: "transient" | "permanent"
+      feedback_rating: "up" | "down"
       referral_status: "pending" | "activated" | "void"
       summary_language: "ko" | "en"
       summary_length: "short" | "normal" | "long"
@@ -1230,6 +1293,7 @@ export const Constants = {
       delivery_slot: ["0730", "1130", "1730", "2130"],
       delivery_status: ["pending", "sent", "failed"],
       failure_kind: ["transient", "permanent"],
+      feedback_rating: ["up", "down"],
       referral_status: ["pending", "activated", "void"],
       summary_language: ["ko", "en"],
       summary_length: ["short", "normal", "long"],

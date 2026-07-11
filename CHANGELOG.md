@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-12
+
+### Changed
+- **다이제스트 요약 품질 재설계**(ADR-0013): 길이 모드를 문장 수 → **정보 계층**으로 재정의.
+  긴 요약은 [핵심 사실] + [맥락·인사이트] 2단락 + 핵심 문장 하이라이트로 표시.
+- 길이 역전 제거: 단조성(short ≤ normal ≤ long) 검증·방어. 빈약한 영상은 적응형으로
+  상위 모드를 "제공 안 함" 안내.
+- 전사 용어 보수적 교정(채널 도메인 힌트), 과교정 방지.
+
+### Added
+- 콘텐츠 카드 하단 **👍/👎 피드백**(재탭 취소·변경) + 운영자 집계 지표.
+- 프롬프트 버전 관리(`prompt_version`) 및 회귀 테스트, `docs/summary-prompt.md`.
+
 ## [0.2.0] - 2026-07-11
 
 ### Added
@@ -24,5 +37,6 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.3.0
 [0.2.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.2.0

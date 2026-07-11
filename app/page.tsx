@@ -58,7 +58,7 @@ export default async function Home() {
     .map((r) => mapDigestRow(r, channelById, 'normal', (iso) => kstDate.format(new Date(iso))))
     .filter((m): m is NonNullable<typeof m> => m !== null)
     .map((m) => {
-      const s = m.summaries[m.initialMode] ?? { coreText: '', bullets: [] };
+      const s = m.summaries[m.initialMode] ?? { coreText: '' };
       const { readText, compressionPct } = computeReading(s.coreText, m.durationSeconds);
       return {
         id: m.id,
