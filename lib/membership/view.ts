@@ -72,14 +72,12 @@ export async function getMembershipView(
   const curRow = (usageRows ?? []).find((u) => u.period_start === m.period_start);
   const aiUsed = curRow?.ai_query_used ?? 0;
 
-  // 다이제스트 실적 = 이번 주기에 실제 발송된 digest 수. deliveries 가 단일 진실원(멱등 UNIQUE)이라
-  // 여기서 직접 집계한다(별도 카운터 digest_used 는 발송 시점 기록 유실·드리프트에 취약해 미사용).
-  const { count: digestCount } = await admin
-    .from('deliveries')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'sent')
-    .gte('sent_at', m.period_start);
+  // 다이제스트 실적 = 이번 주기에 사용자 피드에 노출되는 다이제스트 수(발송이 아니라 '보이는 콘텐츠').
+  // get_feed_digests 와 동일 기준(활성 구독·ko 요약·done·길이필터·KST 게시일)을 재사용하는 RPC.
+  const { data: digestCount } = await admin.rpc('count_period_digests', {
+    p_user: userId,
+    p_from: m.period_start,
+  });
   const digestUsed = digestCount ?? 0;
 
   const creditBalance = (grants ?? []).reduce((s, g) => s + g.remaining_amount, 0);

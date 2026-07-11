@@ -921,6 +921,10 @@ export type Database = {
         Args: { p_units: number; p_cap?: number }
         Returns: boolean
       }
+      count_period_digests: {
+        Args: { p_user: string; p_from: string }
+        Returns: number
+      }
       dispatch_pipeline: { Args: never; Returns: undefined }
       expire_credits: { Args: never; Returns: number }
       forfeit_user_credits: { Args: { p_user: string }; Returns: number }
