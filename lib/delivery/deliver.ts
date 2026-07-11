@@ -251,7 +251,7 @@ async function candidateVideos(
     .eq('status', 'done')
     .in('channel_id', channelIds)
     .order('published_at', { ascending: true });
-  // 멤버십 시작(업로드시점) 이후 + 정지해제 기준선 이후 + 영상 길이 필터(1분미만 항상 제외, 2시간이상 옵션).
+  // 멤버십 시작(업로드시점) 이후 + 정지해제 기준선 이후 + 영상 길이 필터(2분미만 항상 제외, 2시간이상 옵션).
   const videoRows = (videos ?? [])
     .filter(
       (v) =>

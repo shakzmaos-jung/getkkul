@@ -29,10 +29,15 @@ export function formatDuration(seconds: number | null | undefined): string {
 // 다이제스트 영상 길이 필터 정책.
 export const MIN_DIGEST_DURATION_SEC = 120; // 2분 미만(Shorts 등) — 항상 제외(설정 불가)
 export const LONG_DIGEST_DURATION_SEC = 7200; // 2시간 이상 — excludeOver2h 옵션(기본 제외)
+// 2분 하한 시행 시각(소급 미적용). 이 시각 이전 감지분은 기존대로 유지하고, 이후 감지분부터 적용한다.
+// 판정 자체는 신규 생성 경로(요약 게이트·발송)에 적용되고, 읽기(get_feed_digests)는 created_at 기준
+// 그랜드파더링으로 기존 노출분을 숨기지 않는다(supabase/migrations/20260713030000).
+export const MIN_DURATION_POLICY_FROM = '2026-07-13T00:00:00+09:00';
 
 /**
- * 다이제스트 노출 대상 판정.
- * - 2분 미만: 항상 제외(1분 넘는 숏츠도 짧은 영상 요약 품질이 낮아 함께 제외). - 2시간 이상: excludeOver2h 일 때 제외.
+ * 다이제스트 노출 대상 판정(신규 생성·발송 경로).
+ * - 2분 미만: 항상 제외(1분 넘는 숏츠도 짧은 영상 요약 품질이 낮아 함께 제외).
+ * - 2시간 이상: excludeOver2h 일 때 제외.
  * - 길이 미상(null): 이 필터로는 통과(라이브/미취득은 요약 단계에서 별도 제외됨).
  */
 export function passesDurationFilters(

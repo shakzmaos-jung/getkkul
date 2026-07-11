@@ -5,8 +5,20 @@
     "cancel": "취소"
   },
   "summaryLength": {
-    "short": "짧게",
-    "normal": "보통",
-    "long": "길게"
+    "short": "요점",
+    "normal": "핵심",
+    "long": "심층"
+  },
+  "settings": {
+    "durationFilter": {
+      "shortTitle": "2분 미만 제외",
+      "shortHint": "항상 적용",
+      "shortTooltipLabel": "2분 미만 제외 설명",
+      "shortTooltip": "겟꿀은 긴 영상의 핵심을 대신 정리해드리는 서비스예요. 2분 미만의 짧은 영상(쇼츠 등)은 요약할 내용이 적어 자동으로 제외됩니다.",
+      "longTitle": "2시간 이상 제외",
+      "longHint": "긴 영상 숨김",
+      "longTooltipLabel": "2시간 이상 제외 설명",
+      "longTooltip": "너무 긴 2시간 이상 영상은 요약 품질을 위해 기본적으로 제외돼요. 원하면 이 설정을 꺼서 받아볼 수 있어요."
+    }
   }
 }

@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-13
+
+### Added
+- 설정 영상 길이 필터 카드에 **ⓘ 탭 툴팁**(hover 아님, 모바일 발견성) — '2분 미만 제외', '2시간 이상 제외' 각각 설명. 문구는 i18n(`messages/ko.json`).
+
+### Changed
+- 영상 길이 하한을 **2분(120초)으로 통일**하고 문구 갱신(코드 상수·주석·DB 컬럼 코멘트). **소급 미적용** — 정책 시행(2026-07-13 KST) 이전 감지분은 유지(created_at 그랜드파더링).
+
+### Fixed
+- `get_feed_digests` 회귀 2건 복구(2026-07-12 요약개편 시 유실): 길이 하한 60→120, **멤버십 게시 하한(mfloor) 재적용**(가입 이전 백카탈로그 노출 차단).
+
 ## [0.5.0] - 2026-07-13
 
 ### Added
@@ -60,7 +71,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.1
 [0.5.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.0
 [0.4.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.4.0
 [0.3.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.3.0

@@ -55,4 +55,12 @@ describe('passesDurationFilters', () => {
   it('길이 미상(null)은 통과', () => {
     expect(passesDurationFilters(null, true)).toBe(true);
   });
+  it('경계값: 2분 미만 제외 / 2분 이상 통과(정확히 120초 = 통과)', () => {
+    expect(passesDurationFilters(0, false)).toBe(false); // 0초
+    expect(passesDurationFilters(59, false)).toBe(false); // 1분 미만
+    expect(passesDurationFilters(60, false)).toBe(false); // 1분 — 이제 제외(구 기준 통과)
+    expect(passesDurationFilters(119, false)).toBe(false); // 2분 직전
+    expect(passesDurationFilters(120, false)).toBe(true); // 정확히 2분 → 통과
+    expect(passesDurationFilters(121, false)).toBe(true); // 2분 초과
+  });
 });
