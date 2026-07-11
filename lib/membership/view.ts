@@ -39,7 +39,7 @@ export async function getMembershipView(
       admin.from('membership').select('*').eq('user_id', userId).maybeSingle(),
       admin
         .from('membership_usage')
-        .select('period_start, digest_used, ai_query_used')
+        .select('period_start, ai_query_used')
         .eq('user_id', userId),
       admin
         .from('subscriptions')
@@ -70,8 +70,17 @@ export async function getMembershipView(
   const plan = PLANS[planCode];
 
   const curRow = (usageRows ?? []).find((u) => u.period_start === m.period_start);
-  const digestUsed = curRow?.digest_used ?? 0;
   const aiUsed = curRow?.ai_query_used ?? 0;
+
+  // 다이제스트 실적 = 이번 주기에 실제 발송된 digest 수. deliveries 가 단일 진실원(멱등 UNIQUE)이라
+  // 여기서 직접 집계한다(별도 카운터 digest_used 는 발송 시점 기록 유실·드리프트에 취약해 미사용).
+  const { count: digestCount } = await admin
+    .from('deliveries')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'sent')
+    .gte('sent_at', m.period_start);
+  const digestUsed = digestCount ?? 0;
 
   const creditBalance = (grants ?? []).reduce((s, g) => s + g.remaining_amount, 0);
   const soon = (grants ?? []).find(
