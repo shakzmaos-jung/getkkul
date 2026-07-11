@@ -3,10 +3,6 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import SideMenu from './SideMenu';
 import pkg from '../../package.json';
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-}));
-
 afterEach(cleanup);
 
 describe('SideMenu (재설계 — 프로필·이동 통일·그룹)', () => {
@@ -19,7 +15,8 @@ describe('SideMenu (재설계 — 프로필·이동 통일·그룹)', () => {
     expect(screen.getByTestId('menu-developer')).toBeTruthy();
     expect(screen.getByTestId('menu-licenses')).toBeTruthy();
     expect(screen.getByTestId('theme-toggle')).toBeTruthy(); // 화면 그룹 인라인 토글
-    expect(screen.getByTestId('menu-logout')).toBeTruthy(); // 계정 그룹
+    // 로그아웃은 패널에서 제거됨(계정 화면 내부로 이동)
+    expect(screen.queryByTestId('menu-logout')).toBeNull();
   });
 
   it('V1: "메뉴" 4항목이 모두 이동(a[href]) — 아코디언 0개', () => {
@@ -49,13 +46,6 @@ describe('SideMenu (재설계 — 프로필·이동 통일·그룹)', () => {
   it('V3: 푸터 버전이 package.json 기반(하드코딩 아님)', () => {
     render(<SideMenu open onClose={() => {}} />);
     expect(screen.getByTestId('menu-version').textContent).toContain(`v${pkg.version}`);
-  });
-
-  it('V4: 로그아웃 클릭 시 확인 다이얼로그가 뜬다', () => {
-    render(<SideMenu open onClose={() => {}} />);
-    expect(screen.queryByText('로그아웃하기')).toBeNull();
-    fireEvent.click(screen.getByTestId('menu-logout'));
-    expect(screen.getByText('로그아웃하기')).toBeTruthy(); // ConfirmDialog(세션 종료 진입)
   });
 
   it('V6: 닫기 버튼 · 오버레이 탭 · ESC 로 onClose 호출(보존)', () => {
