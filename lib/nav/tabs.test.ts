@@ -49,6 +49,11 @@ describe('headerTitle (현재 경로 → 상단 헤더 타이틀)', () => {
   it('오픈소스 라이선스 경로', () => {
     expect(headerTitle('/licenses')).toBe('오픈소스 라이선스');
   });
+  it('사이드 메뉴 진입 화면', () => {
+    expect(headerTitle('/account')).toBe('계정');
+    expect(headerTitle('/about')).toBe('서비스 소개');
+    expect(headerTitle('/developer')).toBe('개발자 정보');
+  });
   it('그 외 경로는 앱명 "겟꿀"', () => {
     expect(headerTitle('/referral')).toBe('겟꿀');
     expect(headerTitle('/anything')).toBe('겟꿀');
