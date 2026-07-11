@@ -16,11 +16,10 @@ export interface HomeDigestItem {
   compressionPct: number | null; // 압축률(%) — 길이 미상이면 null
 }
 
-function ExternalLinkIcon() {
+function GoToDigestIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-      <path d="M15 3h6v6M10 14 21 3" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
   );
 }
@@ -121,19 +120,15 @@ export default function HomeDashboard({
                           </span>
                         )}
                       </div>
-                      {it.url && (
-                        <a
-                          href={it.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="원본 영상"
-                          title="원본 영상"
-                          data-testid="today-original"
-                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                          <ExternalLinkIcon />
-                        </a>
-                      )}
+                      <Link
+                        href={`/feed?date=${it.dateKst}#d-${it.id}`}
+                        aria-label="다이제스트에서 보기"
+                        title="다이제스트에서 보기"
+                        data-testid="today-open-digest"
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <GoToDigestIcon />
+                      </Link>
                     </div>
 
                     {/* 제목(클릭 시 다이제스트로 이동) + 업데이트 + 읽는 시간·압축률 */}

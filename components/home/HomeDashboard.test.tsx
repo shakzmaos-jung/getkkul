@@ -50,8 +50,10 @@ describe('HomeDashboard 빈 상태 분기', () => {
     expect(row.textContent).toContain('원본 영상 10분');
     expect(row.textContent).toContain('읽는 시간 1분');
     expect(row.textContent).toContain('압축률 90.0%');
-    // 원본 영상 링크는 유튜브 원본 url
-    expect(screen.getByTestId('today-original').getAttribute('href')).toBe('https://youtu.be/x');
+    // 우상단 링크는 유튜브 원본이 아니라 앱 내 다이제스트로 이동
+    expect(screen.getByTestId('today-open-digest').getAttribute('href')).toBe(
+      '/feed?date=2026-07-10#d-1',
+    );
   });
 
   it('오늘 다이제스트가 없으면 빈 안내를 보여준다(개수 제한 없음, 오늘 기준)', () => {
