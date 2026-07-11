@@ -78,7 +78,7 @@ export default function HomeDashboard({
 
           {/* 2. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
           <div data-testid="home-today">
-            <h2 className="mb-2 text-sm font-semibold">
+            <h2 className="mb-2 text-base font-semibold tracking-tight">
               오늘의 다이제스트{today.length > 0 ? ` (${today.length})` : ''}
             </h2>
             {today.length > 0 ? (

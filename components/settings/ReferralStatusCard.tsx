@@ -1,5 +1,6 @@
-import { REFERRAL_STATUS_LABEL } from '@/lib/referral/format';
-import { ACTIVATION_MIN_CHANNELS, ACTIVATION_MIN_SUMMARIES } from '@/lib/referral/constants';
+import { REFERRAL_STATUS_LABEL, formatWon } from '@/lib/referral/format';
+import { ACTIVATION_MIN_CHANNELS, ACTIVATION_MIN_SUMMARIES, REWARD_AMOUNT } from '@/lib/referral/constants';
+import { formatKstDateTime } from '@/lib/time';
 import type { ReferralProgressRow } from '@/lib/referral/queries';
 
 /**
@@ -39,9 +40,15 @@ export default function ReferralStatusCard({ rows }: { rows: ReferralProgressRow
                       done ? 'bg-accent/20 text-accent' : 'bg-muted text-muted-foreground'
                     }`}
                   >
-                    {done ? '지급 완료 🎉' : REFERRAL_STATUS_LABEL[r.status]}
+                    {done ? `지급 완료 🎉 +${formatWon(REWARD_AMOUNT)}` : REFERRAL_STATUS_LABEL[r.status]}
                   </span>
                 </div>
+
+                {/* 초대일시 · 지급완료일시 */}
+                <p className="mb-2 text-[11px] text-muted-foreground">
+                  초대 {formatKstDateTime(r.created_at)}
+                  {done && r.activated_at ? ` · 지급 ${formatKstDateTime(r.activated_at)}` : ''}
+                </p>
 
                 <div className="mb-2 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">목표 달성률</span>

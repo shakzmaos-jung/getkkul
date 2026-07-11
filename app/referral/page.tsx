@@ -34,14 +34,7 @@ export default async function ReferralPage() {
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-        <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight">친구 초대</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            친구를 초대해 함께 크레딧을 받아보세요.
-          </p>
-        </header>
-
-        {/* 초대하기 카드 */}
+        {/* 초대하기 카드 (타이틀·안내는 상단 헤더 + 가이드 배지로) */}
         <Card className="p-5">
           <h2 className="mb-3 text-sm font-semibold">초대하기</h2>
           <ReferralShareButton link={referralHref} />

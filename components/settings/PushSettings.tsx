@@ -143,11 +143,11 @@ export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
       {/* 슬롯별 푸시(멀티) — 구독 없으면 비활성(AC-D1.3) */}
       <form action={slotAction} className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">받을 시각(푸시)</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {slots.map(([name, label, checked]) => (
             <label
               key={name}
-              className={`relative flex items-center justify-center rounded-lg border border-border p-3 ${
+              className={`relative flex items-center justify-center rounded-lg border border-border px-1 py-3 ${
                 subscribed
                   ? 'cursor-pointer transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20'
                   : 'cursor-not-allowed opacity-50'

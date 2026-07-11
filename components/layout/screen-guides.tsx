@@ -10,8 +10,8 @@ export interface ScreenGuide {
   points: ReactNode[];
 }
 
-/** 탭 화면별 '이용 가이드' 콘텐츠(헤더 타이틀 우측 뱃지 → 다이얼로그). 탭이 아닌 화면은 가이드 없음. */
-const GUIDES: Partial<Record<NonNullable<ReturnType<typeof activeTabKey>>, ScreenGuide>> = {
+/** 화면별 '이용 가이드' 콘텐츠(헤더 타이틀 우측 뱃지 → 다이얼로그). 키는 탭 키 또는 라우트명. */
+const GUIDES: Record<string, ScreenGuide> = {
   home: {
     title: '홈',
     description: '겟꿀은 유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드리는 서비스입니다.',
@@ -37,7 +37,7 @@ const GUIDES: Partial<Record<NonNullable<ReturnType<typeof activeTabKey>>, Scree
     description: '구독한 채널의 새 영상 요약입니다. 카드마다 요약 길이를 바꿀 수 있어요.',
     points: [
       '구독한 채널의 새 영상을 대신 보고, 핵심만 요약해 카드로 보여드려요.',
-      '카드마다 짧게 / 보통 / 길게로 요약 길이를 바꿀 수 있어요.',
+      '카드마다 간단히 / 자세히 / 인사이트로 나눠 볼 수 있어요.',
       '달력에서 날짜를 고르고 채널 필터로 좁혀 볼 수 있어요.',
       '북마크(노란 아이콘)로 저장하면 상단 "북마크" 탭에서 모아볼 수 있어요.',
       'AI 배지를 눌러 이 콘텐츠에 대해 궁금한 점을 물어볼 수 있어요.',
@@ -53,10 +53,33 @@ const GUIDES: Partial<Record<NonNullable<ReturnType<typeof activeTabKey>>, Scree
       '구독중 / 일시 정지 탭으로 상태별로 볼 수 있어요.',
     ],
   },
+  referral: {
+    title: '친구 초대',
+    description: '친구를 초대해 함께 크레딧을 받을 수 있어요.',
+    points: [
+      '내 초대 링크를 친구에게 공유하세요.',
+      '친구가 이 링크로 가입해 채널 3개 구독 + 다이제스트 10개를 받으면, 친구와 나 모두 크레딧 2,000원을 받아요.',
+      '친구 초대로 최대 50,000원까지 적립할 수 있어요.',
+      '적립한 크레딧은 "크레딧" 화면에서 확인할 수 있어요.',
+    ],
+  },
+  credits: {
+    title: '크레딧',
+    description: '친구 초대로 모은 크레딧을 확인하고 사용해요.',
+    points: [
+      '크레딧은 친구 초대로 적립돼요(친구와 나 모두 2,000원씩).',
+      '향후 유료 결제 시 결제액의 50%까지 할인에 사용할 수 있어요.',
+      '현금 환급·양도는 되지 않아요.',
+      '적립·사용 내역과 잔여 크레딧을 여기서 볼 수 있어요.',
+    ],
+  },
 };
 
-/** 현재 경로에 해당하는 화면 가이드. 없으면 null(멤버십·설정 등). */
+/** 현재 경로에 해당하는 화면 가이드. 탭 화면 + /referral·/credits. 없으면 null. */
 export function guideForPath(pathname: string): ScreenGuide | null {
   const key = activeTabKey(pathname);
-  return (key && GUIDES[key]) || null;
+  if (key && GUIDES[key]) return GUIDES[key];
+  if (pathname === '/referral' || pathname.startsWith('/referral/')) return GUIDES.referral ?? null;
+  if (pathname === '/credits' || pathname.startsWith('/credits/')) return GUIDES.credits ?? null;
+  return null;
 }

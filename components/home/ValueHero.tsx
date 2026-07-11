@@ -17,7 +17,10 @@ interface Props {
 export default function ValueHero({ name, badge, value, subscriptionCount, totalDigestCount }: Props) {
   const hasStats = value.videoCount > 0;
   return (
-    <Card data-testid="value-hero" className="p-5">
+    <Card
+      data-testid="value-hero"
+      className="border-accent/25 bg-gradient-to-br from-accent/10 to-card p-5"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-base font-semibold text-foreground">{name} 님</span>
         <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
