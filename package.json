@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "pipeline": "tsx scripts/pipeline.ts",
-    "deliver": "tsx scripts/deliver.ts"
+    "deliver": "tsx scripts/deliver.ts",
+    "gen:oss-licenses": "node scripts/gen-oss-licenses.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",

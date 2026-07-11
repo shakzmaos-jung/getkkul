@@ -46,6 +46,9 @@ describe('headerTitle (현재 경로 → 상단 헤더 타이틀)', () => {
   it('설정은 "설정"', () => {
     expect(headerTitle('/settings')).toBe('설정');
   });
+  it('오픈소스 라이선스 경로', () => {
+    expect(headerTitle('/licenses')).toBe('오픈소스 라이선스');
+  });
   it('그 외 경로는 앱명 "겟꿀"', () => {
     expect(headerTitle('/referral')).toBe('겟꿀');
     expect(headerTitle('/anything')).toBe('겟꿀');

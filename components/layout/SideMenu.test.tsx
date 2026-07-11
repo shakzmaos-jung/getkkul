@@ -11,6 +11,7 @@ describe('SideMenu (우측 슬라이드 패널)', () => {
     expect(screen.getByTestId('menu-about')).toBeTruthy(); // 서비스 소개(아코디언)
     expect(screen.getByTestId('menu-developer')).toBeTruthy(); // 개발자 정보(아코디언)
     expect(screen.getByTestId('menu-settings')).toBeTruthy(); // 설정 진입
+    expect(screen.getByTestId('menu-licenses')).toBeTruthy(); // 오픈소스 라이선스
     expect(screen.getByTestId('theme-toggle')).toBeTruthy(); // 테마 토글
     expect(screen.getByText('© 2026 getkkul · Made in Seoul')).toBeTruthy(); // 카피라이트
   });

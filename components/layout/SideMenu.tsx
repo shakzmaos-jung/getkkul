@@ -41,6 +41,15 @@ function SettingsIcon() {
   );
 }
 
+function LicenseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6M9 13h6M9 17h4" />
+    </svg>
+  );
+}
+
 function CloseIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -255,6 +264,19 @@ export default function SideMenu({ open, onClose }: Props) {
             <span className="flex items-center gap-2.5">
               <SettingsIcon />
               설정
+            </span>
+          </Link>
+
+          {/* (3-1) 오픈소스 라이선스 고지 */}
+          <Link
+            href="/licenses"
+            onClick={onClose}
+            data-testid="menu-licenses"
+            className={`${ROW} border-t border-border`}
+          >
+            <span className="flex items-center gap-2.5">
+              <LicenseIcon />
+              오픈소스 라이선스
             </span>
           </Link>
 
