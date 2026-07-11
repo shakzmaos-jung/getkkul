@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-13
+
+### Changed
+- **요약 표현 개선**(ADR-0014): 요점/핵심/심층을 **불릿 배열**로 생성·표시(항목마다 줄바꿈).
+- 요점↔핵심 차이 명확화(깊이 재정의): 요점=무엇+핵심사실(10~30초) / 핵심=맥락·개념 누락 없이 핵심사실 / 심층=핵심+수치·예시+맥락·인사이트.
+- 라벨 의역: 짧게/보통/길게 → **요점 / 핵심 / 심층**(설정·카드 공용).
+- 이메일 다이제스트도 불릿 줄바꿈 반영.
+
+### Removed
+- 요약 핵심문장 **하이라이트(밑줄)** 제거.
+
 ## [0.3.0] - 2026-07-12
 
 ### Changed
@@ -37,6 +48,7 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.4.0
 [0.3.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.3.0
 [0.2.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.2.0

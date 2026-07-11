@@ -3,7 +3,7 @@ import {
   LENGTH_MODES,
   providedModes,
   longBodyToText,
-  hasHighlight,
+  pointsToText,
   checkMonotonicity,
   type SummaryLanguage,
   type StructuredSummaries,
@@ -12,42 +12,36 @@ import {
 } from '@/lib/summary/format';
 
 /**
- * 전사 텍스트 → 정보 계층 구조화 요약 (요약품질 SSR 부록 REQ-A/B/C/D/E).
+ * 전사 텍스트 → 정보 계층 구조화 요약 (요약품질 SSR 부록 REQ-A/B/C/D, ADR-0013/0014).
  * OpenAI GPT-5-nano + 구조화 출력(json_schema strict). summarize() 인터페이스 뒤에 프로바이더 격리(ADR-0001).
  *
- * 재설계: 문장 수가 아니라 **정보 계층**으로 3종을 단일 호출로 생성한다(전사 1회 전송, REQ-CO1).
- * - short=TL;DR / normal=핵심+맥락 / long=[핵심 사실] + [맥락·인사이트] 2단락(문장별 핵심 마킹).
- * - depthCeiling 으로 적응형 깊이(빈약 콘텐츠는 상위 모드 미제공), 단조성 방어로 길이 역전 차단.
- * - 채널 도메인 힌트로 보수적 용어 교정(과교정 금지).
+ * 정보 계층을 **불릿 배열**로 단일 호출 생성한다(전사 1회 전송, REQ-CO1).
+ * - 요점(short)/핵심(normal) = points 불릿, 심층(long) = 핵심 사실(facts) + 맥락·인사이트(insights) 불릿.
+ * - depthCeiling 적응형, 단조성 방어(길이 역전 차단), 채널 도메인 힌트로 보수적 용어 교정. 하이라이트 폐지.
  */
 
 const MODEL = 'gpt-5-nano';
-// long 이 정보 계층·2단락·근거·교정 지시를 포함 → 단일 3종 호출을 reasoning_effort='low' 로 둔다
-// (전사 1회 전송 제약상 모드별 분리 불가; 💰 영상당 0.05→0.15센트 수준으로 무시 가능, 스펙 I절).
+// 심층이 정보 계층·근거·교정 지시를 포함 → 단일 3종 호출을 reasoning_effort='low' 로 둔다(💰 무시 가능).
 const REASONING_EFFORT = 'low' as const;
 const MAX_COMPLETION_TOKENS = 16384;
 
-/** 시스템 프롬프트 버전(회귀 비교·피드백 지표 연결용, AC-A2.2/F2.2). 변경 시 반드시 증가. */
-export const PROMPT_VERSION = 'sq-2026-07-12.1';
+/** 시스템 프롬프트 버전(회귀 비교·피드백 지표 연결용). 변경 시 반드시 증가. */
+export const PROMPT_VERSION = 'sq-2026-07-13.1';
 
 /** 요약 생성에 주입하는 채널/콘텐츠 힌트(보수적 용어 교정 근거, REQ-D1). */
 export interface DomainHint {
   channelTitle?: string | null;
   videoTitle?: string | null;
-  terms?: string[]; // content_terms 용어집(선택, AC-D1.4)
+  terms?: string[]; // content_terms 용어집(선택)
 }
 
-const SENTENCE_SCHEMA = {
+const POINTS_SCHEMA = {
   type: 'object',
-  properties: { text: { type: 'string' }, key: { type: 'boolean' } },
-  required: ['text', 'key'],
-  additionalProperties: false,
-} as const;
-
-const FLAT_SCHEMA = {
-  type: 'object',
-  properties: { headline: { type: 'string' }, coreText: { type: 'string' } },
-  required: ['headline', 'coreText'],
+  properties: {
+    headline: { type: 'string' },
+    points: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['headline', 'points'],
   additionalProperties: false,
 } as const;
 
@@ -55,8 +49,8 @@ const LONG_SCHEMA = {
   type: 'object',
   properties: {
     headline: { type: 'string' },
-    facts: { type: 'array', items: SENTENCE_SCHEMA },
-    insights: { type: 'array', items: SENTENCE_SCHEMA },
+    facts: { type: 'array', items: { type: 'string' } },
+    insights: { type: 'array', items: { type: 'string' } },
   },
   required: ['headline', 'facts', 'insights'],
   additionalProperties: false,
@@ -67,8 +61,8 @@ const ALL_MODE_SCHEMA = {
   type: 'object',
   properties: {
     depthCeiling: { type: 'string', enum: ['short', 'normal', 'long'] },
-    short: FLAT_SCHEMA,
-    normal: FLAT_SCHEMA,
+    short: POINTS_SCHEMA,
+    normal: POINTS_SCHEMA,
     long: LONG_SCHEMA,
   },
   required: ['depthCeiling', 'short', 'normal', 'long'],
@@ -78,10 +72,10 @@ const ALL_MODE_SCHEMA = {
 export interface SummaryUsage {
   promptTokens: number;
   completionTokens: number;
-  calls: number; // 이 영상·언어 요약에 든 LLM 호출 수(정상 1, 재시도 시 증가) — 회귀 감시
+  calls: number; // 이 영상·언어 요약에 든 LLM 호출 수(정상 1, 재시도 시 증가)
 }
 
-/** 채널/제목/용어집 힌트를 프롬프트 문장으로. 없으면 빈 문자열. */
+/** 채널/제목/용어집 힌트를 프롬프트 문장으로. 없으면 빈 배열. */
 function hintLines(hint?: DomainHint): string[] {
   if (!hint) return [];
   const lines: string[] = [];
@@ -100,7 +94,7 @@ function hintLines(hint?: DomainHint): string[] {
 
 /**
  * 정보 계층 3종 생성 시스템 프롬프트(REQ-A2). "몇 문장"이 아니라 "무엇을·어떤 층위로"를 지시한다.
- * 테스트·문서에서 문안을 직접 검증할 수 있도록 export 한다(AC-A2.2).
+ * 테스트·문서에서 문안을 직접 검증할 수 있도록 export 한다.
  */
 export function allModesSystemPrompt(language: SummaryLanguage, hint?: DomainHint): string {
   const lang =
@@ -110,12 +104,13 @@ export function allModesSystemPrompt(language: SummaryLanguage, hint?: DomainHin
   return [
     '너는 유튜브 영상 전사에서 정보 가치가 높은 핵심을 정보 계층으로 요약하는 전문가다.',
     lang,
-    '하나의 전사에 대해 서로 다른 3가지 깊이의 요약을 한 번에 생성한다. 길이가 아니라 "무엇을 어떤 층위로 담느냐"로 구분한다:',
-    '- short: 이 영상이 무엇을 다뤘는지 TL;DR. 가장 중요한 한두 요점만.',
-    '- normal: 핵심 요점 + 왜 중요한지 맥락까지.',
-    '- long: 두 부분으로 나눠 담는다. (1) facts = 전사에서 뽑은 핵심 "사실·수치·사례"를 문장 배열로, (2) insights = 그 사실에서 도출한 "맥락·시사점·인사이트"를 문장 배열로. 각 문장은 { text, key } 이며, 특히 중요한 문장은 key=true 로 표시한다(facts·insights 통틀어 최소 1개).',
+    '하나의 전사에 대해 서로 다른 3가지 깊이의 요약을 한 번에 생성한다. 길이가 아니라 "무엇을 어떤 층위로 담느냐"로 구분하며, 각 요약은 문장 불릿 배열이다:',
+    '- short(요점): 이 영상이 무엇을 다뤘는지 + 언급된 핵심 사실 몇 개를 짧은 불릿(points)으로. 시청자가 10~30초에 "무엇을 다뤘고 어떤 핵심 사실이 있었나"를 파악할 만큼만. 가장 본질적인 것만 골라 간결하게.',
+    '- normal(핵심): 핵심 사실들을 맥락·주요 개념의 누락 없이 불릿(points)으로. 요점보다 더 완결적이어서, 이것만 읽어도 콘텐츠의 핵심을 빠짐없이 인지할 수 있어야 한다. (아직 시사점·해설 에세이는 넣지 않는다.)',
+    '- long(심층): 두 부분으로 나눈다. (1) facts = 핵심(normal)의 사실에 더해 부가적인 사실·구체적 수치·사례·예시까지 담은 불릿, (2) insights = 그 사실들에서 도출한 맥락·시사점·인사이트 불릿. facts 는 normal 보다 더 풍부해야 한다.',
+    '각 불릿은 한 문장으로 완결한다(문장 앞에 "-"나 기호를 붙이지 말고 문장만 넣는다).',
     '정보 계층(단조성): 상위 깊이는 하위를 포함하고 확장한다. 반드시 정보량이 short ≤ normal ≤ long 이 되도록, 상위일수록 더 깊고 구체적으로 쓴다. 상위가 하위보다 얕거나 짧아서는 안 된다.',
-    '적응형 깊이: 콘텐츠가 빈약해 깊은 요약이 무리라면 depthCeiling 을 낮게 판정한다(예: 잡담·아주 짧은 영상 → "short"). depthCeiling 위의 모드는 억지로 내용을 부풀리지 말고 핵심만 간단히 두라(우리가 사용자에게 제공하지 않는다). 내용이 충분하면 "long".',
+    '적응형 깊이: 콘텐츠가 빈약해 깊은 요약이 무리라면 depthCeiling 을 낮게 판정한다(예: 잡담·아주 짧은 영상 → "short"). depthCeiling 위의 모드는 억지로 부풀리지 말고 핵심만 간단히 두라(우리가 사용자에게 제공하지 않는다). 내용이 충분하면 "long".',
     '근거 준수: 원문 전사에 없는 내용을 지어내지 않는다. 인사이트도 반드시 전사의 사실에 근거한다.',
     '보수적 용어 교정: 전사의 음성인식 오류 중 "잘 알려진 고유명사·전문용어의 명백한 오인식"만 교정한다(예: "SMP 500"→"S&P500"). 발음이 비슷하다는 이유로 원문에 없던 고유명사·개체를 지어내지 마라. 확실하지 않으면 원문 표현을 그대로 둔다(과교정 금지).',
     ...hintLines(hint),
@@ -130,16 +125,23 @@ function normalizeCeiling(v: unknown): DepthCeiling {
     : 'long';
 }
 
+function toStrings(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x) => (typeof x === 'string' ? x : ''))
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** 모드별 렌더 텍스트(단조성 판정 기준). long 은 facts+insights 결합. */
 function textOf(s: StructuredSummaries, mode: LengthMode): string {
   if (mode === 'long') return longBodyToText(s.long);
-  return s[mode].coreText ?? '';
+  return pointsToText(s[mode].points);
 }
 
 /**
  * 최종 제공 깊이(ceiling)를 정한다: 모델 판정 ceiling 에서 시작해, 제공 모드들이 단조성을
- * 만족할 때까지 상위 모드를 낮춘다(AC-B1.2 방어 — 역전은 사용자에게 노출하지 않는다).
- * short 만 남으면 항상 단조 → 종료. 반환 ceiling 이하만 사용자에게 제공한다.
+ * 만족할 때까지 상위 모드를 낮춘다(방어 — 역전은 사용자에게 노출하지 않는다).
  */
 export function resolveProvidedCeiling(s: StructuredSummaries): DepthCeiling {
   let ceiling = normalizeCeiling(s.depthCeiling);
@@ -156,35 +158,38 @@ export function resolveProvidedCeiling(s: StructuredSummaries): DepthCeiling {
 
 function extractStructured(content: string | null): StructuredSummaries {
   if (!content || !content.trim()) throw new Error('요약 응답이 비어 있습니다.');
-  const p = JSON.parse(content) as Partial<StructuredSummaries>;
+  const p = JSON.parse(content) as {
+    depthCeiling?: unknown;
+    short?: { headline?: unknown; points?: unknown };
+    normal?: { headline?: unknown; points?: unknown };
+    long?: { headline?: unknown; facts?: unknown; insights?: unknown };
+  };
   const flat = (m: 'short' | 'normal') => ({
-    headline: p[m]?.headline ?? '',
-    coreText: p[m]?.coreText ?? '',
+    headline: typeof p[m]?.headline === 'string' ? (p[m]!.headline as string) : '',
+    points: toStrings(p[m]?.points),
   });
   return {
     depthCeiling: normalizeCeiling(p.depthCeiling),
     short: flat('short'),
     normal: flat('normal'),
     long: {
-      headline: p.long?.headline ?? '',
-      facts: Array.isArray(p.long?.facts) ? p.long!.facts : [],
-      insights: Array.isArray(p.long?.insights) ? p.long!.insights : [],
+      headline: typeof p.long?.headline === 'string' ? p.long!.headline : '',
+      facts: toStrings(p.long?.facts),
+      insights: toStrings(p.long?.insights),
     },
   };
 }
 
-/** 구조 검증: 제공되는 모드 내용이 채워졌고 long(제공 시) 2단락·하이라이트가 있는지(REQ-A1/E1). */
+/** 구조 검증: 제공 모드의 불릿이 채워졌는지(REQ-A1). */
 function structuralErrors(s: StructuredSummaries): string[] {
   const errs: string[] = [];
   const provided = providedModes(normalizeCeiling(s.depthCeiling));
   for (const m of provided) {
     if (m === 'long') {
-      const n = s.long.facts.length + s.long.insights.length;
       if (s.long.facts.length === 0) errs.push('long.facts 가 비어 있다');
-      if (n > 0 && !hasHighlight(s.long)) errs.push('long 에 핵심(key=true) 문장이 없다');
       if (!s.long.headline?.trim()) errs.push('long.headline 이 비어 있다');
     } else {
-      if (!s[m].coreText?.trim()) errs.push(`${m}.coreText 가 비어 있다`);
+      if (s[m].points.length === 0) errs.push(`${m}.points 가 비어 있다`);
       if (!s[m].headline?.trim()) errs.push(`${m}.headline 이 비어 있다`);
     }
   }
@@ -193,8 +198,7 @@ function structuralErrors(s: StructuredSummaries): string[] {
 
 /**
  * 전사를 1회만 전송해 short/normal/long 3종을 단일 호출로 생성한다(REQ-CO1).
- * 구조 검증 미달 시 최대 3회 교정(전사 미포함 재정형, REQ-CO3). 단조성은 항상 방어 적용(resolveProvidedCeiling).
- * 반환: 구조화 요약 + 최종 제공 ceiling + usage.
+ * 구조 검증 미달 시 최대 3회 교정(전사 미포함 재정형, REQ-CO3). 단조성은 항상 방어 적용.
  */
 export async function summarizeAllModes(
   transcript: string,

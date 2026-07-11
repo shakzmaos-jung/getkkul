@@ -1,10 +1,10 @@
 /**
- * 요약 정보 계층 타입 및 검증 (요약품질 SSR 부록 REQ-A/B/C/E).
+ * 요약 정보 계층 타입 및 검증 (요약품질 SSR 부록 REQ-A/B/C, ADR-0013/0014).
  * 순수 함수 — 단위 테스트 대상. 값 키는 ADR-0002(short/normal/long).
  *
- * 재정의(요약품질 개선): 길이 모드를 "문장 수"가 아니라 "정보 계층(깊이)"으로 정의한다.
- * - short = TL;DR / normal = 핵심 + 맥락 / long = [핵심 사실] + [맥락·시사점·인사이트] 2단락.
- * - 검증은 문장 수 범위가 아니라 **단조성**(short ≤ normal ≤ long, 정보량 기준)으로 한다(REQ-B1).
+ * 정보 계층(깊이): 요점(short)=무엇을 다뤘나+핵심 사실 / 핵심(normal)=맥락·개념 누락 없이 핵심 사실 /
+ * 심층(long)=핵심 사실(부가·수치·예시 확장) + 맥락·인사이트. 각 모드는 **불릿 배열**로 표현한다.
+ * 검증은 문장 수가 아니라 **단조성**(요점 ≤ 핵심 ≤ 심층, 정보량 기준)으로 한다. 하이라이트는 폐지(ADR-0014).
  */
 
 export type LengthMode = 'short' | 'normal' | 'long';
@@ -15,6 +15,14 @@ export type DepthCeiling = LengthMode;
 export const LENGTH_MODES: readonly LengthMode[] = ['short', 'normal', 'long'];
 
 const MODE_RANK: Record<LengthMode, number> = { short: 0, normal: 1, long: 2 };
+
+/** 모드 라벨·설명(정보 양·깊이 의역, 카드/설정 공용 단일 소스). */
+export const MODE_LABELS: Record<LengthMode, string> = { short: '요점', normal: '핵심', long: '심층' };
+export const MODE_DESC: Record<LengthMode, string> = {
+  short: '무엇을 다뤘나 + 핵심 사실 (10~30초)',
+  normal: '맥락·개념 누락 없이 핵심 사실',
+  long: '핵심 사실 + 수치·예시 + 맥락·인사이트',
+};
 
 /** 임의 값이 유효한 길이 모드인지 판정한다(폼 입력 검증용). */
 export function isLengthMode(value: unknown): value is LengthMode {
@@ -31,40 +39,20 @@ export function isProvided(mode: LengthMode, ceiling: DepthCeiling): boolean {
   return MODE_RANK[mode] <= MODE_RANK[ceiling];
 }
 
-/** 요약 문장 1개 + 핵심 여부(하이라이트 마킹, REQ-E1). */
-export interface Sentence {
-  text: string;
-  key: boolean;
-}
-
-/** long 2단락 구조: ① 핵심 사실 요약 ② 맥락·시사점·인사이트 (AC-A1.3). */
+/** 심층(long) 2단락 구조: ① 핵심 사실 ② 맥락·시사점·인사이트. 각 항목은 불릿 문장(평문). */
 export interface LongBody {
-  facts: Sentence[];
-  insights: Sentence[];
-}
-
-/** 저장/렌더 호환용 평면 요약(headline + coreText). bullets 는 폐지(항상 []). */
-export interface Summary {
-  headline: string;
-  coreText: string;
-  bullets: string[];
-}
-
-/** 파생 호환 타입(3모드 평면). */
-export interface AllModeSummaries {
-  short: Summary;
-  normal: Summary;
-  long: Summary;
+  facts: string[];
+  insights: string[];
 }
 
 /**
- * 모델이 단일 호출로 내는 구조화 결과(정보 계층, REQ-A1/A2).
- * long 은 2단락(facts/insights) + 문장별 핵심 마킹. short/normal 은 평면 coreText.
+ * 모델이 단일 호출로 내는 구조화 결과(정보 계층, REQ-A1).
+ * 요점/핵심은 불릿 배열(points), 심층은 facts/insights 불릿 배열.
  */
 export interface StructuredSummaries {
   depthCeiling: DepthCeiling;
-  short: { headline: string; coreText: string };
-  normal: { headline: string; coreText: string };
+  short: { headline: string; points: string[] };
+  normal: { headline: string; points: string[] };
   long: { headline: string } & LongBody;
 }
 
@@ -81,17 +69,14 @@ export function informationLength(text: string): number {
   return (text ?? '').replace(/\s+/g, '').length;
 }
 
-/** long 2단락을 렌더/저장용 평문으로 결합(사실 → 인사이트 순). */
-export function longBodyToText(long: LongBody): string {
-  return [...(long.facts ?? []), ...(long.insights ?? [])]
-    .map((s) => s.text.trim())
-    .filter(Boolean)
-    .join(' ');
+/** 불릿 배열 → 저장/렌더용 평문(줄바꿈 결합). 빈 항목 제거. */
+export function pointsToText(points: string[]): string {
+  return (points ?? []).map((p) => (p ?? '').trim()).filter(Boolean).join('\n');
 }
 
-/** long 에 핵심 문장 하이라이트가 최소 1개 있는가(AC-E1.1). */
-export function hasHighlight(long: LongBody): boolean {
-  return [...(long.facts ?? []), ...(long.insights ?? [])].some((s) => s.key);
+/** 심층 2단락(facts→insights)을 평문으로 결합(core_text 정본용). */
+export function longBodyToText(long: LongBody): string {
+  return pointsToText([...(long.facts ?? []), ...(long.insights ?? [])]);
 }
 
 export interface MonotonicCheck {
@@ -100,7 +85,7 @@ export interface MonotonicCheck {
 }
 
 /**
- * 제공되는 모드들의 정보량이 short ≤ normal ≤ long 으로 단조 증가하는지 판정한다(AC-B1.1).
+ * 제공되는 모드들의 정보량이 요점 ≤ 핵심 ≤ 심층으로 단조 증가하는지 판정한다(AC-B1.1).
  * 누락(제공 안 함) 모드는 판정에서 제외한다.
  */
 export function checkMonotonicity(textByMode: Partial<Record<LengthMode, string>>): MonotonicCheck {

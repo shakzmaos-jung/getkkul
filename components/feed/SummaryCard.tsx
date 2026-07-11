@@ -8,7 +8,7 @@ import ContentQA from '@/components/feed/ContentQA';
 import { setVideoLength, setContentFeedback } from '@/app/feed/actions';
 import { hms, computeReading } from '@/lib/summary/reading';
 import { formatKstDateTime } from '@/lib/time';
-import type { LengthMode, Sentence } from '@/lib/summary/format';
+import { MODE_LABELS, type LengthMode } from '@/lib/summary/format';
 import type { ModeSummary, FeedbackRating } from '@/lib/feed/map-digests';
 
 interface Props {
@@ -27,19 +27,26 @@ interface Props {
   onToggleBookmark: (next: boolean) => void;
 }
 
-/** long 문장 렌더 — 핵심(key) 문장은 밑줄 강조(REQ-E1 하이라이트). */
-function HiSentence({ s }: { s: Sentence }) {
+/** 불릿 목록 — 항목마다 줄바꿈(요약품질 개선: 짧게/보통 불릿 가독성). */
+function Bullets({ items }: { items: string[] }) {
   return (
-    <span className={s.key ? 'underline decoration-accent decoration-2 underline-offset-4' : undefined}>
-      {s.text}{' '}
-    </span>
+    <ul className="flex flex-col gap-1.5">
+      {items.map((p, i) => (
+        <li key={i} className="flex gap-2">
+          <span aria-hidden className="mt-[2px] text-muted-foreground">
+            •
+          </span>
+          <span>{p}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 const MODES: { mode: LengthMode; label: string }[] = [
-  { mode: 'short', label: '짧게' },
-  { mode: 'normal', label: '보통' },
-  { mode: 'long', label: '길게' },
+  { mode: 'short', label: MODE_LABELS.short },
+  { mode: 'normal', label: MODE_LABELS.normal },
+  { mode: 'long', label: MODE_LABELS.long },
 ];
 
 // 길이 전환 시 인디케이터 이동 시간(ms). 이동 완료 후 본문 반영.
@@ -327,13 +334,13 @@ export default function SummaryCard({
         </p>
       )}
 
-      {/* 본문: 미제공 안내 / long 2단락(핵심 사실·인사이트, 핵심문장 밑줄) / 평면 요약 */}
+      {/* 본문: 미제공 안내 / 심층 2단락(핵심 사실·인사이트 불릿) / 요점·핵심 불릿 / 폴백 */}
       {shown.notProvided ? (
         <p
           data-testid="summary-not-provided"
           className="mt-3 rounded-lg bg-muted/50 px-3 py-4 text-sm text-muted-foreground"
         >
-          이 영상은 내용이 짧아 ‘{highestProvided?.label ?? '짧게'}’까지만 제공해요.
+          이 영상은 내용이 짧아 ‘{highestProvided?.label ?? MODE_LABELS.short}’까지만 제공해요.
         </p>
       ) : mode === 'long' && shown.long ? (
         <div
@@ -342,31 +349,29 @@ export default function SummaryCard({
         >
           {shown.long.facts.length > 0 && (
             <section data-testid="long-facts">
-              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                핵심 사실
-              </h4>
-              <p>
-                {shown.long.facts.map((s, i) => (
-                  <HiSentence key={i} s={s} />
-                ))}
-              </p>
+              <h4 className="mb-1.5 text-xs font-semibold text-muted-foreground">핵심 사실</h4>
+              <Bullets items={shown.long.facts} />
             </section>
           )}
           {shown.long.insights.length > 0 && (
             <section data-testid="long-insights">
-              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                맥락·인사이트
-              </h4>
-              <p>
-                {shown.long.insights.map((s, i) => (
-                  <HiSentence key={i} s={s} />
-                ))}
-              </p>
+              <h4 className="mb-1.5 text-xs font-semibold text-muted-foreground">맥락·인사이트</h4>
+              <Bullets items={shown.long.insights} />
             </section>
           )}
         </div>
+      ) : shown.points && shown.points.length > 0 ? (
+        <div
+          data-testid="summary-body"
+          className="mt-3 text-sm leading-relaxed text-foreground/80"
+        >
+          <Bullets items={shown.points} />
+        </div>
       ) : (
-        <p data-testid="summary-body" className="mt-3 text-sm leading-relaxed text-foreground/80">
+        <p
+          data-testid="summary-body"
+          className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground/80"
+        >
           {shown.coreText}
         </p>
       )}

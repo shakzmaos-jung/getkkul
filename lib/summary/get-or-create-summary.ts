@@ -11,6 +11,7 @@ import {
   LENGTH_MODES,
   isProvided,
   longBodyToText,
+  pointsToText,
   type LengthMode,
   type SummaryLanguage,
   type StructuredSummaries,
@@ -103,8 +104,8 @@ function rowFor(
   return {
     ...base,
     headline: s[mode].headline,
-    core_text: s[mode].coreText,
-    body: { v: PROMPT_VERSION } as unknown as Json,
+    core_text: pointsToText(s[mode].points),
+    body: { points: s[mode].points, v: PROMPT_VERSION } as unknown as Json,
   };
 }
 

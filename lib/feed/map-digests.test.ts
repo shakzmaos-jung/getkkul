@@ -20,8 +20,8 @@ const row = (over: Partial<FeedDigestRow> = {}): FeedDigestRow => ({
   published_at: '2026-07-10T01:00:00Z',
   duration_seconds: 300,
   summaries: {
-    normal: { coreText: '핵심', body: {} },
-    short: { coreText: '짧게', body: {} },
+    normal: { coreText: '핵심', body: { points: ['핵심'] } },
+    short: { coreText: '짧게', body: { points: ['짧게'] } },
   },
   pref_mode: null,
   bookmarked: false,
@@ -44,16 +44,14 @@ describe('mapDigestRow', () => {
     expect(m.initialMode).toBe('short');
   });
 
-  it('long 2단락 body(facts/insights + 하이라이트)를 파싱한다', () => {
+  it('요점/핵심 points 불릿 + long facts/insights 문자열 파싱', () => {
     const m = mapDigestRow(
       row({
         summaries: {
+          short: { coreText: '요점', body: { points: ['요점 하나'] } },
           long: {
-            coreText: '사실. 인사이트.',
-            body: {
-              facts: [{ text: '사실 하나.', key: true }],
-              insights: [{ text: '인사이트 하나.', key: false }],
-            },
+            coreText: '사실\n인사이트',
+            body: { facts: ['사실 하나.', '사실 둘.'], insights: ['인사이트 하나.'] },
           },
         },
       }),
@@ -61,17 +59,30 @@ describe('mapDigestRow', () => {
       'normal',
       kst,
     )!;
-    expect(m.initialMode).toBe('long');
-    expect(m.summaries.long?.long?.facts.length).toBe(1);
-    expect(m.summaries.long?.long?.facts[0].key).toBe(true);
-    expect(m.summaries.long?.long?.insights.length).toBe(1);
+    expect(m.summaries.short?.points).toEqual(['요점 하나']);
+    expect(m.summaries.long?.long?.facts).toEqual(['사실 하나.', '사실 둘.']);
+    expect(m.summaries.long?.long?.insights).toEqual(['인사이트 하나.']);
+  });
+
+  it('구버전 {text,key} facts 도 문자열로 정규화(하위호환)', () => {
+    const m = mapDigestRow(
+      row({
+        summaries: {
+          long: { coreText: 'x', body: { facts: [{ text: '옛 사실.', key: true }], insights: [] } },
+        },
+      }),
+      channels,
+      'normal',
+      kst,
+    )!;
+    expect(m.summaries.long?.long?.facts).toEqual(['옛 사실.']);
   });
 
   it('AC-C1.3: notProvided 모드는 초기 모드 후보에서 제외', () => {
     const m = mapDigestRow(
       row({
         summaries: {
-          short: { coreText: '짧게', body: {} },
+          short: { coreText: '짧게', body: { points: ['짧게'] } },
           normal: { coreText: '', body: { notProvided: true } },
           long: { coreText: '', body: { notProvided: true } },
         },
