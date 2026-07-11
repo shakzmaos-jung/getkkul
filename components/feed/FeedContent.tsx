@@ -144,6 +144,27 @@ export default function FeedContent({
       ? digestSource.filter((it) => it.dateKst === selected && checked.has(it.channelId))
       : bookmarkList;
 
+  // 딥링크(#d-<id>) 스크롤: 대상 카드가 실제 렌더된 뒤(비동기 로딩 완료 포함) 1회 스크롤+강조.
+  // Next/브라우저 기본 앵커 점프는 비동기 렌더 카드보다 먼저 실행돼 실패하므로 직접 처리한다.
+  const hashScrolled = useRef(false);
+  useEffect(() => {
+    if (hashScrolled.current) return;
+    if (tab !== 'digest' || dateLoading) return;
+    const hash = window.location.hash; // "#d-<id>"
+    if (!hash.startsWith('#d-')) return;
+    const domId = hash.slice(1); // "d-<id>"
+    if (!list.some((it) => `d-${it.id}` === domId)) return; // 카드가 렌더됐을 때만
+    const el = document.getElementById(domId);
+    if (!el) return;
+    hashScrolled.current = true;
+    el.scrollIntoView({ block: 'start', behavior: 'smooth' }); // scroll-mt-20 이 헤더 오프셋 처리
+    el.style.transition = 'box-shadow 0.4s ease';
+    el.style.boxShadow = '0 0 0 2px #F5A623';
+    window.setTimeout(() => {
+      el.style.boxShadow = '';
+    }, 1600);
+  }, [list, dateLoading, tab]);
+
   return (
     <>
       <TabCards
