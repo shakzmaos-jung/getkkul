@@ -71,6 +71,10 @@
 
 - 주요 변경·결정·차단 요인을 적시에 요약 보고한다.
 
+## 버전 관리 (ADR-0012)
+
+- SemVer(`MAJOR.MINOR.PATCH`), 단일 소스는 `package.json.version`(→ 푸터 자동 표시). 사용자 대면 변경이 있는 릴리스는 같은 PR 에서 버전 bump(PATCH=버그·문구 / MINOR=기능 / MAJOR=파괴적) + `CHANGELOG.md` 항목 추가, 머지 후 `git tag -a vX.Y.Z && git push --tags`.
+
 ## 범위 경계 (지금 만들지 말 것 — v2/v3)
 
 - 유튜브 외 소스(네이버 등), 개별 URL·재생목록, 영상+시각 스마트 샘플링, 카카오톡/텔레그램 알림, 결제·과금, 운영자 어드민 대시보드, 의미 기반 중복 제거.
