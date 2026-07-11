@@ -25,9 +25,8 @@ const SUMMARY_SCHEMA = {
   properties: {
     headline: { type: 'string' },
     coreText: { type: 'string' },
-    bullets: { type: 'array', items: { type: 'string' } },
   },
-  required: ['headline', 'coreText', 'bullets'],
+  required: ['headline', 'coreText'],
   additionalProperties: false,
 } as const;
 
@@ -37,13 +36,17 @@ function systemPrompt(mode: LengthMode, language: SummaryLanguage): string {
     language === 'ko'
       ? '요약은 반드시 한국어로 작성한다(원문이 영어여도 한국어로).'
       : 'Write the entire summary in English.';
+  const detail =
+    mode === 'long'
+      ? 'coreText 에는 핵심뿐 아니라 구체적 수치·사례·실행 요점 등 정보 가치가 높은 세부까지 문장으로 빠짐없이 담아 상세하게 작성한다.'
+      : 'coreText 에는 정보 가치가 높은 핵심만 간결하게 담는다.';
   return [
     '너는 유튜브 영상 전사를 핵심만 뽑아 요약하는 전문가다.',
     lang,
     '다음 형식을 지켜라:',
     `- headline: 한 줄 제목`,
     `- coreText: 핵심 내용 ${spec.coreSentencesMin}~${spec.coreSentencesMax}문장`,
-    `- bullets: 상세 요점 ${spec.bulletsMin}~${spec.bulletsMax}개`,
+    detail,
     '광고·인사말·잡담은 제외하고 정보 가치가 높은 내용만 담아라.',
   ].join('\n');
 }
@@ -52,11 +55,11 @@ function extractSummary(content: string | null): Summary {
   if (!content || !content.trim()) {
     throw new Error('요약 응답이 비어 있습니다.');
   }
-  const parsed = JSON.parse(content) as Summary;
+  const parsed = JSON.parse(content) as Pick<Summary, 'headline' | 'coreText'>;
   return {
     headline: parsed.headline,
     coreText: parsed.coreText,
-    bullets: Array.isArray(parsed.bullets) ? parsed.bullets : [],
+    bullets: [], // 불릿 폐지 — 저장 호환 위해 빈 배열.
   };
 }
 

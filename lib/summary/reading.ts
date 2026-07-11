@@ -30,13 +30,9 @@ export interface ReadingStats {
   compressionPct: number | null; // 영상 길이 대비 압축률(%); 길이 미상이면 null
 }
 
-/** 표시 본문(coreText + bullets)과 영상 길이로 읽는 시간·압축률을 계산. */
-export function computeReading(
-  coreText: string,
-  bullets: string[],
-  durationSeconds: number | null,
-): ReadingStats {
-  const bodyPlain = [coreText, ...bullets].join(' ').replace(/\s+/g, '');
+/** 표시 본문(coreText)과 영상 길이로 읽는 시간·압축률을 계산. */
+export function computeReading(coreText: string, durationSeconds: number | null): ReadingStats {
+  const bodyPlain = coreText.replace(/\s+/g, '');
   const hasBody = bodyPlain.length > 0;
   const readSeconds = hasBody ? (bodyPlain.length / CHARS_PER_MIN) * 60 : 0;
   const compressionPct =

@@ -98,7 +98,6 @@ export default function SummaryCard({
   const duration = durationSeconds && durationSeconds > 0 ? hms(durationSeconds) : '';
   const [mode, setMode] = useState<LengthMode>(initialMode); // 본문에 반영되는 길이
   const [visual, setVisual] = useState<LengthMode>(initialMode); // 인디케이터/강조(즉시 이동)
-  const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,11 +109,10 @@ export default function SummaryCard({
     summaries.normal ??
     summaries.short ??
     summaries.long ?? { coreText: '', bullets: [] };
-  const hasBullets = shown.bullets.length > 0;
-  const hasBody = shown.coreText.length > 0 || hasBullets;
+  const hasBody = shown.coreText.trim().length > 0;
 
-  // 시간 절약 어필: 표시 본문 글자수 → 읽는 시간, 영상 대비 압축률(홈 목록과 공용 계산).
-  const { readText, compressionPct } = computeReading(shown.coreText, shown.bullets, durationSeconds);
+  // 시간 절약 어필: 표시 본문(coreText) 글자수 → 읽는 시간, 영상 대비 압축률(홈 목록과 공용 계산).
+  const { readText, compressionPct } = computeReading(shown.coreText, durationSeconds);
 
   // 복사/표시 공용 메타(플레인 텍스트). 압축률은 앞 파이프 없이 띄워 붙인다.
   const metaBase = [duration && `원본 영상 ${duration}`, hasBody && `읽는 시간 ${readText}`]
@@ -131,7 +129,6 @@ export default function SummaryCard({
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       // 이동 완료 후 본문 반영 + 저장.
-      setExpanded(false);
       setMode(m);
       startTransition(() => setVideoLength(videoId, m));
     }, SLIDE_MS);
@@ -150,9 +147,7 @@ export default function SummaryCard({
       publishedAt ? `업데이트 ${formatKstDateTime(publishedAt)}` : '',
       metaText,
     ].filter(Boolean);
-    const body = [shown.coreText, ...shown.bullets.map((b) => `- ${b}`)]
-      .filter(Boolean)
-      .join('\n');
+    const body = shown.coreText;
     // 본문 마지막 줄에서 한 줄 띄우고 마케팅 훅.
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const hook = `Powered by 겟꿀\n유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드립니다\n\n지금 시간 절약하러 가기 -> ${origin}/login`;
@@ -313,49 +308,9 @@ export default function SummaryCard({
         </p>
       )}
 
-      {hasBullets ? (
-        /* 본문/상세 영역을 탭하면 접기·펼치기 (메인 본문·상세 영역 터치 토글). */
-        <div
-          role="button"
-          tabIndex={0}
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setExpanded((v) => !v);
-            }
-          }}
-          data-testid="summary-body"
-          className="mt-3 -mx-1 cursor-pointer select-none rounded-md px-1 py-0.5 transition-colors hover:bg-muted/40"
-        >
-          <p className="text-sm leading-relaxed text-foreground/80">{shown.coreText}</p>
-          {expanded && (
-            <ul className="mt-3 flex flex-col gap-1.5">
-              {shown.bullets.map((b, i) => (
-                <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                  <span aria-hidden className="mt-2 h-1 w-1 shrink-0 rounded-full bg-border" />
-                  <span className="leading-relaxed">{b}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm leading-relaxed text-foreground/80">{shown.coreText}</p>
-      )}
-
-      {hasBullets && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          data-testid="toggle-bullets"
-          aria-expanded={expanded}
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {expanded ? '접기 ▴' : '상세 보기 ▾'}
-        </button>
-      )}
+      <p data-testid="summary-body" className="mt-3 text-sm leading-relaxed text-foreground/80">
+        {shown.coreText}
+      </p>
     </Card>
   );
 }
