@@ -4,13 +4,7 @@ import { useEffect, useState } from 'react';
 import { askAboutContent, extractContentTerms } from '@/app/feed/actions';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { MAX_QUESTION_LEN, type QAAnswer } from '@/lib/qa/answer';
-
-const LENGTHS: { key: keyof QAAnswer; label: string }[] = [
-  { key: 'short', label: '짧게' },
-  { key: 'normal', label: '보통' },
-  { key: 'long', label: '길게' },
-];
+import { MAX_QUESTION_LEN, type QASection } from '@/lib/qa/answer';
 
 type Mode = 'choose' | 'chips' | 'manual';
 
@@ -51,8 +45,7 @@ export default function ContentQA({ videoId }: { videoId: string }) {
   const [mode, setMode] = useState<Mode>('choose');
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState<QAAnswer | null>(null);
-  const [len, setLen] = useState<keyof QAAnswer>('normal');
+  const [answer, setAnswer] = useState<QASection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [terms, setTerms] = useState<string[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -73,7 +66,6 @@ export default function ContentQA({ videoId }: { videoId: string }) {
     setAnswer(null);
     setError(null);
     setLoading(false);
-    setLen('normal');
     setTerms([]);
     setExtracting(false);
   }
@@ -103,7 +95,7 @@ export default function ContentQA({ videoId }: { videoId: string }) {
     }
   }
 
-  const section = answer ? answer[len] : null;
+  const section = answer;
   const hasDef = !!section?.definition.trim();
   const hasIns = !!section?.insight.trim();
 
@@ -159,24 +151,6 @@ export default function ContentQA({ videoId }: { videoId: string }) {
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
               {answer ? (
                 <>
-                  <div className="inline-flex self-start rounded-lg border border-border bg-card p-0.5">
-                    {LENGTHS.map((o) => (
-                      <button
-                        key={o.key}
-                        type="button"
-                        onClick={() => setLen(o.key)}
-                        data-testid={`qa-len-${o.key}`}
-                        className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                          len === o.key
-                            ? 'bg-foreground text-background'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-
                   <div data-testid="qa-answer" className="flex flex-col gap-3">
                     {hasDef && (
                       <div>
