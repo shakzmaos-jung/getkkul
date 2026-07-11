@@ -31,6 +31,13 @@ export interface Summary {
   bullets: string[]; // 폐지(항상 []) — 저장/타입 호환 위해 필드는 유지.
 }
 
+/** 전사 1회 전송으로 3종 길이를 한 번에 생성(REQ-CO1). 저장은 기존대로 모드별 3행. */
+export interface AllModeSummaries {
+  short: Summary;
+  normal: Summary;
+  long: Summary;
+}
+
 /** 핵심 텍스트의 문장 수를 센다(한국어 '다.'·영어 문장부호 기준, 근사). */
 export function countSentences(text: string): number {
   return text

@@ -1,14 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
-import { summarize } from './summarize';
+import { summarize, summarizeAllModes } from './summarize';
 import type OpenAI from 'openai';
 
-/** 지정한 content 들을 순서대로 반환하는 mock OpenAI 클라이언트(마지막 값 반복). */
+/** 지정한 content 들을 순서대로 반환하는 mock OpenAI 클라이언트(마지막 값 반복). usage 도 반환. */
 function mockClient(contents: (string | null)[]) {
   const create = vi.fn<
-    (args: Record<string, unknown>) => Promise<{ choices: { message: { content: string | null } }[] }>
+    (args: Record<string, unknown>) => Promise<{
+      choices: { message: { content: string | null } }[];
+      usage: { prompt_tokens: number; completion_tokens: number };
+    }>
   >(async () => {
     const content = contents.length > 1 ? contents.shift()! : contents[0];
-    return { choices: [{ message: { content } }] };
+    return { choices: [{ message: { content } }], usage: { prompt_tokens: 100, completion_tokens: 50 } };
   });
   return { create, client: { chat: { completions: { create } } } as unknown as OpenAI };
 }
@@ -49,5 +52,46 @@ describe('summarize (GPT-5-nano)', () => {
     const result = await summarize('전사', 'short', 'ko', { client });
     expect(create).toHaveBeenCalledTimes(3); // 형식 미달로 3회 소진
     expect(result.headline).toBe('제목'); // best-effort 반환
+  });
+});
+
+const allValid = JSON.stringify({
+  short: { headline: '짧은 제목', coreText: '핵심 한 문장.' },
+  normal: { headline: '보통 제목', coreText: '문장1. 문장2.' },
+  long: { headline: '긴 제목', coreText: '문장1. 문장2. 문장3. 문장4. 문장5. 문장6.' },
+});
+
+describe('summarizeAllModes (REQ-CO1 단일 호출 3종)', () => {
+  it('AC-CO1.1/1.2/CO5: 1콜, 전사 1회, 3종 반환, usage 기록', async () => {
+    const { create, client } = mockClient([allValid]);
+    const { summaries, usage } = await summarizeAllModes('전사텍스트XYZ', 'ko', { client });
+
+    expect(create).toHaveBeenCalledTimes(1); // 호출 정확히 1 (AC-CO1.1)
+    expect(usage.calls).toBe(1);
+    expect(usage.promptTokens).toBe(100);
+    expect(usage.completionTokens).toBe(50);
+
+    const msgs = JSON.stringify(create.mock.calls[0][0].messages);
+    expect(msgs.split('전사텍스트XYZ').length - 1).toBe(1); // 전사 정확히 1회 (AC-CO1.2)
+
+    expect(create.mock.calls[0][0].reasoning_effort).toBe('minimal'); // reasoning 최소
+    expect(create.mock.calls[0][0].model).toBe('gpt-5-nano');
+    expect(summaries.short.coreText).toBe('핵심 한 문장.');
+    expect(summaries.long.coreText).toContain('문장6.');
+    expect(summaries.short.bullets).toEqual([]);
+  });
+
+  it('AC-CO3.1: 형식 미달 재시도 시 2번째 호출엔 전사 미포함', async () => {
+    const bad = JSON.stringify({
+      short: { headline: 't', coreText: '문장1. 문장2. 문장3. 문장4.' }, // short 최대 3 초과
+      normal: { headline: 't', coreText: '문장1.' },
+      long: { headline: 't', coreText: '문장1. 문장2. 문장3. 문장4. 문장5. 문장6.' },
+    });
+    const { create, client } = mockClient([bad]);
+    await summarizeAllModes('전사텍스트XYZ', 'ko', { client });
+
+    expect(create).toHaveBeenCalledTimes(3); // 미달 3회 소진 (AC-CO3.2)
+    const second = JSON.stringify(create.mock.calls[1][0].messages);
+    expect(second.includes('전사텍스트XYZ')).toBe(false); // 재시도에 전사 부재 (AC-CO3.1)
   });
 });
