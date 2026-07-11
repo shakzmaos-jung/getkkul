@@ -16,7 +16,6 @@ function mockClient(contents: (string | null)[]) {
 const shortValid = JSON.stringify({
   headline: '한 줄 제목',
   coreText: '핵심을 담은 한 문장.',
-  bullets: ['요점 하나', '요점 둘'],
 });
 
 describe('summarize (GPT-5-nano)', () => {
@@ -25,7 +24,7 @@ describe('summarize (GPT-5-nano)', () => {
     const result = await summarize('전사 텍스트', 'short', 'ko', { client });
 
     expect(result.headline).toBe('한 줄 제목');
-    expect(result.bullets).toEqual(['요점 하나', '요점 둘']);
+    expect(result.bullets).toEqual([]); // 불릿 폐지 — 항상 빈 배열
 
     const args = create.mock.calls[0][0];
     expect(args.model).toBe('gpt-5-nano');
@@ -44,8 +43,7 @@ describe('summarize (GPT-5-nano)', () => {
   it('형식 미달이면 재시도하고 best-effort 로 반환', async () => {
     const badFormat = JSON.stringify({
       headline: '제목',
-      coreText: '한 문장.',
-      bullets: ['하나만'], // short 최소 2개 미달
+      coreText: '문장1. 문장2. 문장3. 문장4. 문장5.', // short 최대 3문장 초과
     });
     const { create, client } = mockClient([badFormat]);
     const result = await summarize('전사', 'short', 'ko', { client });

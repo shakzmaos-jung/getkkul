@@ -16,21 +16,19 @@ export function isLengthMode(value: unknown): value is LengthMode {
 export interface LengthSpec {
   coreSentencesMin: number;
   coreSentencesMax: number;
-  bulletsMin: number;
-  bulletsMax: number;
 }
 
-/** SSR AC-D2.1: 헤드라인 1줄 + 핵심 문장 + 상세 불릿. */
+/** 헤드라인 1줄 + 핵심 문장(coreText). 불릿은 폐지 — long 은 coreText 로 상세를 흡수. */
 export const LENGTH_SPECS: Record<LengthMode, LengthSpec> = {
-  short: { coreSentencesMin: 1, coreSentencesMax: 3, bulletsMin: 2, bulletsMax: 5 },
-  normal: { coreSentencesMin: 1, coreSentencesMax: 7, bulletsMin: 2, bulletsMax: 10 },
-  long: { coreSentencesMin: 1, coreSentencesMax: 12, bulletsMin: 10, bulletsMax: 20 },
+  short: { coreSentencesMin: 1, coreSentencesMax: 3 },
+  normal: { coreSentencesMin: 1, coreSentencesMax: 7 },
+  long: { coreSentencesMin: 5, coreSentencesMax: 18 },
 };
 
 export interface Summary {
   headline: string;
   coreText: string;
-  bullets: string[];
+  bullets: string[]; // 폐지(항상 []) — 저장/타입 호환 위해 필드는 유지.
 }
 
 /** 핵심 텍스트의 문장 수를 센다(한국어 '다.'·영어 문장부호 기준, 근사). */
@@ -59,13 +57,6 @@ export function validateSummaryFormat(summary: Summary, mode: LengthMode): Forma
   if (sentences < spec.coreSentencesMin || sentences > spec.coreSentencesMax) {
     errors.push(
       `핵심 문장 수 ${sentences}가 범위(${spec.coreSentencesMin}~${spec.coreSentencesMax})를 벗어남.`,
-    );
-  }
-
-  const bulletCount = summary.bullets.filter((b) => b.trim().length > 0).length;
-  if (bulletCount < spec.bulletsMin || bulletCount > spec.bulletsMax) {
-    errors.push(
-      `불릿 개수 ${bulletCount}가 범위(${spec.bulletsMin}~${spec.bulletsMax})를 벗어남.`,
     );
   }
 
