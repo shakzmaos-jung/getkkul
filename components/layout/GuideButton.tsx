@@ -18,8 +18,8 @@ export default function GuideButton({ guide }: { guide: ScreenGuide }) {
         type="button"
         onClick={() => setOpen(true)}
         data-testid="guide-badge"
-        aria-label="이용 가이드 열기"
-        className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent/20"
+        aria-label="가이드 열기"
+        className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <svg
           width="12"
@@ -35,7 +35,7 @@ export default function GuideButton({ guide }: { guide: ScreenGuide }) {
           <circle cx="12" cy="12" r="10" />
           <path d="M12 16v-4M12 8h.01" />
         </svg>
-        이용 가이드
+        가이드
       </button>
 
       {open && <GuideDialog guide={guide} onClose={() => setOpen(false)} />}
