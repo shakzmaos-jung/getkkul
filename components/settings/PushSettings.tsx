@@ -19,7 +19,7 @@ const initial: SettingsState = {};
 
 interface Props {
   vapidPublicKey: string;
-  pushSlots: { s0730: boolean; s1130: boolean; s1730: boolean };
+  pushSlots: { s0730: boolean; s1130: boolean; s1730: boolean; s2130: boolean };
 }
 
 /** 푸시 구독 켜기/끄기 + 슬롯별 발송(멀티, 카드 선택 즉시 저장). */
@@ -100,6 +100,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
     ['push_0730', '07:30', pushSlots.s0730],
     ['push_1130', '11:30', pushSlots.s1130],
     ['push_1730', '17:30', pushSlots.s1730],
+    ['push_2130', '21:30', pushSlots.s2130],
   ] as const;
 
   return (
@@ -142,7 +143,7 @@ export default function PushSettings({ vapidPublicKey, pushSlots }: Props) {
       {/* 슬롯별 푸시(멀티) — 구독 없으면 비활성(AC-D1.3) */}
       <form action={slotAction} className="flex flex-col gap-2">
         <p className="text-xs font-medium text-muted-foreground">받을 시각(푸시)</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {slots.map(([name, label, checked]) => (
             <label
               key={name}

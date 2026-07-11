@@ -29,7 +29,7 @@ const GUIDES: Partial<Record<NonNullable<ReturnType<typeof activeTabKey>>, Scree
         </Link>
         에서 핵심 요약을 만나보세요.
       </>,
-      '이메일 혹은 앱 푸시로 아침(07:30), 점심(11:30), 저녁(17:30)에 알림을 받을 수 있습니다.',
+      '이메일 혹은 앱 푸시로 아침(07:30), 점심(11:30), 저녁(17:30), 밤(21:30)에 알림을 받을 수 있습니다.',
     ],
   },
   feed: {

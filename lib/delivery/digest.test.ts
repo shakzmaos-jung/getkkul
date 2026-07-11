@@ -48,6 +48,11 @@ describe('resolveDeliverySlot (슬롯 판정 + 시각 가드)', () => {
     expect(c.slot).toBe('1730');
     expect(c.offsetMin).toBe(0);
     expect(c.withinWindow).toBe(true);
+    // 21:31 KST (UTC 12:31) → 2130, offset 1
+    const d = resolveDeliverySlot(new Date('2026-07-11T12:31:00Z'));
+    expect(d.slot).toBe('2130');
+    expect(d.offsetMin).toBe(1);
+    expect(d.withinWindow).toBe(true);
   });
 
   it('허용창 경계: 정확히 10분은 통과, 11분은 스킵', () => {

@@ -8,10 +8,11 @@ import {
 } from './push-routing';
 import type { DigestSelection } from '@/lib/delivery/digest';
 
-const S = (a: boolean, b: boolean, c: boolean) => ({
+const S = (a: boolean, b: boolean, c: boolean, d = false) => ({
   push_slot_0730: a,
   push_slot_1130: b,
   push_slot_1730: c,
+  push_slot_2130: d,
 });
 
 describe('slotPushEnabled', () => {
@@ -19,6 +20,8 @@ describe('slotPushEnabled', () => {
     expect(slotPushEnabled(S(true, false, false), '0730')).toBe(true);
     expect(slotPushEnabled(S(true, false, false), '1130')).toBe(false);
     expect(slotPushEnabled(S(false, false, true), '1730')).toBe(true);
+    expect(slotPushEnabled(S(false, false, false, true), '2130')).toBe(true);
+    expect(slotPushEnabled(S(false, false, false, false), '2130')).toBe(false);
   });
 });
 
