@@ -8,8 +8,6 @@ import DeliverySlotsForm from '@/components/settings/DeliverySlotsForm';
 import VideoDurationFilterForm from '@/components/settings/VideoDurationFilterForm';
 import PushSettings from '@/components/settings/PushSettings';
 import SkipEmptyForm from '@/components/settings/SkipEmptyForm';
-import SignOutButton from '@/components/auth/SignOutButton';
-import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
 import type { LengthMode } from '@/lib/summary/format';
 import { SLOT_CODES, type SlotCode } from '@/lib/time';
 import { timed } from '@/lib/perf';
@@ -105,11 +103,6 @@ export default async function SettingsPage() {
             </p>
             <DeliveryEmailForm current={deliveryEmail} isDefault={isDefaultEmail} />
           </Card>
-        </div>
-
-        <div className="mt-8 flex justify-end gap-2 border-t border-border pt-6">
-          <SignOutButton />
-          <DeleteAccountButton />
         </div>
       </main>
     </div>

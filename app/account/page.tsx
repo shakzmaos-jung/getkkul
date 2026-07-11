@@ -3,8 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import { Card } from '@/components/ui/Card';
 import { UserAvatar } from '@/components/ui/UserAvatar';
-import SignOutButton from '@/components/auth/SignOutButton';
-import DeleteAccountButton from '@/components/auth/DeleteAccountButton';
+import AccountActions from '@/components/account/AccountActions';
 import { planBadgeText } from '@/lib/membership/plan-badge';
 
 export const metadata = { title: '계정' };
@@ -46,9 +45,8 @@ export default async function AccountPage() {
           </div>
         </Card>
 
-        <div className="mt-8 flex justify-end gap-2 border-t border-border pt-6">
-          <SignOutButton />
-          <DeleteAccountButton />
+        <div className="mt-6">
+          <AccountActions />
         </div>
       </main>
     </div>

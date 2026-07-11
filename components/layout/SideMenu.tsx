@@ -2,10 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import ThemeToggle from '@/components/layout/ThemeToggle';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { planBadgeText } from '@/lib/membership/plan-badge';
 
@@ -53,11 +51,6 @@ const MoonIcon = () => (
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </svg>
 );
-const LogoutIcon = () => (
-  <svg {...iconProps()}>
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-  </svg>
-);
 const ChevronRight = () => (
   <svg {...iconProps()} className="shrink-0 text-muted-foreground">
     <path d="m9 18 6-6-6-6" />
@@ -98,17 +91,14 @@ interface Profile {
 
 /**
  * 우측 슬라이드 인 사이드 메뉴(재설계, ADR-0011). 위→아래:
- * 프로필 카드 → "메뉴" 그룹(설정·서비스소개·개발자정보·라이선스, 전부 이동) → "화면" 그룹(다크토글)
- * → "계정" 그룹(로그아웃) → 메타 푸터(버전·카피라이트). 아코디언 폐지(상호작용 유형 통일).
+ * 프로필 카드(→/account, 로그아웃·계정삭제는 계정 화면 내) → "메뉴" 그룹(설정·서비스소개·개발자정보·라이선스,
+ * 전부 이동) → "화면" 그룹(다크토글) → 메타 푸터(버전·카피라이트). 아코디언 폐지(상호작용 유형 통일).
  * 오버레이 탭 / ESC / 우측 스와이프로 닫힘. 열림 시 포커스 트랩. transform 200ms 슬라이드.
  */
 export default function SideMenu({ open, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
-  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [logoutOpen, setLogoutOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   // ESC 닫기 + 포커스 트랩(Tab 순환) + 열림 시 첫 요소 포커스 — 보존(AC-H1.1).
   useEffect(() => {
@@ -189,14 +179,6 @@ export default function SideMenu({ open, onClose }: Props) {
       touchStartX.current = null;
       onClose();
     }
-  }
-
-  async function doLogout() {
-    setLoggingOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
   }
 
   return (
@@ -289,24 +271,6 @@ export default function SideMenu({ open, onClose }: Props) {
             </div>
           </section>
 
-          {/* "계정" 그룹 — 로그아웃 */}
-          <section>
-            <GroupLabel>계정</GroupLabel>
-            <div className="overflow-hidden rounded-xl border border-border">
-              <button
-                type="button"
-                onClick={() => setLogoutOpen(true)}
-                data-testid="menu-logout"
-                className={NAV_ROW}
-              >
-                <span className="flex items-center gap-2.5">
-                  <LogoutIcon />
-                  로그아웃
-                </span>
-              </button>
-            </div>
-          </section>
-
           {/* 메타 푸터 — 버전(package.json 주입) + 카피라이트 */}
           <div className="mt-auto pt-2 text-center text-xs text-muted-foreground">
             <div data-testid="menu-version">getkkul v{APP_VERSION}</div>
@@ -314,17 +278,6 @@ export default function SideMenu({ open, onClose }: Props) {
           </div>
         </div>
       </aside>
-
-      {logoutOpen && (
-        <ConfirmDialog
-          title="로그아웃"
-          description="현재 기기에서 로그아웃합니다. 다시 이용하려면 구글 계정으로 로그인하세요."
-          confirmLabel={loggingOut ? '로그아웃 중…' : '로그아웃하기'}
-          onConfirm={doLogout}
-          onClose={() => setLogoutOpen(false)}
-          pending={loggingOut}
-        />
-      )}
     </>
   );
 }
