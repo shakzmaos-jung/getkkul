@@ -70,7 +70,9 @@ export async function deliverAll(
   }
 
   // 멤버십 다이제스트 월 한도(AC-D1.2): 현재 주기 사용량 기준 남은 수만큼만 신규 발송.
-  const { data: mems } = await supabase.from('membership').select('user_id, plan_code, period_start');
+  const { data: mems } = await supabase
+    .from('membership')
+    .select('user_id, plan_code, period_start, created_at');
   const memByUser = new Map((mems ?? []).map((m) => [m.user_id, m]));
   const { data: usageRows } = await supabase
     .from('membership_usage')
@@ -112,7 +114,11 @@ export async function deliverAll(
     const recipient = setting?.delivery_email ?? user.email;
     let selection: DigestSelection | null = null;
     try {
-      const candidates = await candidateVideos(supabase, user.id);
+      const candidates = await candidateVideos(
+        supabase,
+        user.id,
+        memByUser.get(user.id)?.created_at ?? null,
+      );
       selection = selectDigestVideos(candidates);
       // 월 한도 초과분은 발송 보류(overflow 로 이월 표시). 한도 0이면 신규 없음.
       const remaining = digestRemaining(user.id);
@@ -218,6 +224,7 @@ export async function deliverAll(
 async function candidateVideos(
   supabase: SupabaseClient,
   userId: string,
+  membershipStart: string | null,
 ): Promise<DigestVideo[]> {
   const { data: setting } = await supabase
     .from('user_settings')
@@ -239,12 +246,17 @@ async function candidateVideos(
 
   const { data: videos } = await supabase
     .from('videos')
-    .select('id, title, url, channel_id, created_at, duration_seconds')
+    .select('id, title, url, channel_id, created_at, published_at, duration_seconds')
     .eq('status', 'done')
     .in('channel_id', channelIds)
     .order('published_at', { ascending: true });
-  // 정지해제 기준선 이후 + 영상 길이 필터(1분미만 항상 제외, 2시간이상 옵션).
+  // 멤버십 시작(업로드시점) 이후 + 정지해제 기준선 이후 + 영상 길이 필터(1분미만 항상 제외, 2시간이상 옵션).
   const videoRows = (videos ?? [])
+    .filter(
+      (v) =>
+        membershipStart == null ||
+        (v.published_at != null && new Date(v.published_at) >= new Date(membershipStart)),
+    )
     .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
     .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
   if (videoRows.length === 0) return [];
