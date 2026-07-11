@@ -2,117 +2,126 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import ThemeToggle from '@/components/layout/ThemeToggle';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { UserAvatar } from '@/components/ui/UserAvatar';
+import { planBadgeText } from '@/lib/membership/plan-badge';
 
-const REPO_URL = 'https://github.com/shakzmaos-jung/getkkul';
-const REMEMBER_URL = 'https://link.rmbr.in/79cmk2';
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0';
 
-function MailIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
-      <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-    </svg>
-  );
+function iconProps() {
+  return {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+    className: 'shrink-0',
+  };
 }
+const SettingsIcon = () => (
+  <svg {...iconProps()}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+const AboutIcon = () => (
+  <svg {...iconProps()}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4M12 8h.01" />
+  </svg>
+);
+const DeveloperIcon = () => (
+  <svg {...iconProps()}>
+    <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
+  </svg>
+);
+const LicenseIcon = () => (
+  <svg {...iconProps()}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M9 13h6M9 17h4" />
+  </svg>
+);
+const MoonIcon = () => (
+  <svg {...iconProps()}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+const LogoutIcon = () => (
+  <svg {...iconProps()}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+  </svg>
+);
+const ChevronRight = () => (
+  <svg {...iconProps()} className="shrink-0 text-muted-foreground">
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
+const CloseIcon = () => (
+  <svg {...iconProps()} width={20} height={20}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);
 
-// TODO: 리멤버 공식 로고(SVG/PNG)로 교체 예정 — 현재는 명함형 플레이스홀더 아이콘.
-function RememberLogo() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
-      <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM8 7.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM12 16H4v-.75c0-1.33 2.67-2 4-2s4 .67 4 2V16zm2-1h6v-1.5h-6V15zm0-3h6v-1.5h-6V12zm0-3h6V7.5h-6V9z" />
-    </svg>
-  );
+// "메뉴" 그룹 — 네 항목 모두 동일한 이동 패턴(아이콘 + 라벨 + chevron, AC-B1.1/D1.5).
+const MENU_ITEMS = [
+  { href: '/settings', label: '설정', Icon: SettingsIcon, testid: 'menu-settings' },
+  { href: '/about', label: '서비스 소개', Icon: AboutIcon, testid: 'menu-about' },
+  { href: '/developer', label: '개발자 정보', Icon: DeveloperIcon, testid: 'menu-developer' },
+  { href: '/licenses', label: '오픈소스 라이선스', Icon: LicenseIcon, testid: 'menu-licenses' },
+];
+
+const NAV_ROW =
+  'flex min-h-[44px] w-full items-center justify-between px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted';
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return <div className="mb-1.5 px-1 text-xs font-medium text-muted-foreground">{children}</div>;
 }
-
-function GithubIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
-      <path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.24-3.23-.13-.3-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.23 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.29 0 .32.22.7.83.58C20.56 22.29 24 17.79 24 12.5 24 5.87 18.63.5 12 .5z" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-function LicenseIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6M9 13h6M9 17h4" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M18 6 6 18M6 6l12 12" />
-    </svg>
-  );
-}
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={`shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-// 햄버거 메뉴 각 행 공통 높이/스타일 — 전체 행 통일(44px). 설정·테마·아코디언 헤더 동일.
-const ROW =
-  'flex min-h-[44px] w-full items-center justify-between rounded-lg px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+interface Profile {
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  badge: string;
+}
+
 /**
- * 우측 슬라이드 인 사이드 메뉴. 하단 GNB 와 짝을 이루는 유틸리티 허브.
- * 내용(위→아래): 서비스 소개 · 개발자 정보 · 설정 진입 · 테마 토글 · 카피라이트.
- * 오버레이 탭 / ESC / 우측 스와이프로 닫힌다. 열림 시 포커스 트랩(패널 내부 순환).
- * 애니메이션은 transform(translate-x) 기반 200ms ease-out — 블러 없이 가볍고 민첩하게.
+ * 우측 슬라이드 인 사이드 메뉴(재설계, ADR-0011). 위→아래:
+ * 프로필 카드 → "메뉴" 그룹(설정·서비스소개·개발자정보·라이선스, 전부 이동) → "화면" 그룹(다크토글)
+ * → "계정" 그룹(로그아웃) → 메타 푸터(버전·카피라이트). 아코디언 폐지(상호작용 유형 통일).
+ * 오버레이 탭 / ESC / 우측 스와이프로 닫힘. 열림 시 포커스 트랩. transform 200ms 슬라이드.
  */
 export default function SideMenu({ open, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [devOpen, setDevOpen] = useState(false);
+  const router = useRouter();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  // ESC 닫기 + 포커스 트랩(Tab 순환) + 열림 시 첫 요소 포커스.
+  // ESC 닫기 + 포커스 트랩(Tab 순환) + 열림 시 첫 요소 포커스 — 보존(AC-H1.1).
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
     if (!panel) return;
-
     const focusables = () =>
       Array.from(
         panel.querySelectorAll<HTMLElement>(
           'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])',
         ),
       );
-
     focusables()[0]?.focus();
-
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         onClose();
@@ -131,26 +140,68 @@ export default function SideMenu({ open, onClose }: Props) {
         first.focus();
       }
     }
-
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // 첫 열림 시 프로필(이름·이메일·아바타·플랜 배지) 1회 로드. 실패해도 조용히 무시(폴백 렌더).
+  useEffect(() => {
+    if (!open || profile) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const u = session?.user;
+        if (!u || cancelled) return;
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+        const name =
+          (meta.full_name as string) ?? (meta.name as string) ?? u.email?.split('@')[0] ?? '사용자';
+        const { data: m } = await supabase
+          .from('membership')
+          .select('plan_code, status, poc_free_until')
+          .eq('user_id', u.id)
+          .maybeSingle();
+        if (cancelled) return;
+        setProfile({
+          name,
+          email: u.email ?? '',
+          avatarUrl: (meta.avatar_url as string) ?? null,
+          badge: planBadgeText(m ?? null),
+        });
+      } catch {
+        /* 세션/네트워크 실패 → 폴백 렌더 유지 */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, profile]);
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
   }
   function onTouchMove(e: React.TouchEvent) {
     if (touchStartX.current == null) return;
-    // 우측(닫는 방향)으로 60px 이상 스와이프하면 닫는다.
     if (e.touches[0].clientX - touchStartX.current > 60) {
       touchStartX.current = null;
       onClose();
     }
   }
 
+  async function doLogout() {
+    setLoggingOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
+
   return (
     <>
-      {/* dim 오버레이 — 열림 시 페이드 인, 탭하면 닫힘. 닫힘 시 이벤트/포커스 차단. */}
+      {/* dim 오버레이 */}
       <div
         onClick={onClose}
         aria-hidden
@@ -160,7 +211,7 @@ export default function SideMenu({ open, onClose }: Props) {
         }`}
       />
 
-      {/* 패널 — 항상 마운트, translate-x 로 인/아웃 애니메이션(양방향 재생). */}
+      {/* 패널 — 항상 마운트, translate-x 슬라이드(200ms, 블러 없음, AC-H1.2) */}
       <aside
         ref={panelRef}
         role="dialog"
@@ -173,7 +224,6 @@ export default function SideMenu({ open, onClose }: Props) {
           open ? 'translate-x-0' : 'pointer-events-none translate-x-full'
         }`}
       >
-        {/* 헤더: 닫기 버튼 */}
         <div className="flex items-center justify-end border-b border-border px-3 py-2">
           <button
             type="button"
@@ -186,112 +236,95 @@ export default function SideMenu({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col p-2">
-          {/* (1) 서비스 소개 — 메뉴명(누르면 펼침) */}
-          <button
-            type="button"
-            onClick={() => setAboutOpen((v) => !v)}
-            aria-expanded={aboutOpen}
-            data-testid="menu-about"
-            className={ROW}
+        <div className="flex flex-1 flex-col gap-5 p-4">
+          {/* 프로필 카드 (→ /account) */}
+          <Link
+            href="/account"
+            onClick={onClose}
+            data-testid="menu-profile"
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted"
           >
-            <span>서비스 소개</span>
-            <Chevron open={aboutOpen} />
-          </button>
-          {aboutOpen && (
-            <div className="px-3 pb-3 pt-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-base leading-none">🍯</span>
-                <span className="text-sm font-semibold tracking-tight">겟꿀</span>
+            <UserAvatar name={profile?.name ?? '?'} src={profile?.avatarUrl} size={44} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold text-foreground">
+                {profile?.name ?? '내 계정'}
               </div>
-              <p className="mt-1 text-sm text-foreground/80">구독한 콘텐츠의 핵심만</p>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                관심 유튜브 채널을 대신 감시해 요약해드립니다
-              </p>
+              {profile?.email && (
+                <div className="truncate text-xs text-muted-foreground">{profile.email}</div>
+              )}
+              <span className="mt-1 inline-block rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+                {profile?.badge ?? '무료'}
+              </span>
             </div>
-          )}
-
-          {/* (2) 개발자 정보 — 메뉴명(누르면 펼침) */}
-          <button
-            type="button"
-            onClick={() => setDevOpen((v) => !v)}
-            aria-expanded={devOpen}
-            data-testid="menu-developer"
-            className={`${ROW} border-t border-border`}
-          >
-            <span>개발자 정보</span>
-            <Chevron open={devOpen} />
-          </button>
-          {devOpen && (
-            <div className="flex flex-col gap-1 px-3 pb-3 pt-1">
-              <div className="text-sm font-semibold tracking-tight">정상화</div>
-              <p className="text-xs text-foreground/80">프로덕트 빌더 with AI</p>
-              <a
-                href="mailto:shakzmaos@gmail.com"
-                className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <MailIcon />
-                shakzmaos@gmail.com
-              </a>
-              <a
-                href={REMEMBER_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <RememberLogo />
-                chess.jung@ppoint.kr
-              </a>
-              <a
-                href={REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[32px] w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <GithubIcon />
-                GitHub 레포지터리
-              </a>
-            </div>
-          )}
-
-          {/* (3) 설정 진입 */}
-          <Link
-            href="/settings"
-            onClick={onClose}
-            data-testid="menu-settings"
-            className={`${ROW} border-t border-border`}
-          >
-            <span className="flex items-center gap-2.5">
-              <SettingsIcon />
-              설정
-            </span>
+            <ChevronRight />
           </Link>
 
-          {/* (3-1) 오픈소스 라이선스 고지 */}
-          <Link
-            href="/licenses"
-            onClick={onClose}
-            data-testid="menu-licenses"
-            className={`${ROW} border-t border-border`}
-          >
-            <span className="flex items-center gap-2.5">
-              <LicenseIcon />
-              오픈소스 라이선스
-            </span>
-          </Link>
+          {/* "메뉴" 그룹 — 4항목 동일 이동 패턴 */}
+          <section>
+            <GroupLabel>메뉴</GroupLabel>
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+              {MENU_ITEMS.map(({ href, label, Icon, testid }) => (
+                <Link key={href} href={href} onClick={onClose} data-testid={testid} className={NAV_ROW}>
+                  <span className="flex items-center gap-2.5">
+                    <Icon />
+                    {label}
+                  </span>
+                  <ChevronRight />
+                </Link>
+              ))}
+            </div>
+          </section>
 
-          {/* (4) 라이트/다크 모드 토글 */}
-          <div className={`${ROW} border-t border-border`}>
-            <span>라이트 / 다크 모드</span>
-            <ThemeToggle />
+          {/* "화면" 그룹 — 다크모드 인라인 토글 */}
+          <section>
+            <GroupLabel>화면</GroupLabel>
+            <div className="overflow-hidden rounded-xl border border-border">
+              <div className={NAV_ROW}>
+                <span className="flex items-center gap-2.5">
+                  <MoonIcon />
+                  다크 모드
+                </span>
+                <ThemeToggle />
+              </div>
+            </div>
+          </section>
+
+          {/* "계정" 그룹 — 로그아웃 */}
+          <section>
+            <GroupLabel>계정</GroupLabel>
+            <div className="overflow-hidden rounded-xl border border-border">
+              <button
+                type="button"
+                onClick={() => setLogoutOpen(true)}
+                data-testid="menu-logout"
+                className={NAV_ROW}
+              >
+                <span className="flex items-center gap-2.5">
+                  <LogoutIcon />
+                  로그아웃
+                </span>
+              </button>
+            </div>
+          </section>
+
+          {/* 메타 푸터 — 버전(package.json 주입) + 카피라이트 */}
+          <div className="mt-auto pt-2 text-center text-xs text-muted-foreground">
+            <div data-testid="menu-version">getkkul v{APP_VERSION}</div>
+            <div className="mt-1">© 2026 getkkul · Made in Seoul</div>
           </div>
-
-          {/* (5) 카피라이트 — 하단 고정 */}
-          <p className="mt-auto px-3 pb-2 pt-4 text-xs text-muted-foreground">
-            © 2026 getkkul · Made in Seoul
-          </p>
         </div>
       </aside>
+
+      {logoutOpen && (
+        <ConfirmDialog
+          title="로그아웃"
+          description="현재 기기에서 로그아웃합니다. 다시 이용하려면 구글 계정으로 로그인하세요."
+          confirmLabel={loggingOut ? '로그아웃 중…' : '로그아웃하기'}
+          onConfirm={doLogout}
+          onClose={() => setLogoutOpen(false)}
+          pending={loggingOut}
+        />
+      )}
     </>
   );
 }

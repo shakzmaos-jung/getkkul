@@ -33,11 +33,21 @@ const TAB_TITLE: Record<NavKey, string> = {
   membership: '멤버십',
 };
 
-/** 상단 헤더 좌측 타이틀. 탭이면 탭 라벨, 설정은 '설정', 그 외는 앱명 '겟꿀'. */
+// 탭이 아닌 화면의 헤더 타이틀(사이드 메뉴 진입 화면 포함).
+const ROUTE_TITLE: { prefix: string; title: string }[] = [
+  { prefix: '/settings', title: '설정' },
+  { prefix: '/licenses', title: '오픈소스 라이선스' },
+  { prefix: '/account', title: '계정' },
+  { prefix: '/about', title: '서비스 소개' },
+  { prefix: '/developer', title: '개발자 정보' },
+];
+
+/** 상단 헤더 좌측 타이틀. 탭이면 탭 라벨, 지정 화면은 각 타이틀, 그 외는 앱명 '겟꿀'. */
 export function headerTitle(pathname: string): string {
   const tab = activeTabKey(pathname);
   if (tab) return TAB_TITLE[tab];
-  if (pathname === '/settings' || pathname.startsWith('/settings/')) return '설정';
-  if (pathname === '/licenses' || pathname.startsWith('/licenses/')) return '오픈소스 라이선스';
-  return '겟꿀';
+  const match = ROUTE_TITLE.find(
+    (r) => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`),
+  );
+  return match ? match.title : '겟꿀';
 }
