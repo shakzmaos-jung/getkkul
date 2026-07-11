@@ -6,6 +6,23 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-13
+
+### Changed
+- **다이제스트 카드 탭 재구성**: 요점/핵심/심층 → **간단히 / 자세히 / 인사이트**(간단히=요점, 자세히=핵심 사실, 인사이트=맥락·인사이트). 콘텐츠 빈약 시 자세히·인사이트 안내.
+- 홈 상단 **가치 히어로** 시각 강조(구별)·'오늘의 다이제스트' 위계 정리.
+- 친구 초대·크레딧 화면 **타이틀 중복 제거**(상단 헤더 + 가이드 배지로 통합). `/referral`·`/credits` 가이드 배지 신설.
+- 크레딧 화면: 총 획득/사용/잔여 ↔ 적립·사용 내역 **영역 분리**.
+- 알림(이메일·푸시) 시각 선택 카드 2×2 → **1×4**.
+
+### Added
+- 카드 피드백(👍/👎)에 **활용 안내 툴팁**(평가가 요약 품질 개선에 쓰임).
+- 초대한 내역에 **지급 크레딧 금액 + 초대일시 + 지급완료일시**.
+- 크레딧 적립 내역에 **피추천인(마스킹 이메일)** 표시.
+
+### Fixed
+- 영상 길이 필터 툴팁: 불투명 배경 + **뷰포트 밖으로 삐져나가지 않도록** 위치 보정(모바일 포함).
+
 ## [0.5.1] - 2026-07-13
 
 ### Added
@@ -71,7 +88,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.0
 [0.5.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.1
 [0.5.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.0
 [0.4.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.4.0

@@ -9,6 +9,17 @@
     "normal": "핵심",
     "long": "심층"
   },
+  "feed": {
+    "cardViews": {
+      "simple": "간단히",
+      "detail": "자세히",
+      "insight": "인사이트",
+      "unavailable": "이 영상은 내용이 짧아 자세히·인사이트는 제공되지 않아요.",
+      "feedbackTitle": "이 요약 어때요?",
+      "feedbackTooltipLabel": "피드백 활용 안내",
+      "feedbackTooltip": "여러분의 평가는 익명으로 모여 요약 품질을 더 낫게 다듬는 데 쓰여요."
+    }
+  },
   "settings": {
     "durationFilter": {
       "shortTitle": "2분 미만 제외",

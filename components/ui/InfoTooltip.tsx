@@ -3,32 +3,51 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * ⓘ 탭 툴팁 — hover 아님, **탭(클릭)으로 열림**(모바일 발견성). 재탭·바깥 탭·ESC 로 닫힘.
- * label 은 접근성용(aria-label), text 는 툴팁 본문. 문구는 i18n(messages)에서 주입한다.
+ * ⓘ 탭 툴팁 — hover 아님, **탭(클릭)으로 열림**(모바일 발견성). 재탭·바깥 탭·ESC·스크롤로 닫힘.
+ * 팝오버는 트리거 위치를 측정해 `fixed` 로 렌더하고 좌우를 뷰포트 안으로 클램프한다
+ * (모바일/PC 어디서도 화면 밖으로 삐져나가지 않음). 배경은 완전 불투명.
  */
 export function InfoTooltip({ label, text }: { label: string; text: string }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    const place = () => {
+      const b = btnRef.current?.getBoundingClientRect();
+      if (!b) return;
+      const margin = 8;
+      const width = Math.min(240, window.innerWidth - margin * 2); // 15rem
+      const left = Math.max(margin, Math.min(b.left, window.innerWidth - width - margin));
+      setPos({ top: b.bottom + 6, left, width });
+    };
+    place();
+    const close = () => setOpen(false);
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (btnRef.current?.contains(e.target as Node) || popRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
     document.addEventListener('click', onDoc);
     document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', close, true);
     return () => {
       document.removeEventListener('click', onDoc);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', close, true);
     };
   }, [open]);
 
   return (
-    <span ref={ref} className="relative inline-flex">
+    <span className="inline-flex">
       <button
+        ref={btnRef}
         type="button"
         aria-label={label}
         aria-expanded={open}
@@ -43,12 +62,14 @@ export function InfoTooltip({ label, text }: { label: string; text: string }) {
       >
         ⓘ
       </button>
-      {open && (
+      {open && pos && (
         <span
+          ref={popRef}
           role="tooltip"
           data-testid="info-tooltip-content"
-          className="absolute left-0 top-6 z-30 w-60 rounded-lg border border-border bg-card p-3 text-xs leading-relaxed text-foreground/85 shadow-lg"
           onClick={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+          className="z-[70] rounded-lg border border-border bg-card p-3 text-xs leading-relaxed text-foreground shadow-xl"
         >
           {text}
         </span>

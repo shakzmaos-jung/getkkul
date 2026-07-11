@@ -8,8 +8,24 @@ import ContentQA from '@/components/feed/ContentQA';
 import { setVideoLength, setContentFeedback } from '@/app/feed/actions';
 import { hms, computeReading } from '@/lib/summary/reading';
 import { formatKstDateTime } from '@/lib/time';
-import { MODE_LABELS, type LengthMode } from '@/lib/summary/format';
+import { type LengthMode } from '@/lib/summary/format';
+import { messages } from '@/lib/i18n';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import {
+  VIEW_ENUM,
+  viewContent,
+  viewAvailable,
+  resolveInitialView,
+  type CardView,
+} from '@/lib/feed/card-views';
 import type { ModeSummary, FeedbackRating } from '@/lib/feed/map-digests';
+
+const CV = messages.feed.cardViews;
+const VIEWS: { view: CardView; label: string }[] = [
+  { view: 'simple', label: CV.simple },
+  { view: 'detail', label: CV.detail },
+  { view: 'insight', label: CV.insight },
+];
 
 interface Props {
   videoId: string;
@@ -43,13 +59,7 @@ function Bullets({ items }: { items: string[] }) {
   );
 }
 
-const MODES: { mode: LengthMode; label: string }[] = [
-  { mode: 'short', label: MODE_LABELS.short },
-  { mode: 'normal', label: MODE_LABELS.normal },
-  { mode: 'long', label: MODE_LABELS.long },
-];
-
-// 길이 전환 시 인디케이터 이동 시간(ms). 이동 완료 후 본문 반영.
+// 뷰 전환 시 인디케이터 이동 시간(ms). 이동 완료 후 본문 반영.
 const SLIDE_MS = 150;
 
 /** published_at → KST yyyy-mm-dd (딥링크 date 파라미터용). */
@@ -113,8 +123,11 @@ export default function SummaryCard({
   const showToast = useToast();
   // 영상 길이: {n}시간 {n}분 {n}초(정확).
   const duration = durationSeconds && durationSeconds > 0 ? hms(durationSeconds) : '';
-  const [mode, setMode] = useState<LengthMode>(initialMode); // 본문에 반영되는 길이
-  const [visual, setVisual] = useState<LengthMode>(initialMode); // 인디케이터/강조(즉시 이동)
+
+  // 초기 뷰: pref/global enum → 뷰(미가용이면 첫 제공 뷰).
+  const startView = resolveInitialView(summaries, initialMode);
+  const [view, setView] = useState<CardView>(startView); // 본문에 반영되는 뷰
+  const [visual, setVisual] = useState<CardView>(startView); // 인디케이터(즉시 이동)
   const [, startTransition] = useTransition();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -122,23 +135,21 @@ export default function SummaryCard({
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
-  const shown: ModeSummary =
-    summaries[mode] ?? summaries.normal ?? summaries.short ?? summaries.long ?? { coreText: '' };
-  const hasBody = shown.coreText.trim().length > 0;
+  const { bullets, text: viewText } = viewContent(summaries, view);
+  const hasBody = viewText.trim().length > 0;
+  const detailUnavailable = !viewAvailable(summaries, 'detail'); // 자세히·인사이트 미제공 안내용
 
-  // 적응형 깊이: 제공되는 가장 깊은 모드(미제공 안내 문구용, AC-C1.3).
-  const highestProvided = [...MODES].reverse().find((o) => summaries[o.mode] && !summaries[o.mode]!.notProvided);
-
-  // 피드백(👍/👎): 현재 모드 기준. 낙관적 로컬 상태(재탭 취소·변경, AC-F1.1).
+  // 피드백(👍/👎): 자세히·인사이트는 같은 long 요약 → enum 기준(공유). 낙관적 로컬 상태.
+  const fbEnum = VIEW_ENUM[view];
   const [fb, setFb] = useState<Partial<Record<LengthMode, FeedbackRating>>>(feedback);
   function rate(r: FeedbackRating) {
-    const next: FeedbackRating | null = fb[mode] === r ? null : r;
-    setFb((prev) => ({ ...prev, [mode]: next ?? undefined }));
-    startTransition(() => setContentFeedback(videoId, mode, next));
+    const next: FeedbackRating | null = fb[fbEnum] === r ? null : r;
+    setFb((prev) => ({ ...prev, [fbEnum]: next ?? undefined }));
+    startTransition(() => setContentFeedback(videoId, fbEnum, next));
   }
 
-  // 시간 절약 어필: 표시 본문(coreText) 글자수 → 읽는 시간, 영상 대비 압축률(홈 목록과 공용 계산).
-  const { readText, compressionPct } = computeReading(shown.coreText, durationSeconds);
+  // 시간 절약 어필: 현재 뷰 텍스트 글자수 → 읽는 시간, 영상 대비 압축률.
+  const { readText, compressionPct } = computeReading(viewText, durationSeconds);
 
   // 복사/표시 공용 메타(플레인 텍스트). 압축률은 앞 파이프 없이 띄워 붙인다.
   const metaBase = [duration && `원본 영상 ${duration}`, hasBody && `읽는 시간 ${readText}`]
@@ -147,16 +158,16 @@ export default function SummaryCard({
   const metaText =
     compressionPct !== null ? `${metaBase}  (압축률 ${compressionPct.toFixed(1)}%)` : metaBase;
 
-  const visualIndex = Math.max(0, MODES.findIndex((o) => o.mode === visual));
+  const visualIndex = Math.max(0, VIEWS.findIndex((o) => o.view === visual));
 
-  function pick(m: LengthMode) {
-    if (m === visual) return;
-    setVisual(m); // 인디케이터 즉시 이동(0.15초 슬라이드)
+  function pick(v: CardView) {
+    if (v === visual) return;
+    setVisual(v); // 인디케이터 즉시 이동(0.15초 슬라이드)
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      // 이동 완료 후 본문 반영 + 저장.
-      setMode(m);
-      startTransition(() => setVideoLength(videoId, m));
+      // 이동 완료 후 본문 반영 + pref 저장(enum).
+      setView(v);
+      startTransition(() => setVideoLength(videoId, VIEW_ENUM[v]));
     }, SLIDE_MS);
   }
 
@@ -173,7 +184,7 @@ export default function SummaryCard({
       publishedAt ? `업데이트 ${formatKstDateTime(publishedAt)}` : '',
       metaText,
     ].filter(Boolean);
-    const body = shown.coreText;
+    const body = viewText;
     // 본문 마지막 줄에서 한 줄 띄우고 마케팅 훅.
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const hook = `Powered by 겟꿀\n유튜브 콘텐츠를 꿀같이 압축해 당신의 소중한 시간을 절약해드립니다\n\n지금 시간 절약하러 가기 -> ${origin}/login`;
@@ -275,10 +286,10 @@ export default function SummaryCard({
         </div>
       </div>
 
-      {/* 길이 선택: 카드 폭 전체 균등 3분할 + 슬라이드 인디케이터(0.15초) */}
+      {/* 뷰 선택(간단히/자세히/인사이트): 균등 3분할 + 슬라이드 인디케이터(0.15초) */}
       <div
         role="group"
-        aria-label="요약 길이"
+        aria-label="요약 보기"
         className="relative mt-3 grid grid-cols-3 rounded-lg border border-border bg-card p-0.5"
       >
         <span
@@ -286,16 +297,16 @@ export default function SummaryCard({
           className="pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 rounded-md bg-foreground transition-transform duration-150 ease-out"
           style={{ width: 'calc((100% - 0.25rem) / 3)', transform: `translateX(${visualIndex * 100}%)` }}
         />
-        {MODES.map((o) => {
-          const active = o.mode === visual;
-          const disabled = !summaries[o.mode];
+        {VIEWS.map((o) => {
+          const active = o.view === visual;
+          const disabled = !viewAvailable(summaries, o.view);
           return (
             <button
-              key={o.mode}
+              key={o.view}
               type="button"
               disabled={disabled}
-              data-testid={`card-length-${o.mode}`}
-              onClick={() => pick(o.mode)}
+              data-testid={`card-view-${o.view}`}
+              onClick={() => pick(o.view)}
               className={`relative z-10 rounded-md py-1.5 text-xs font-medium transition-colors disabled:opacity-40 ${
                 active ? 'text-background' : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -334,60 +345,40 @@ export default function SummaryCard({
         </p>
       )}
 
-      {/* 본문: 미제공 안내 / 심층 2단락(핵심 사실·인사이트 불릿) / 요점·핵심 불릿 / 폴백 */}
-      {shown.notProvided ? (
-        <p
-          data-testid="summary-not-provided"
-          className="mt-3 rounded-lg bg-muted/50 px-3 py-4 text-sm text-muted-foreground"
-        >
-          이 영상은 내용이 짧아 ‘{highestProvided?.label ?? MODE_LABELS.short}’까지만 제공해요.
-        </p>
-      ) : mode === 'long' && shown.long ? (
-        <div
-          data-testid="summary-body"
-          className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-foreground/80"
-        >
-          {shown.long.facts.length > 0 && (
-            <section data-testid="long-facts">
-              <h4 className="mb-1.5 text-xs font-semibold text-muted-foreground">핵심 사실</h4>
-              <Bullets items={shown.long.facts} />
-            </section>
-          )}
-          {shown.long.insights.length > 0 && (
-            <section data-testid="long-insights">
-              <h4 className="mb-1.5 text-xs font-semibold text-muted-foreground">맥락·인사이트</h4>
-              <Bullets items={shown.long.insights} />
-            </section>
-          )}
-        </div>
-      ) : shown.points && shown.points.length > 0 ? (
-        <div
-          data-testid="summary-body"
-          className="mt-3 text-sm leading-relaxed text-foreground/80"
-        >
-          <Bullets items={shown.points} />
+      {/* 본문: 현재 뷰(간단히=요점 불릿 / 자세히=핵심 사실 / 인사이트=맥락·인사이트) */}
+      {bullets.length > 0 ? (
+        <div data-testid="summary-body" className="mt-3 text-sm leading-relaxed text-foreground/80">
+          <Bullets items={bullets} />
         </div>
       ) : (
         <p
           data-testid="summary-body"
           className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground/80"
         >
-          {shown.coreText}
+          {viewText}
         </p>
       )}
 
-      {/* 피드백: 이 요약 어때요? 👍/👎 (제공 모드에서만) */}
-      {!shown.notProvided && (
+      {/* 자세히·인사이트 미제공(콘텐츠 빈약) 안내 */}
+      {detailUnavailable && (
+        <p data-testid="views-unavailable" className="mt-2 text-xs text-muted-foreground">
+          {CV.unavailable}
+        </p>
+      )}
+
+      {/* 피드백: 이 요약 어때요? 👍/👎 + 활용 안내 툴팁 */}
+      {hasBody && (
         <div className="mt-4 flex items-center gap-1.5 border-t border-border pt-3">
-          <span className="mr-1 text-xs text-muted-foreground">이 요약 어때요?</span>
+          <span className="mr-0.5 text-xs text-muted-foreground">{CV.feedbackTitle}</span>
+          <InfoTooltip label={CV.feedbackTooltipLabel} text={CV.feedbackTooltip} />
           <button
             type="button"
             onClick={() => rate('up')}
             aria-label="좋아요"
-            aria-pressed={fb[mode] === 'up'}
+            aria-pressed={fb[fbEnum] === 'up'}
             data-testid="feedback-up"
-            className={`inline-flex h-7 items-center gap-1 rounded-lg px-2 text-sm transition-colors hover:bg-muted ${
-              fb[mode] === 'up' ? 'bg-accent/15 text-accent' : 'text-muted-foreground hover:text-foreground'
+            className={`ml-1 inline-flex h-7 items-center gap-1 rounded-lg px-2 text-sm transition-colors hover:bg-muted ${
+              fb[fbEnum] === 'up' ? 'bg-accent/15 text-accent' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             👍
@@ -396,10 +387,10 @@ export default function SummaryCard({
             type="button"
             onClick={() => rate('down')}
             aria-label="별로예요"
-            aria-pressed={fb[mode] === 'down'}
+            aria-pressed={fb[fbEnum] === 'down'}
             data-testid="feedback-down"
             className={`inline-flex h-7 items-center gap-1 rounded-lg px-2 text-sm transition-colors hover:bg-muted ${
-              fb[mode] === 'down' ? 'bg-danger/15 text-danger' : 'text-muted-foreground hover:text-foreground'
+              fb[fbEnum] === 'down' ? 'bg-danger/15 text-danger' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             👎
