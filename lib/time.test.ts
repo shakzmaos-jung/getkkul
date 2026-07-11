@@ -2,14 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { SEND_SLOTS_KST, SLOT_CODES, slotToCode, formatKst, nextSendSlot } from './time';
 
 describe('time util (H1 타임존)', () => {
-  it('발송 슬롯은 KST 07:30 / 11:30 / 17:30 3개다', () => {
-    expect(SEND_SLOTS_KST).toEqual(['07:30', '11:30', '17:30']);
+  it('발송 슬롯은 KST 07:30 / 11:30 / 17:30 / 21:30 4개다', () => {
+    expect(SEND_SLOTS_KST).toEqual(['07:30', '11:30', '17:30', '21:30']);
   });
 
   it('슬롯을 DB enum 코드로 변환한다', () => {
     expect(slotToCode('07:30')).toBe('0730');
     expect(slotToCode('11:30')).toBe('1130');
     expect(slotToCode('17:30')).toBe('1730');
+    expect(slotToCode('21:30')).toBe('2130');
     // 변환 결과가 정의된 코드 집합에 속한다
     for (const slot of SEND_SLOTS_KST) {
       expect(SLOT_CODES).toContain(slotToCode(slot));
@@ -40,8 +41,10 @@ describe('nextSendSlot (다음 발송 시각, KST)', () => {
     ['KST 09:00 → 11:30', '2026-07-05T00:00:00Z', '11:30'],
     ['KST 11:30 정각 → 17:30', '2026-07-05T02:30:00Z', '17:30'],
     ['KST 12:00 → 17:30', '2026-07-05T03:00:00Z', '17:30'],
-    ['KST 17:30 정각 → 07:30(익일)', '2026-07-05T08:30:00Z', '07:30'],
-    ['KST 20:00 → 07:30(익일)', '2026-07-05T11:00:00Z', '07:30'],
+    ['KST 17:30 정각 → 21:30', '2026-07-05T08:30:00Z', '21:30'],
+    ['KST 20:00 → 21:30', '2026-07-05T11:00:00Z', '21:30'],
+    ['KST 21:30 정각 → 07:30(익일)', '2026-07-05T12:30:00Z', '07:30'],
+    ['KST 23:00 → 07:30(익일)', '2026-07-05T14:00:00Z', '07:30'],
   ];
 
   for (const [label, iso, expected] of cases) {

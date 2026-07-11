@@ -6,13 +6,15 @@ export interface PushSlotSettings {
   push_slot_0730: boolean;
   push_slot_1130: boolean;
   push_slot_1730: boolean;
+  push_slot_2130: boolean;
 }
 
 /** 해당 슬롯의 푸시 토글이 켜져 있는가. */
 export function slotPushEnabled(s: PushSlotSettings, slot: SlotCode): boolean {
   if (slot === '0730') return s.push_slot_0730;
   if (slot === '1130') return s.push_slot_1130;
-  return s.push_slot_1730;
+  if (slot === '1730') return s.push_slot_1730;
+  return s.push_slot_2130;
 }
 
 /** 슬롯 푸시 발송 대상 필터링(AC-E1.1): 슬롯 토글 on + 유효 구독 보유 사용자만. */

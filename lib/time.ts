@@ -7,12 +7,12 @@
 
 export const KST_TIME_ZONE = 'Asia/Seoul';
 
-/** 하루 3회 발송 슬롯 (KST 고정, PRD §9 / SSR AC-E2.1). */
-export const SEND_SLOTS_KST = ['07:30', '11:30', '17:30'] as const;
+/** 하루 4회 발송 슬롯 (KST 고정, PRD §9 / SSR AC-E2.1). */
+export const SEND_SLOTS_KST = ['07:30', '11:30', '17:30', '21:30'] as const;
 export type SendSlot = (typeof SEND_SLOTS_KST)[number];
 
 /** deliveries.slot enum 값 (SSR G). */
-export const SLOT_CODES = ['0730', '1130', '1730'] as const;
+export const SLOT_CODES = ['0730', '1130', '1730', '2130'] as const;
 export type SlotCode = (typeof SLOT_CODES)[number];
 
 /** 'HH:MM' KST 슬롯을 DB enum 코드로 변환한다. */

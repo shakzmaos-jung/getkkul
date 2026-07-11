@@ -32,8 +32,13 @@ export function selectDigestVideos(
   };
 }
 
-/** 슬롯별 KST 분(minute-of-day). 07:30=450 / 11:30=690 / 17:30=1050. */
-const SLOT_MINUTES: Record<SlotCode, number> = { '0730': 450, '1130': 690, '1730': 1050 };
+/** 슬롯별 KST 분(minute-of-day). 07:30=450 / 11:30=690 / 17:30=1050 / 21:30=1290. */
+const SLOT_MINUTES: Record<SlotCode, number> = {
+  '0730': 450,
+  '1130': 690,
+  '1730': 1050,
+  '2130': 1290,
+};
 
 /**
  * 발송 슬롯 허용 오차(분). pg_cron 정시 디스패치(+1-2분)는 통과하고,
@@ -42,8 +47,8 @@ const SLOT_MINUTES: Record<SlotCode, number> = { '0730': 450, '1130': 690, '1730
 export const SLOT_TOLERANCE_MIN = 10;
 
 /**
- * 현재 시각(KST)에서 가장 가까운 발송 슬롯과 그 거리를 판정한다(07:30/11:30/17:30).
- * 최근접 방식이라 '시' 버킷팅의 경계 오라벨(11:00/17:00)이 없다.
+ * 현재 시각(KST)에서 가장 가까운 발송 슬롯과 그 거리를 판정한다(07:30/11:30/17:30/21:30).
+ * 최근접 방식이라 '시' 버킷팅의 경계 오라벨이 없다.
  * withinWindow=false 면 off-slot 실행 → 호출자가 발송을 스킵한다.
  */
 export function resolveDeliverySlot(now: Date): {

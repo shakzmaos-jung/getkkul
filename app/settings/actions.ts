@@ -139,6 +139,7 @@ export async function updatePushSlots(
       push_slot_0730: formData.get('push_0730') != null,
       push_slot_1130: formData.get('push_1130') != null,
       push_slot_1730: formData.get('push_1730') != null,
+      push_slot_2130: formData.get('push_2130') != null,
     })
     .eq('user_id', user.id);
   if (error) return { error: '설정 저장에 실패했습니다.' };

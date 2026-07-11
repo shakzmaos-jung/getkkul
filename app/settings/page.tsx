@@ -26,7 +26,7 @@ export default async function SettingsPage() {
     supabase
       .from('user_settings')
       .select(
-        'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, skip_empty_push, skip_empty_email',
+        'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, push_slot_2130, skip_empty_push, skip_empty_email',
       )
       .eq('user_id', user.id)
       .maybeSingle(),
@@ -41,6 +41,7 @@ export default async function SettingsPage() {
     s0730: setting?.push_slot_0730 ?? false,
     s1130: setting?.push_slot_1130 ?? false,
     s1730: setting?.push_slot_1730 ?? false,
+    s2130: setting?.push_slot_2130 ?? false,
   };
   const skip = {
     push: setting?.skip_empty_push ?? true,

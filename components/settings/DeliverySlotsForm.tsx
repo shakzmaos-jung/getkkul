@@ -9,7 +9,7 @@ import { SLOT_CODES, SEND_SLOTS_KST, type SlotCode } from '@/lib/time';
 
 const initial: SettingsState = {};
 
-/** 수신할 발송 슬롯(07:30/11:30/17:30) 멀티 선택. 카드 선택 즉시 자동 저장. */
+/** 수신할 발송 슬롯(07:30/11:30/17:30/21:30) 멀티 선택. 카드 선택 즉시 자동 저장. */
 export default function DeliverySlotsForm({ current }: { current: SlotCode[] }) {
   const showToast = useToast();
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export default function DeliverySlotsForm({ current }: { current: SlotCode[] }) 
   }, initial);
 
   return (
-    <form action={formAction} className="grid grid-cols-3 gap-2">
+    <form action={formAction} className="grid grid-cols-2 gap-2">
       {SLOT_CODES.map((code, i) => (
         <label
           key={code}

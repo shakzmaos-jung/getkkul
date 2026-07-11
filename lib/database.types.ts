@@ -749,6 +749,7 @@ export type Database = {
           push_slot_0730: boolean
           push_slot_1130: boolean
           push_slot_1730: boolean
+          push_slot_2130: boolean
           skip_empty_email: boolean
           skip_empty_push: boolean
           summary_length: Database["public"]["Enums"]["summary_length"]
@@ -764,6 +765,7 @@ export type Database = {
           push_slot_0730?: boolean
           push_slot_1130?: boolean
           push_slot_1730?: boolean
+          push_slot_2130?: boolean
           skip_empty_email?: boolean
           skip_empty_push?: boolean
           summary_length?: Database["public"]["Enums"]["summary_length"]
@@ -779,6 +781,7 @@ export type Database = {
           push_slot_0730?: boolean
           push_slot_1130?: boolean
           push_slot_1730?: boolean
+          push_slot_2130?: boolean
           skip_empty_email?: boolean
           skip_empty_push?: boolean
           summary_length?: Database["public"]["Enums"]["summary_length"]
@@ -1080,7 +1083,7 @@ export type Database = {
       credit_source: "referrer" | "referee"
       credit_txn_kind: "grant" | "usage" | "expiry" | "forfeit"
       delivery_channel: "email" | "push"
-      delivery_slot: "0730" | "1130" | "1730"
+      delivery_slot: "0730" | "1130" | "1730" | "2130"
       delivery_status: "pending" | "sent" | "failed"
       failure_kind: "transient" | "permanent"
       referral_status: "pending" | "activated" | "void"
@@ -1224,7 +1227,7 @@ export const Constants = {
       credit_source: ["referrer", "referee"],
       credit_txn_kind: ["grant", "usage", "expiry", "forfeit"],
       delivery_channel: ["email", "push"],
-      delivery_slot: ["0730", "1130", "1730"],
+      delivery_slot: ["0730", "1130", "1730", "2130"],
       delivery_status: ["pending", "sent", "failed"],
       failure_kind: ["transient", "permanent"],
       referral_status: ["pending", "activated", "void"],

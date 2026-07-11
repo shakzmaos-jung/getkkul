@@ -54,7 +54,7 @@ export async function deliverAll(
   const { data: settingsRows } = await supabase
     .from('user_settings')
     .select(
-      'user_id, delivery_email, delivery_slots, push_slot_0730, push_slot_1130, push_slot_1730, skip_empty_push, skip_empty_email',
+      'user_id, delivery_email, delivery_slots, push_slot_0730, push_slot_1130, push_slot_1730, push_slot_2130, skip_empty_push, skip_empty_email',
     );
   const settingsByUser = new Map((settingsRows ?? []).map((s) => [s.user_id, s]));
 
@@ -106,6 +106,7 @@ export async function deliverAll(
       push_slot_0730: setting?.push_slot_0730 ?? false,
       push_slot_1130: setting?.push_slot_1130 ?? false,
       push_slot_1730: setting?.push_slot_1730 ?? false,
+      push_slot_2130: setting?.push_slot_2130 ?? false,
     };
     const pushActive = !!pushNotifier && subs.length > 0 && slotPushEnabled(pushSettings, slot);
 
