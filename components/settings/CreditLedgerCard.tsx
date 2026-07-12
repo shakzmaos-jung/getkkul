@@ -48,9 +48,9 @@ export default function CreditLedgerCard({
       <Card className="p-5">
         <h3 className="mb-2 text-sm font-semibold">크레딧 현황</h3>
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="누적 획득 크레딧" value={formatWon(totalEarned)} testId="credit-earned" />
-          <Stat label="누적 사용 크레딧" value={formatWon(totalUsed)} testId="credit-used" />
-          <Stat label="현재 잔여 크레딧" value={formatWon(balance)} testId="credit-balance" />
+          <Stat label="누적 획득" value={formatWon(totalEarned)} testId="credit-earned" />
+          <Stat label="누적 사용" value={formatWon(totalUsed)} testId="credit-used" />
+          <Stat label="현재 잔여" value={formatWon(balance)} testId="credit-balance" />
         </div>
         {expiringSoon > 0 && (
           <p className="mt-2 text-right text-xs text-danger" data-testid="credit-expiring">
