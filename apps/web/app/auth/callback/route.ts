@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { safeNextPath } from '@/lib/supabase/route-access';
 
 /**
  * Google OAuth 콜백 (SSR REQ-A1). code 를 세션으로 교환하고, 추천 귀속을 처리하는
@@ -9,7 +10,8 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  // next 는 공격자 제어 가능 → 앱 내부 경로로만 강제(오픈리다이렉트 방어).
+  const next = safeNextPath(searchParams.get('next'));
 
   if (code) {
     const supabase = await createClient();

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { linkReferralOnSignup } from '@/lib/referral/link';
 import { REFERRAL_COOKIE } from '@/lib/referral/cookie';
+import { safeNextPath } from '@/lib/supabase/route-access';
 
 /**
  * 로그인 직후 추천 귀속 지점 (REQ-B). OAuth·이메일 OTP 두 경로 모두 여기로 모여서
@@ -15,7 +16,8 @@ const NEW_ACCOUNT_WINDOW_MS = 30 * 60 * 1000;
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const next = searchParams.get('next') ?? '/';
+  // next 는 공격자 제어 가능 → 앱 내부 경로로만 강제(오픈리다이렉트 방어).
+  const next = safeNextPath(searchParams.get('next'));
   const res = NextResponse.redirect(`${origin}${next}`);
 
   try {

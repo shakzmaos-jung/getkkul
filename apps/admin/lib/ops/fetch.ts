@@ -1,5 +1,6 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { maskEmail } from '@getkkul/domain';
 import type { OpsData } from './types';
 
@@ -8,6 +9,7 @@ import type { OpsData } from './types';
  * 반환한다 → 페이지/브라우저엔 마스킹된 값만 전달(개인정보 최소 노출).
  */
 export async function fetchOpsData(digestLimit = 30): Promise<OpsData> {
+  await requireAdmin(); // 심층 방어: 미들웨어 우회 시에도 인가 재검증(구독자 PII 보호)
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc('get_ops_data', {
     p_digest_limit: digestLimit,

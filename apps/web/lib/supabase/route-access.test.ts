@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isPublicPath, shouldRedirectToLogin } from './route-access';
+import { isPublicPath, shouldRedirectToLogin, safeNextPath } from './route-access';
 
 describe('route-access (AC-A1.1 보호 라우트)', () => {
   it('공개 경로(/login, /auth/*, /r/*)는 public 으로 판정한다', () => {
@@ -35,5 +35,39 @@ describe('route-access (AC-A1.1 보호 라우트)', () => {
     expect(shouldRedirectToLogin(true, '/')).toBe(false);
     expect(shouldRedirectToLogin(true, '/dashboard')).toBe(false);
     expect(shouldRedirectToLogin(true, '/login')).toBe(false);
+  });
+});
+
+describe('safeNextPath (오픈리다이렉트 방어)', () => {
+  it('앱 내부 절대경로는 그대로 통과시킨다', () => {
+    expect(safeNextPath('/')).toBe('/');
+    expect(safeNextPath('/feed')).toBe('/feed');
+    expect(safeNextPath('/settings?tab=email')).toBe('/settings?tab=email');
+    expect(safeNextPath('/feed#top')).toBe('/feed#top');
+  });
+
+  it('빈 값·null·undefined 는 루트로 폴백한다', () => {
+    expect(safeNextPath(null)).toBe('/');
+    expect(safeNextPath(undefined)).toBe('/');
+    expect(safeNextPath('')).toBe('/');
+  });
+
+  it('프로토콜상대·절대 URL·백슬래시 트릭을 차단한다', () => {
+    expect(safeNextPath('//evil.com')).toBe('/');
+    expect(safeNextPath('https://evil.com')).toBe('/');
+    expect(safeNextPath('/\\evil.com')).toBe('/');
+    expect(safeNextPath('/foo\\bar')).toBe('/');
+    expect(safeNextPath('javascript:alert(1)')).toBe('/');
+  });
+
+  it('선행 슬래시가 없으면 루트로 폴백한다', () => {
+    expect(safeNextPath('feed')).toBe('/');
+    expect(safeNextPath('..%2Fevil')).toBe('/');
+  });
+
+  it('제어문자·공백이 섞이면 루트로 폴백한다', () => {
+    expect(safeNextPath('/\t//evil')).toBe('/');
+    expect(safeNextPath('/ /evil')).toBe('/');
+    expect(safeNextPath('/foo\nbar')).toBe('/');
   });
 });
