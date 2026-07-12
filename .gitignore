@@ -37,6 +37,8 @@ yarn-error.log*
 
 # claude code local session settings (not shared)
 .claude/settings.local.json*
+# spec-sync 대기 플래그 (PostToolUse 훅이 남기는 관찰용, 세션 로컬)
+.claude/spec-sync-pending.log
 
 # vercel
 .vercel

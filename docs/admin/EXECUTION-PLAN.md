@@ -163,6 +163,7 @@ admin_users(user_id uuid PK refs auth.users, role text check in ('master','sub_m
 
 ### M0 — 모노레포 전환 · 🚩 에스컬레이션(구조 승인)
 - **산출물**: npm workspaces. `apps/web`(기존 앱 이관) + `packages/db`(supabase 클라이언트+`database.types`) · `packages/domain`(enum·시간·멤버십·레퍼럴·가격표 순수로직) · `packages/ui`(Linear 토큰+공용 컴포넌트) · `packages/config`(eslint/ts/tailwind 프리셋). `apps/admin` 빈 스캐폴드.
+  - **갱신(ADR-A7, 2026-07-12)**: 위 packages 내용은 M0에 **이관하지 않는다** — 전부 빈 스캐폴드로 생성하고, 공용 코드 추출은 소비 마일스톤에서 JIT(실패테스트 우선, 회귀 0). `apps/web`는 verbatim 이동(내부 import 0). Turborepo 미도입.
 - **불변 조건**: 기존 270+ 테스트·lint·typecheck·build 전부 green(회귀 0). 파이프라인/발송 스크립트(`tsx scripts/*`) 경로 정상.
 - **HOTL**: 착수 전 **디렉터리·패키지 경계 계획을 제시하고 승인** 후 실행. (Turborepo 추가는 선택 — devDep 추가라 **에스컬레이션**.)
 - **Vercel**: web/admin 두 프로젝트 root directory 분리(문서화만, 배포 설정은 사용자 수행).
