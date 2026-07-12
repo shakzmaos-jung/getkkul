@@ -8,10 +8,15 @@ import { vttToText } from '@/lib/pipeline/vtt';
 import { isBotBlockError } from '@/lib/pipeline/health';
 import type { VideoRef } from '@/lib/pipeline/fetch-content';
 
-// 이번 실행에서 관찰된 유튜브 봇차단(쿠키 만료) 횟수. 파이프라인이 만료 알림 판단에 사용.
+// 이번 acquire 런에서 관찰된 유튜브 봇차단(쿠키 만료) 횟수. acquire 가 런 결과(botBlocks)로
+// 집계해 상위(pipeline)에 전달하므로, 이 유튜브 특화 개념은 acquire 경계 안에서만 소비된다.
 let botBlockCount = 0;
 export function getBotBlockCount(): number {
   return botBlockCount;
+}
+/** acquire 런 시작 시 카운터를 0으로 초기화한다(런 격리 — 한 프로세스에서 여러 번 호출돼도 정확).*/
+export function resetBotBlockCount(): void {
+  botBlockCount = 0;
 }
 
 /**
@@ -32,7 +37,7 @@ function cookieArgs(): string[] {
 }
 
 // 우선순위 언어. 한 번에 여러 언어를 요청하면 자막 다운로드가 폭주해 YouTube 429 를
-// 유발하므로, 언어를 하나씩 순차 시도하고 첫 성공에서 멈춘다.
+// 유발하므로, 언어를 하나씩 순차 시도하고 첫 성공에서 멈추다.
 const CAPTION_LANGS = ['ko', 'en'];
 
 async function captionForLang(video: VideoRef, lang: string): Promise<string | null> {
@@ -133,7 +138,10 @@ export async function whisperAudio(video: VideoRef): Promise<string> {
       body: form,
     });
     if (!res.ok) {
-      throw new Error(`Whisper ${res.status}: ${await res.text()}`);
+      // 업스트림 응답 본문 전체를 로그로 흘리지 않도록 상한(200자)으로 제한.
+      // 413 "maximum content size" 등 실패 분류(retry-policy)에 필요한 마커는 앞부분에 있어 보존됨.
+      const detail = (await res.text()).slice(0, 200);
+      throw new Error(`Whisper ${res.status}: ${detail}`);
     }
     const json = (await res.json()) as { text: string };
     return json.text;
