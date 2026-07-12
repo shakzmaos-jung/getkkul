@@ -62,3 +62,36 @@
 
 <!-- spec-sync: M0 done @ a5fef5f -->
 
+### [2026-07-12T08:17Z] M1 · REQ-AU-2 / AC-AU-2c + REQ-AU-3 (초대 범위)
+- 분류: 결정(intentional)
+- 어긋난 내용: SSR 트레이스는 AC-AU-2c(master만 초대/취소)·REQ-AU-3(초대 플로우)를 M1에 매핑했으나, 구현은 **역할 게이트(master 전용 액션 차단)만** 포함하고 **초대 생성 플로우(admin_invitations)는 후속으로 미룸**. 증거: `apps/admin/lib/auth/access.ts`(hasRole/requiredRole), 초대 UI/테이블 없음.
+- 원인/근거: 사용자 결정(2026-07-12) — 초기 admin 은 master(Chess) 단독이라 sub_master 초대 불요. SSR §5.1(admin_users만)과도 일치. admin_invitations 는 §5.1 범위 밖 추가라 신중히.
+- 조치: AC-AU-2c 의 "역할 인가"는 M1 충족(access.test), 초대 플로우(REQ-AU-3)는 후속 마일스톤(admin_invitations 스키마 도입 시 에스컬레이션).
+- 트레이서빌리티: `apps/admin/lib/auth/access.test.ts` — 역할 게이트(master⊇sub_master, requiredRole=master→403) 검증.
+- 커밋: (M1, 본 PR)
+
+### [2026-07-12T08:17Z] M1 · REQ-AU-2 (admin_users 조회 경로)
+- 분류: 결정(intentional) — 설계 명료화
+- 어긋난 내용: 미들웨어가 admin_users 소속을 **본인 세션(anon) self-read**(RLS 정책)로 조회한다. service_role 미사용.
+- 원인/근거: RLS self-read(user_id=auth.uid())가 본인 행만 허용 → 최소권한. service_role 은 관제 read-layer RPC(M2+)용이며 미들웨어엔 두지 않음(ADR-A2 일치, IDOR 표면 축소).
+- 조치: 없음(스펙 의도에 부합, 명료화 기록).
+- 트레이서빌리티: `apps/admin/lib/supabase/session.ts`.
+- 커밋: (M1, 본 PR)
+
+### [2026-07-12T08:17Z] M1 · (어드민 DB 타입)
+- 분류: 결정(intentional)
+- 어긋난 내용: 어드민이 전체 generated database.types 대신 **admin_users 최소 타입**만 둠(`apps/admin/lib/database.types.ts`).
+- 원인/근거: 전략 A(skeleton-first, ADR-A7). M1 은 admin_users 만 조회. 전체 타입·packages/db 통합은 M2 관제 RPC 도입 시 JIT.
+- 조치: M2 에서 generated types 생성, 필요 시 packages/db 로 통합.
+- 커밋: (M1, 본 PR)
+
+### [2026-07-12T08:17Z] M1 · AC-DS-2a (컴포넌트 프리미티브)
+- 분류: 드리프트(경미)
+- 어긋난 내용: AC-DS-2a 는 카드/버튼/배지 컴포넌트 스펙 스냅샷을 언급하나, M1 은 **토큰 스냅샷(registry.test) + 셸에서의 토큰 유틸 사용**으로 충족하고 공식 Card/Button/Badge 프리미티브+스냅샷은 미구현.
+- 원인/근거: M1 셸은 빈 상태 중심이라 프리미티브 수요가 적음. 토큰 계층(AC-DS-1a: raw 값 대신 토큰 유틸 참조)은 충족.
+- 조치: 공용 컴포넌트 프리미티브(+스냅샷)는 위젯이 실제 필요한 M2+에서 packages/ui 에 추가.
+- 커밋: (M1, 본 PR)
+
+<!-- spec-sync: M1 done @ feat/m1-admin-shell-auth -->
+
+

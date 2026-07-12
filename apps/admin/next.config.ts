@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
-// M0 scaffold — intentionally empty. The admin shell (Linear tokens, auth gate,
-// admin_users middleware, 8 monitoring modules) is built from M1 onward.
-const nextConfig: NextConfig = {};
+// @getkkul/ui 는 TS 소스 워크스페이스 패키지 → Next 가 트랜스파일하도록 등록.
+const nextConfig: NextConfig = {
+  transpilePackages: ["@getkkul/ui"],
+};
 
 export default nextConfig;

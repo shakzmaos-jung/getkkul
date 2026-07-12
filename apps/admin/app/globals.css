@@ -1,0 +1,15 @@
+@import "tailwindcss";
+/* Linear 디자인 토큰(단일 소스 = @getkkul/ui). data-theme="linear" 에서 활성. */
+@import "@getkkul/ui/theme.css";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
