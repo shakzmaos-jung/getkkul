@@ -78,7 +78,7 @@ export async function acquireTranscripts(
     .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
     // 멤버십 컷오프(2026-07-10 KST) 이전 업로드는 비조회라 전사하지 않음(NULL 은 미상이라 통과).
     .or(`published_at.gte.${CONTENT_CUTOFF_PUBLISHED_AT},published_at.is.null`)
-    // 최신 영상 우선(사용자가 곷바로 보는 것). 폭주로 백로그가 쌓여도 오늘 콘텐츠가 굶지 않도록.
+    // 최신 영상 우선(사용자가 곧바로 보는 것). 폭주로 백로그가 쌓여도 오늘 콘텐츠가 굶지 않도록.
     .order('published_at', { ascending: false, nullsFirst: false })
     .limit(limit);
   if (error) throw new Error(`pending 조회 실패: ${error.message}`);
