@@ -1,50 +1,21 @@
 {
-  "name": "getkkul",
-  "version": "0.7.0",
+  "name": "getkkul-monorepo",
+  "version": "0.0.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "pipeline": "tsx scripts/pipeline.ts",
-    "pipeline-check": "tsx scripts/pipeline-check.ts",
-    "deliver": "tsx scripts/deliver.ts",
-    "gen:oss-licenses": "node scripts/gen-oss-licenses.mjs"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
-    "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.110.0",
-    "fast-xml-parser": "^5.9.3",
-    "geist": "^1.7.2",
-    "next": "16.2.10",
-    "nodemailer": "^9.0.3",
-    "openai": "^6.45.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "web-push": "^3.6.7"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/node": "^20",
-    "@types/nodemailer": "^8.0.1",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/web-push": "^3.6.4",
-    "@vitejs/plugin-react": "^6.0.3",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "jsdom": "^29.1.1",
-    "tailwindcss": "^4",
-    "tsx": "^4.23.0",
-    "typescript": "^5",
-    "vitest": "^4.1.9"
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start -w apps/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "pipeline": "npm run pipeline -w apps/web",
+    "pipeline-check": "npm run pipeline-check -w apps/web",
+    "deliver": "npm run deliver -w apps/web",
+    "gen:oss-licenses": "npm run gen:oss-licenses -w apps/web"
   }
 }

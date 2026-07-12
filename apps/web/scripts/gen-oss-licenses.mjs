@@ -1,15 +1,18 @@
 // 오픈소스 라이선스 데이터 생성 (재현 가능 — 의존성 바뀌면 재실행만).
 //   실행: npm run gen:oss-licenses  (node_modules 설치 후)
 // license-checker 를 npx 로 실행(런타임/dev 의존성 추가 없음), 각 패키지의 LICENSE 전문을 읽어
-//   - lib/oss/oss-licenses.json  (고지 페이지가 import)
-//   - docs/oss-licenses.md        (사람용 표 + 카피레프트 요약)
+//   - apps/web/lib/oss/oss-licenses.json  (고지 페이지가 import)
+//   - docs/oss-licenses.md                 (사람용 표 + 카피레프트 요약, 리포 루트 유지)
 // 두 산출물을 생성한다.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// ROOT = apps/web (license-checker cwd + 페이지용 JSON 산출 기준).
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// REPO_ROOT = 모노레포 루트. 사람용 docs/ 는 거버넌스 문서로 리포 루트에 유지한다.
+const REPO_ROOT = resolve(ROOT, '..', '..');
 const LICENSE_CHECKER = 'license-checker@25.0.1'; // 재현성 위해 버전 고정
 const MAX_TEXT = 15000; // 라이선스 전문 패키지당 상한
 
@@ -94,8 +97,8 @@ const md = [
   '',
 ].join('\n');
 
-mkdirSync(resolve(ROOT, 'docs'), { recursive: true });
-writeFileSync(resolve(ROOT, 'docs/oss-licenses.md'), md);
+mkdirSync(resolve(REPO_ROOT, 'docs'), { recursive: true });
+writeFileSync(resolve(REPO_ROOT, 'docs/oss-licenses.md'), md);
 
-console.log(`[gen-oss-licenses] ${entries.length} packages → lib/oss/oss-licenses.json, docs/oss-licenses.md`);
+console.log(`[gen-oss-licenses] ${entries.length} packages → apps/web/lib/oss/oss-licenses.json, docs/oss-licenses.md`);
 console.log(`[gen-oss-licenses] 카피레프트 계열: ${copyleft.length}개 ${copyleft.map((e) => e.name + '(' + e.license + ')').join(', ')}`);
