@@ -49,6 +49,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Json;
       };
+      get_cost_breakdown: {
+        Args: { p_from?: string | null; p_to?: string | null };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
