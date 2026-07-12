@@ -1,0 +1,143 @@
+/* ============================================================================
+ * getkkul 관제 어드민 — 디자인 토큰 (Tailwind v4)
+ * 테마 = 시맨틱 토큰 값 세트. 컴포넌트는 시맨틱 토큰만 참조(raw 값 금지).
+ * 출시 테마는 `linear` 하나. 새 테마 추가 = [data-theme="x"] 블록 하나 추가(컴포넌트 수정 0).
+ *
+ * 사용: apps/admin/app/globals.css 또는 packages/ui/src/theme.css 로 이동.
+ *   <html data-theme="linear"> 에서 ThemeProvider 가 data-theme 를 제어.
+ *   폰트: Inter(next/font/google, Linear 최근접 무료 대체) + Geist Mono(이미 설치).
+ * ==========================================================================*/
+
+@import "tailwindcss";
+
+/* ---- 1) 시맨틱 토큰 (런타임 CSS 변수, 테마별 오버라이드) -------------------- */
+/* THEME: linear  (Linear 제품 표면 준용 — 다크 캔버스 + 4단 서피스 사다리 +
+   라벤더 프라이머리 + 헤어라인. 엘리베이션은 그림자 대신 서피스+헤어라인.) */
+[data-theme="linear"] {
+  /* surface ladder */
+  --canvas:            #010102;
+  --surface-1:         #0f1011;
+  --surface-2:         #141516;
+  --surface-3:         #18191a;
+  --surface-4:         #191a1b;
+  /* hairlines */
+  --hairline:          #23252a;
+  --hairline-strong:   #34343a;
+  --hairline-tertiary: #3e3e44;
+  /* brand accent (희소 사용: 브랜드마크·프라이머리 CTA·포커스·링크만) */
+  --primary:           #5e6ad2;
+  --primary-hover:     #828fff;
+  --primary-focus:     #5e69d1;
+  --on-primary:        #ffffff;
+  /* text ladder */
+  --ink:               #f7f8f8;
+  --ink-muted:         #d0d6e0;
+  --ink-subtle:        #8a8f98;
+  --ink-tertiary:      #62666d;
+  /* 관제 시맨틱 (Linear 마케팅엔 없지만 제품/관제 표면엔 필요 — 절제된 채도) */
+  --ok:                #27a644;
+  --warn:              #d9a531;
+  --crit:              #e5484d;
+  --info:              #5e6ad2;
+  --ok-dim:            color-mix(in oklab, var(--ok) 14%, transparent);
+  --warn-dim:          color-mix(in oklab, var(--warn) 14%, transparent);
+  --crit-dim:          color-mix(in oklab, var(--crit) 14%, transparent);
+  /* shape / radius */
+  --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px;
+  --radius-lg: 12px; --radius-xl: 16px; --radius-pill: 9999px;
+  /* elevation = 서피스 사다리 + 헤어라인. 그림자 없음. 포커스 링만 예외. */
+  --focus-ring: 0 0 0 2px color-mix(in oklab, var(--primary-focus) 50%, transparent);
+}
+
+/* ---- 2) Tailwind 토큰 매핑 (@theme inline → 런타임 변수 픽업) ---------------- */
+/* @theme inline 이라 유틸리티가 var() 를 인라인으로 emit → [data-theme] 전환 즉시 반영 */
+@theme inline {
+  --color-canvas:            var(--canvas);
+  --color-surface-1:         var(--surface-1);
+  --color-surface-2:         var(--surface-2);
+  --color-surface-3:         var(--surface-3);
+  --color-surface-4:         var(--surface-4);
+  --color-hairline:          var(--hairline);
+  --color-hairline-strong:   var(--hairline-strong);
+  --color-primary:           var(--primary);
+  --color-primary-hover:     var(--primary-hover);
+  --color-primary-focus:     var(--primary-focus);
+  --color-on-primary:        var(--on-primary);
+  --color-ink:               var(--ink);
+  --color-ink-muted:         var(--ink-muted);
+  --color-ink-subtle:        var(--ink-subtle);
+  --color-ink-tertiary:      var(--ink-tertiary);
+  --color-ok:                var(--ok);
+  --color-warn:              var(--warn);
+  --color-crit:              var(--crit);
+  --color-info:              var(--info);
+
+  --radius-xs:   var(--radius-xs);
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+
+  /* fonts — Inter(display/text 단일 보이스), Geist Mono(수치·ID) */
+  --font-sans: var(--font-inter), "SF Pro Display", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ---- 3) 베이스 & 컴포넌트 레이어 (Linear 규격) ------------------------------ */
+@layer base {
+  html, body { background: var(--canvas); color: var(--ink); }
+  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  /* Linear: display 600 + 음수 트래킹, body 400 */
+  h1, h2, h3 { font-weight: 600; letter-spacing: -0.02em; }
+  ::selection { background: color-mix(in oklab, var(--primary) 28%, transparent); }
+  *:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+}
+
+@layer components {
+  /* 카드: surface-1 + 1px hairline + radius-lg. 그림자 없음. */
+  .ct-card {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+  }
+  .ct-card--featured { background: var(--surface-2); border-color: var(--hairline-strong); }
+
+  /* 버튼: radius-md, 패딩 8×14 */
+  .ct-btn {
+    font-size: 14px; font-weight: 500; line-height: 1.2;
+    padding: 8px 14px; border-radius: var(--radius-md);
+    border: 1px solid var(--hairline); background: var(--surface-1); color: var(--ink);
+    cursor: pointer; transition: background .12s, border-color .12s;
+  }
+  .ct-btn:hover { border-color: var(--hairline-strong); }
+  .ct-btn--primary { background: var(--primary); border-color: transparent; color: var(--on-primary); }
+  .ct-btn--primary:hover { background: var(--primary-hover); }
+  .ct-btn--primary:active { background: var(--primary-focus); }
+
+  /* 상태 배지: pill + surface-2 + caption */
+  .ct-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 500; padding: 2px 8px;
+    border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink-muted);
+  }
+  .ct-badge--ok   { background: var(--ok-dim);   color: var(--ok);   }
+  .ct-badge--warn { background: var(--warn-dim); color: var(--warn); }
+  .ct-badge--crit { background: var(--crit-dim); color: var(--crit); }
+
+  /* eyebrow: 양수 트래킹 (Linear taxonomy 대비) */
+  .ct-eyebrow {
+    font-size: 13px; font-weight: 500; letter-spacing: 0.4px;
+    text-transform: uppercase; color: var(--ink-subtle);
+  }
+}
+
+/* ============================================================================
+ * 새 테마 추가법 (멀티테마 요구 — 아키텍처는 준비, 지금은 linear 만 등록):
+ *   1) 아래처럼 [data-theme="아이디"] { ... 시맨틱 토큰 값 ... } 블록 추가.
+ *   2) theme-registry.ts 의 THEMES 에 { id, label } 등록.
+ *   3) 끝. @theme inline 매핑·컴포넌트 클래스는 재사용(수정 0).
+ *
+ * 예) [data-theme="honey-control"] { --canvas:#0E1117; --primary:#F5A623; ... }
+ * ==========================================================================*/
