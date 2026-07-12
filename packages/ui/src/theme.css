@@ -1,0 +1,69 @@
+/* Linear 테마 CSS (EXECUTION-PLAN §3.2). packages/ui/src/theme/tokens.ts 를 미러링한다.
+ * (registry.test 의 css-sync 테스트가 값 일치를 강제한다.)
+ * 사용: 앱의 globals.css 에서 `@import "tailwindcss";` 뒤에 이 파일을 import 하고,
+ * <html data-theme="linear"> 로 활성화(ThemeProvider). 엘리베이션은 그림자 대신 서피스+헤어라인. */
+
+:root[data-theme="linear"] {
+  /* 서피스 사다리 */
+  --canvas: #010102;
+  --surface-1: #0f1011;
+  --surface-2: #141516;
+  --surface-3: #18191a;
+  --surface-4: #191a1b;
+  /* 헤어라인 */
+  --hairline: #23252a;
+  --hairline-strong: #34343a;
+  --hairline-tertiary: #3e3e44;
+  /* 프라이머리(라벤더) — 브랜드마크·CTA·포커스·링크 전용 */
+  --primary: #5e6ad2;
+  --primary-hover: #828fff;
+  --primary-focus: #5e69d1;
+  --on-primary: #ffffff;
+  /* 잉크 사다리 */
+  --ink: #f7f8f8;
+  --ink-muted: #d0d6e0;
+  --ink-subtle: #8a8f98;
+  --ink-tertiary: #62666d;
+  /* 관제 시맨틱 */
+  --ok: #27a644;
+  --warn: #d9a531;
+  --crit: #e5484d;
+  --info: #5e6ad2;
+  /* 라운드 */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+}
+
+/* 시맨틱 토큰 → Tailwind 유틸리티 매핑 (컴포넌트는 이 유틸/변수만 참조, raw 값 금지) */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-hairline-tertiary: var(--hairline-tertiary);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-focus: var(--primary-focus);
+  --color-on-primary: var(--on-primary);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-crit: var(--crit);
+  --color-info: var(--info);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+}

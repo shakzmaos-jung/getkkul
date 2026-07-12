@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`linear 토큰 값 (REQ-DS-2 / AC-DS-2a) > Linear 스펙 §3.2 값 스냅샷 1`] = `
+{
+  "color": {
+    "canvas": "#010102",
+    "crit": "#e5484d",
+    "hairline": "#23252a",
+    "hairlineStrong": "#34343a",
+    "hairlineTertiary": "#3e3e44",
+    "info": "#5e6ad2",
+    "ink": "#f7f8f8",
+    "inkMuted": "#d0d6e0",
+    "inkSubtle": "#8a8f98",
+    "inkTertiary": "#62666d",
+    "ok": "#27a644",
+    "onPrimary": "#ffffff",
+    "primary": "#5e6ad2",
+    "primaryFocus": "#5e69d1",
+    "primaryHover": "#828fff",
+    "surface1": "#0f1011",
+    "surface2": "#141516",
+    "surface3": "#18191a",
+    "surface4": "#191a1b",
+    "warn": "#d9a531",
+  },
+  "font": {
+    "mono": "var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace",
+    "sans": "var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif",
+  },
+  "radius": {
+    "lg": "12px",
+    "md": "8px",
+    "pill": "9999px",
+    "sm": "6px",
+    "xl": "16px",
+    "xs": "4px",
+  },
+  "space": {
+    "1": "4px",
+    "12": "48px",
+    "2": "8px",
+    "24": "96px",
+    "3": "12px",
+    "4": "16px",
+    "6": "24px",
+    "8": "32px",
+  },
+}
+`;
