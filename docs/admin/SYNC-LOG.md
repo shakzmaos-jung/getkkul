@@ -94,4 +94,30 @@
 
 <!-- spec-sync: M1 done @ feat/m1-admin-shell-auth -->
 
+### [2026-07-12T08:59Z] M2 · REQ-OV-1 / AC-OV-1b (KPI 정의·측정성)
+- 분류: 결정(intentional)
+- 어긋난 내용: AC-OV-1b는 KPI 6종을 명시하나, 실데이터로 측정 가능한 것은 3종(서비스상태·오늘 배치성공률·활성구독자)뿐. 나머지 3종은 데이터 부재 → **미연동 빈 상태**로 표시(가짜 0 금지, REQ-ST-1). 증거: 데이터 인벤토리(deliveries 오픈추적 없음, 가격표/예산 없음(M4), 인시던트 엔티티 없음(M7)).
+- 원인/근거: 사용자 결정(2026-07-12). ④이메일 오픈율=추적 미도입(영구 불가), ⑤LLM비용=M4 가격표/예산, ⑥열린 인시던트=M7. 6칸 레이아웃은 유지하되 정직하게 미연동 안내.
+- 조치: `get_admin_overview` 는 health(기존 pipeline_health_snapshot 재사용)+구독자만 반환. ⑤는 M4, ⑥은 M7에서 채움.
+- 트레이서빌리티: `apps/admin/lib/overview/derive.test.ts`(9), page 6칸 렌더.
+- 커밋: (M2, 본 PR)
+
+### [2026-07-12T08:59Z] M2 · AC-OV-1a/1b (지표 정의)
+- 분류: 결정(intentional) — 스펙 공백 확정
+- 어긋난 내용: 스펙이 열어둔 정의를 확정 — **오늘 배치 성공률 = 정상 단계/4**(throughput 아님), **활성 구독자 = 안 멈춘 활성 구독 ≥1 인 사람**(사용자 결정), **순증 = 신규 가입만**(이탈은 계정삭제 cascade로 추적 불가). 서비스 상태 3단계: 위험=파이프라인 정지/쿠키만료/발송지속실패, 주의=실패율>5%(단계 하나라도)·백로그·감지실패 등, 정상=신호 없음.
+- 원인/근거: 데이터 제약(창 불일치·이탈 미추적) + AC-OV-1a("실패율>5% 또는 백로그 → 주의") 준수. 임계는 기존 health-check.ts(60분·10건)와 정합.
+- 조치: 로직은 순수 TS(derive.ts)로 테스트. 라이브 데이터 스모크로 검증(정상·100%·구독자5).
+- 트레이서빌리티: `apps/admin/lib/overview/derive.ts`·`derive.test.ts`, RPC `get_admin_overview`.
+- 커밋: (M2, 본 PR)
+
+### [2026-07-12T08:59Z] M2 · (service_role 도입)
+- 분류: 결정(intentional) — 예정된 경계
+- 어긋난 내용: 어드민에 service_role 클라이언트 최초 도입(`apps/admin/lib/supabase/admin.ts`, server-only). 관제 read-layer(전체 사용자 집계)엔 필수.
+- 원인/근거: ADR-A2(service_role는 admin 배포 서버 전용). M1 인증 게이트는 anon self-read였고, M2 관제 데이터는 service_role RPC 필요.
+- 조치: server-only 가드 + `.env.example` 에 SUPABASE_SERVICE_ROLE_KEY 문서화(NEXT_PUBLIC 금지). 어드민 최소 DB 타입에 get_admin_overview 추가(전체 generated 는 필요 시 JIT).
+- 커밋: (M2, 본 PR)
+
+<!-- spec-sync: M2 done @ feat/m2-overview -->
+
+
 
