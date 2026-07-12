@@ -172,6 +172,32 @@
 
 <!-- spec-sync: M4 done @ feat/m4-cost -->
 
+### [2026-07-12T10:41Z] M5 · AC-GR-1 (오픈 기반 지표 proxy · 이탈 미추적)
+- 분류: 결정(intentional) + 데이터 제약
+- 어긋난 내용: AC "활성화율(첫 다이제스트 오픈)"·"코호트 리텐션"은 오픈 추적 부재로 직접 측정 불가 → **활성화율=발송 받음 기준**, **리텐션=구독 유지 기준 proxy**(사용자 결정 2026-07-12, 화면에 라벨 명시). "이탈(순감)"은 계정 삭제 cascade로 흔적 없음 → **미추적**(순증=신규 가입만).
+- 원인/근거: 오픈/재방문 계측 부재(M2 이메일오픈율과 동일 제약). 소규모 신뢰그룹.
+- 조치: proxy 정직 표기. 오픈 추적 도입 시 실지표로 대체(후속).
+- 트레이서빌리티: `apps/admin/lib/growth/derive.test.ts`, RPC get_growth_metrics.
+- 커밋: (M5, 본 PR)
+
+### [2026-07-12T10:41Z] M5 · AC-GR-1a (레퍼럴 글로벌 집계)
+- 분류: 결정(intentional)
+- 어긋난 내용: AC-GR-1a는 `get_referral_progress` 재사용을 명시하나 그 함수는 **per-user(SECURITY INVOKER)**라 글로벌 관제엔 부적합. 킬스위치 소진율은 **referral_program(total_issued/budget_cap) + 크레딧 원장** 집계로 산출.
+- 원인/근거: 글로벌 집계 필요. AC-GR-1a "크레딧 원장 재사용" 취지는 충족(중복 로직 없음).
+- 조치: get_growth_metrics 내 referral_program·referrals 집계. per-user 진척은 M8 운영데이터 후보.
+- 커밋: (M5, 본 PR)
+
+### [2026-07-12T10:41Z] M5 · AC-GR-1b (가치 통계 재사용 — 미포함)
+- 분류: 드리프트(unintended) → 후속
+- 어긋난 내용: AC-GR-1b "가치 통계(get_month_value_stats/computeValueSummary) 재사용"을 M5 그로스 화면에 **미포함**. 그로스 지표(구독자·퍼널·리텐션·레퍼럴)에 집중.
+- 원인/근거: 가치 통계는 per-user reading value(get_month_value_stats는 auth.uid 기반)라 글로벌화하려면 computeValueSummary(apps/web/lib/summary/reading.ts)를 packages/domain으로 추출 후 글로벌 RPC 필요. 범위·중복금지 판단으로 후속.
+- 조치: **후속** — computeValueSummary를 packages/domain으로 JIT 추출(중복금지) + 글로벌 가치 집계. 사용자 확인 필요.
+- 트레이서빌리티: 미구현(후속 등록).
+- 커밋: (M5, 본 PR)
+
+<!-- spec-sync: M5 done @ feat/m5-growth -->
+
+
 
 
 

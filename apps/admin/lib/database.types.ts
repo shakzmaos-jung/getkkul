@@ -53,6 +53,10 @@ export type Database = {
         Args: { p_from?: string | null; p_to?: string | null };
         Returns: Json;
       };
+      get_growth_metrics: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
