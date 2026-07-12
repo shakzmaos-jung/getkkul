@@ -120,12 +120,10 @@ export default function MembershipScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 얼리버드 무료 배너 — 강조(진한 accent 배경 + 큰 텍스트) */}
+      {/* 얼리버드 무료 배너 — 강조(진한 accent 배경 + 큰 텍스트).
+          Card(bg-card 하드코딩)와 bg-accent 충돌로 흰 배경+흰 글씨=안 보이던 문제 → 일반 div 로. */}
       {view.pocActive && pocUntilText && (
-        <Card
-          data-testid="poc-banner"
-          className="border-transparent bg-accent p-5 text-white shadow-sm"
-        >
+        <div data-testid="poc-banner" className="rounded-xl bg-accent p-5 text-white shadow-sm">
           <p className="flex items-center gap-2 text-base font-bold">
             <span aria-hidden className="text-lg">🎉</span>
             얼리버드 무료 체험 중 — Medium 혜택 무료
@@ -133,7 +131,7 @@ export default function MembershipScreen({
           <p className="mt-1 text-sm font-medium text-white/90">
             {pocUntilText}까지 모든 Medium 기능을 무료로 쓸 수 있어요.
           </p>
-        </Card>
+        </div>
       )}
 
       {/* 유예 상태 */}

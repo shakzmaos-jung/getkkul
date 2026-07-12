@@ -1,6 +1,7 @@
 import { REFERRAL_STATUS_LABEL, formatWon } from '@/lib/referral/format';
 import { ACTIVATION_MIN_CHANNELS, ACTIVATION_MIN_SUMMARIES, REWARD_AMOUNT } from '@/lib/referral/constants';
 import { formatKstDateTime } from '@/lib/time';
+import { maskEmail } from '@/lib/referral/mask';
 import type { ReferralProgressRow } from '@/lib/referral/queries';
 
 /**
@@ -32,8 +33,8 @@ export default function ReferralStatusCard({ rows }: { rows: ReferralProgressRow
                 className="scroll-mt-20 rounded-lg border border-border p-3"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-medium" title={r.referee_email ?? ''}>
-                    {r.referee_email ?? '친구'}
+                  <span className="min-w-0 truncate text-sm font-medium">
+                    {maskEmail(r.referee_email)}
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${

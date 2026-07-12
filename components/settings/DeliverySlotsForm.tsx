@@ -22,11 +22,11 @@ export default function DeliverySlotsForm({ current }: { current: SlotCode[] }) 
   }, initial);
 
   return (
-    <form action={formAction} className="grid grid-cols-4 gap-2">
+    <form action={formAction} className="grid grid-cols-2 gap-2">
       {SLOT_CODES.map((code, i) => (
         <label
           key={code}
-          className="relative flex cursor-pointer items-center justify-center rounded-lg border border-border px-1 py-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20"
+          className="relative flex cursor-pointer items-center justify-center rounded-lg border border-border p-3 transition-colors hover:border-foreground/40 has-[:checked]:border-accent has-[:checked]:bg-accent/20"
         >
           <input
             type="checkbox"

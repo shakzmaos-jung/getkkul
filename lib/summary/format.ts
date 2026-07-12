@@ -16,12 +16,16 @@ export const LENGTH_MODES: readonly LengthMode[] = ['short', 'normal', 'long'];
 
 const MODE_RANK: Record<LengthMode, number> = { short: 0, normal: 1, long: 2 };
 
-/** 모드 라벨·설명(정보 양·깊이 의역, 카드/설정 공용 단일 소스). */
-export const MODE_LABELS: Record<LengthMode, string> = { short: '요점', normal: '핵심', long: '심층' };
+/** 설정 '요약 길이' 라벨·부제(정보 양·깊이 의역). 카드 탭 라벨은 messages.feed.cardViews 참고. */
+export const MODE_LABELS: Record<LengthMode, string> = {
+  short: '간단히',
+  normal: '자세히',
+  long: '인사이트',
+};
 export const MODE_DESC: Record<LengthMode, string> = {
-  short: '무엇을 다뤘나 + 핵심 사실 (10~30초)',
-  normal: '맥락·개념 누락 없이 핵심 사실',
-  long: '핵심 사실 + 수치·예시 + 맥락·인사이트',
+  short: '핵심 요점만 짧게',
+  normal: '맥락까지 더해 자세히',
+  long: '사실·수치 + 맥락·인사이트까지',
 };
 
 /** 임의 값이 유효한 길이 모드인지 판정한다(폼 입력 검증용). */

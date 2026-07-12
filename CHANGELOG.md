@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-13
+
+### Changed
+- 알림(이메일·푸시) 시각 선택 카드 1×4 → **2×2**(시각적 여유).
+- 설정 '요약 길이' 라벨을 **간단히 / 자세히 / 인사이트**로 통일 + 부제 갱신.
+
+### Fixed
+- 영상 길이 필터 툴팁 **투명 배경** 해결(잠금 카드 opacity 상속 → 팝오버를 body 로 포털해 불투명).
+- 친구 초대 '초대한 내역'의 친구 이메일 **마스킹**(크레딧 화면과 동일 규칙).
+- 멤버십 **얼리버드 무료 배너 안 보임** 수정(Card `bg-card`와 `bg-accent` 충돌로 흰 배경+흰 글씨 → 일반 div 로).
+
 ## [0.6.0] - 2026-07-13
 
 ### Changed
@@ -88,7 +99,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.1
 [0.6.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.0
 [0.5.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.1
 [0.5.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.0
