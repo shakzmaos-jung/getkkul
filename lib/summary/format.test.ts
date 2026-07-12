@@ -21,9 +21,9 @@ describe('isLengthMode', () => {
   });
 });
 
-describe('MODE_LABELS (요점/핵심/심층 의역)', () => {
-  it('정보 양·깊이 라벨', () => {
-    expect(MODE_LABELS).toEqual({ short: '요점', normal: '핵심', long: '심층' });
+describe('MODE_LABELS (설정 요약 길이 의역)', () => {
+  it('간단히/자세히/인사이트', () => {
+    expect(MODE_LABELS).toEqual({ short: '간단히', normal: '자세히', long: '인사이트' });
   });
 });
 

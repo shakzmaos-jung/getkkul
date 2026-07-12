@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * ⓘ 탭 툴팁 — hover 아님, **탭(클릭)으로 열림**(모바일 발견성). 재탭·바깥 탭·ESC·스크롤로 닫힘.
@@ -62,18 +63,22 @@ export function InfoTooltip({ label, text }: { label: string; text: string }) {
       >
         ⓘ
       </button>
-      {open && pos && (
-        <span
-          ref={popRef}
-          role="tooltip"
-          data-testid="info-tooltip-content"
-          onClick={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
-          className="z-[70] rounded-lg border border-border bg-card p-3 text-xs leading-relaxed text-foreground shadow-xl"
-        >
-          {text}
-        </span>
-      )}
+      {/* body 로 포털 — 잠금 카드의 opacity(투명) 상속을 피해 불투명하게, 뷰포트 안으로 클램프. */}
+      {open &&
+        pos &&
+        createPortal(
+          <span
+            ref={popRef}
+            role="tooltip"
+            data-testid="info-tooltip-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
+            className="z-[70] rounded-lg border border-border bg-card p-3 text-xs leading-relaxed text-foreground shadow-xl"
+          >
+            {text}
+          </span>,
+          document.body,
+        )}
     </span>
   );
 }
