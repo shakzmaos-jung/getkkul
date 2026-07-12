@@ -13,7 +13,7 @@ export interface NavTab {
 export const NAV_TABS: NavTab[] = [
   { key: 'home', label: '홈', href: '/' },
   { key: 'feed', label: '다이제스트', href: '/feed' },
-  { key: 'channels', label: '채널', href: '/subscriptions' },
+  { key: 'channels', label: '구독 채널', href: '/subscriptions' },
   { key: 'membership', label: '멤버십', href: '/membership' },
 ];
 
@@ -29,7 +29,7 @@ export function activeTabKey(pathname: string): NavKey | null {
 const TAB_TITLE: Record<NavKey, string> = {
   home: '홈',
   feed: '다이제스트',
-  channels: '채널',
+  channels: '구독 채널',
   membership: '멤버십',
 };
 

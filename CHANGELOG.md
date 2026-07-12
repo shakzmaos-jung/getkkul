@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-07-13
+
+### Changed
+- 하단 GNB '채널' → **'구독 채널'**(헤더 타이틀 포함).
+- 멤버십 얼리버드 배너: 텍스트 크기 축소(다른 배너와 동일) + **블루 틴트 배경 + 블루 테두리**(라이트/다크 유사 체감).
+- 크레딧 현황 지표 워딩: 총 획득/사용/잔여 → **누적 획득/사용·현재 잔여 크레딧**, 카드 제목 '크레딧 현황' 추가.
+- 서비스 소개 태그라인 → **"구독한 유튜브 콘텐츠의 핵심만"**.
+
 ## [0.6.2] - 2026-07-13
 
 ### Added
@@ -106,7 +114,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.3
 [0.6.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.2
 [0.6.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.1
 [0.6.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.0

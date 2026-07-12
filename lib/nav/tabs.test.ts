@@ -5,7 +5,7 @@ describe('NAV_TABS 순서·라우트', () => {
   it('홈·다이제스트·채널·멤버십 순서 + href 매핑', () => {
     expect(NAV_TABS.map((t) => t.key)).toEqual(['home', 'feed', 'channels', 'membership']);
     expect(NAV_TABS.map((t) => t.href)).toEqual(['/', '/feed', '/subscriptions', '/membership']);
-    expect(NAV_TABS.map((t) => t.label)).toEqual(['홈', '다이제스트', '채널', '멤버십']);
+    expect(NAV_TABS.map((t) => t.label)).toEqual(['홈', '다이제스트', '구독 채널', '멤버십']);
   });
 });
 
@@ -36,12 +36,12 @@ describe('headerTitle (현재 경로 → 상단 헤더 타이틀)', () => {
   it('탭 경로는 탭 라벨', () => {
     expect(headerTitle('/')).toBe('홈');
     expect(headerTitle('/feed')).toBe('다이제스트');
-    expect(headerTitle('/subscriptions')).toBe('채널');
+    expect(headerTitle('/subscriptions')).toBe('구독 채널');
     expect(headerTitle('/membership')).toBe('멤버십');
   });
   it('하위 경로도 탭 라벨 유지', () => {
     expect(headerTitle('/feed/x')).toBe('다이제스트');
-    expect(headerTitle('/subscriptions/abc')).toBe('채널');
+    expect(headerTitle('/subscriptions/abc')).toBe('구독 채널');
   });
   it('설정은 "설정"', () => {
     expect(headerTitle('/settings')).toBe('설정');
