@@ -1142,6 +1142,7 @@ export type Database = {
         Args: { p_user: string; p_limit: number }
         Returns: undefined
       }
+      pipeline_health_snapshot: { Args: never; Returns: Json }
       plan_channel_limit: {
         Args: { p_plan: Database["public"]["Enums"]["membership_plan"] }
         Returns: number

@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-13
+
+### Added
+- **파이프라인 자동 점검·리포트**(gk_pipeline_check, ADR-0016): 탐지·전사·요약·발송 4단계 건강 상태를 하루 8회(KST 08/10/12/14/16/18/20/22) 점검해 운영자 이메일로 리포트. 상태 제목 인코딩(✅ 정상 / ⚠️ 이상 N건).
+  - DB 함수 `pipeline_health_snapshot()`(수집) + `lib/pipeline/health-check.ts`(판정·렌더, 단위테스트) + `scripts/pipeline-check.ts`(실행·발송). pg_cron→GitHub Actions 이중화(`pipeline-check.yml`).
+  - 채팅 즉시 점검용 `gk_pipeline_check` 스킬(`npm run pipeline-check -- --no-email`).
+  - 오탐 방지: 모든 backlog 신호는 콘텐츠 컷오프(2026-07-10) 이후만 집계 — 신규 구독 채널의 과거 영상(dead data)은 알람 대상 아님.
+
 ## [0.6.4] - 2026-07-13
 
 ### Changed
@@ -119,7 +127,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.0
 [0.6.4]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.4
 [0.6.3]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.3
 [0.6.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.2
