@@ -255,6 +255,14 @@
 
 <!-- spec-sync: M8 done @ feat/m8-ops -->
 
+### [2026-07-12T12:36Z] post-M8 · §3 (사이드바 접기/열기 + 프로필)
+- 분류: 결정(intentional) — 사용자 요청 UX 개선
+- 어긋난 내용: SOT §3(디자인)은 "탑네비 height 56, sidebar per §3"만 명시. 구현에 **사이드바 접기/열기(w-60↔w-16, 아이콘)** + **하단 로그인 프로필(이메일·역할)** 추가 — 스펙 밖 UX 개선.
+- 원인/근거: 사용자 요청(2026-07-12, M0→M8 완료 후). 관제탑 사용성.
+- 조치: 접힘 상태는 쿠키(`gk-admin-sidebar`)로 서버 초기값 전달(SSR 일치·FOUC 방지, effect 없이 lint-clean). 프로필은 본인 세션 self-read(service_role 불필요). 모듈에 icon 필드 추가.
+- 트레이서빌리티: `apps/admin/components/shell/Sidebar.tsx`·`lib/auth/profile.ts`·`(dashboard)/layout.tsx`.
+- 커밋: (post-M8 UX)
+
 
 
 
