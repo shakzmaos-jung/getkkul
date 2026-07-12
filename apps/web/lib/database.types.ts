@@ -44,6 +44,66 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_users: {
+        Row: {
+          created_at: string
+          invited_by: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          invited_by?: string | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          invited_by?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      billing_history: {
+        Row: {
+          amount: number
+          billing_period: string
+          created_at: string
+          credit_used: number
+          id: string
+          idempotency_key: string
+          memo: string | null
+          plan_code: Database["public"]["Enums"]["membership_plan"]
+          status: Database["public"]["Enums"]["billing_status"]
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          billing_period: string
+          created_at?: string
+          credit_used?: number
+          id?: string
+          idempotency_key: string
+          memo?: string | null
+          plan_code: Database["public"]["Enums"]["membership_plan"]
+          status: Database["public"]["Enums"]["billing_status"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_period?: string
+          created_at?: string
+          credit_used?: number
+          id?: string
+          idempotency_key?: string
+          memo?: string | null
+          plan_code?: Database["public"]["Enums"]["membership_plan"]
+          status?: Database["public"]["Enums"]["billing_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -137,27 +197,6 @@ export type Database = {
           id?: string
           query_norm?: string
           results?: Json
-        }
-        Relationships: []
-      }
-      search_api_usage: {
-        Row: {
-          cap: number
-          day: string
-          id: string
-          units_used: number
-        }
-        Insert: {
-          cap?: number
-          day: string
-          id?: string
-          units_used?: number
-        }
-        Update: {
-          cap?: number
-          day?: string
-          id?: string
-          units_used?: number
         }
         Relationships: []
       }
@@ -379,6 +418,87 @@ export type Database = {
           },
         ]
       }
+      membership: {
+        Row: {
+          anchor_day: number
+          created_at: string
+          grace_until: string | null
+          id: string
+          next_billing_at: string
+          period_end: string
+          period_start: string
+          plan_code: Database["public"]["Enums"]["membership_plan"]
+          poc_free_until: string | null
+          poc_warned: boolean
+          scheduled_change: Json | null
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_day: number
+          created_at?: string
+          grace_until?: string | null
+          id?: string
+          next_billing_at: string
+          period_end: string
+          period_start: string
+          plan_code?: Database["public"]["Enums"]["membership_plan"]
+          poc_free_until?: string | null
+          poc_warned?: boolean
+          scheduled_change?: Json | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_day?: number
+          created_at?: string
+          grace_until?: string | null
+          id?: string
+          next_billing_at?: string
+          period_end?: string
+          period_start?: string
+          plan_code?: Database["public"]["Enums"]["membership_plan"]
+          poc_free_until?: string | null
+          poc_warned?: boolean
+          scheduled_change?: Json | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      membership_usage: {
+        Row: {
+          ai_query_used: number
+          created_at: string
+          digest_used: number
+          id: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_query_used?: number
+          created_at?: string
+          digest_used?: number
+          id?: string
+          period_start: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_query_used?: number
+          created_at?: string
+          digest_used?: number
+          id?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pipeline_runs: {
         Row: {
           created_at: string
@@ -575,123 +695,24 @@ export type Database = {
           },
         ]
       }
-      membership: {
+      search_api_usage: {
         Row: {
-          anchor_day: number
-          created_at: string
-          grace_until: string | null
+          cap: number
+          day: string
           id: string
-          next_billing_at: string
-          period_end: string
-          period_start: string
-          plan_code: Database["public"]["Enums"]["membership_plan"]
-          poc_free_until: string | null
-          poc_warned: boolean
-          scheduled_change: Json | null
-          status: Database["public"]["Enums"]["membership_status"]
-          updated_at: string
-          user_id: string
+          units_used: number
         }
         Insert: {
-          anchor_day: number
-          created_at?: string
-          grace_until?: string | null
+          cap?: number
+          day: string
           id?: string
-          next_billing_at: string
-          period_end: string
-          period_start: string
-          plan_code?: Database["public"]["Enums"]["membership_plan"]
-          poc_free_until?: string | null
-          poc_warned?: boolean
-          scheduled_change?: Json | null
-          status?: Database["public"]["Enums"]["membership_status"]
-          updated_at?: string
-          user_id: string
+          units_used?: number
         }
         Update: {
-          anchor_day?: number
-          created_at?: string
-          grace_until?: string | null
+          cap?: number
+          day?: string
           id?: string
-          next_billing_at?: string
-          period_end?: string
-          period_start?: string
-          plan_code?: Database["public"]["Enums"]["membership_plan"]
-          poc_free_until?: string | null
-          poc_warned?: boolean
-          scheduled_change?: Json | null
-          status?: Database["public"]["Enums"]["membership_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      membership_usage: {
-        Row: {
-          ai_query_used: number
-          created_at: string
-          digest_used: number
-          id: string
-          period_start: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          ai_query_used?: number
-          created_at?: string
-          digest_used?: number
-          id?: string
-          period_start: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          ai_query_used?: number
-          created_at?: string
-          digest_used?: number
-          id?: string
-          period_start?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      billing_history: {
-        Row: {
-          amount: number
-          billing_period: string
-          created_at: string
-          credit_used: number
-          id: string
-          idempotency_key: string
-          memo: string | null
-          plan_code: Database["public"]["Enums"]["membership_plan"]
-          status: Database["public"]["Enums"]["billing_status"]
-          user_id: string
-        }
-        Insert: {
-          amount?: number
-          billing_period: string
-          created_at?: string
-          credit_used?: number
-          id?: string
-          idempotency_key: string
-          memo?: string | null
-          plan_code: Database["public"]["Enums"]["membership_plan"]
-          status: Database["public"]["Enums"]["billing_status"]
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          billing_period?: string
-          created_at?: string
-          credit_used?: number
-          id?: string
-          idempotency_key?: string
-          memo?: string | null
-          plan_code?: Database["public"]["Enums"]["membership_plan"]
-          status?: Database["public"]["Enums"]["billing_status"]
-          user_id?: string
+          units_used?: number
         }
         Relationships: []
       }
@@ -706,8 +727,8 @@ export type Database = {
           channel_url: string | null
           created_at: string
           id: string
-          paused: boolean
           pause_reason: Database["public"]["Enums"]["pause_reason"] | null
+          paused: boolean
           user_id: string
         }
         Insert: {
@@ -720,8 +741,8 @@ export type Database = {
           channel_url?: string | null
           created_at?: string
           id?: string
-          paused?: boolean
           pause_reason?: Database["public"]["Enums"]["pause_reason"] | null
+          paused?: boolean
           user_id: string
         }
         Update: {
@@ -734,8 +755,8 @@ export type Database = {
           channel_url?: string | null
           created_at?: string
           id?: string
-          paused?: boolean
           pause_reason?: Database["public"]["Enums"]["pause_reason"] | null
+          paused?: boolean
           user_id?: string
         }
         Relationships: [
@@ -797,8 +818,10 @@ export type Database = {
           delivery_email: string | null
           delivery_slots: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h: boolean
+          otp_attempts: number
           otp_expires_at: string | null
           otp_hash: string | null
+          otp_requested_at: string | null
           pending_email: string | null
           push_slot_0730: boolean
           push_slot_1130: boolean
@@ -813,8 +836,10 @@ export type Database = {
           delivery_email?: string | null
           delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h?: boolean
+          otp_attempts?: number
           otp_expires_at?: string | null
           otp_hash?: string | null
+          otp_requested_at?: string | null
           pending_email?: string | null
           push_slot_0730?: boolean
           push_slot_1130?: boolean
@@ -829,8 +854,10 @@ export type Database = {
           delivery_email?: string | null
           delivery_slots?: Database["public"]["Enums"]["delivery_slot"][]
           exclude_over_2h?: boolean
+          otp_attempts?: number
           otp_expires_at?: string | null
           otp_hash?: string | null
+          otp_requested_at?: string | null
           pending_email?: string | null
           push_slot_0730?: boolean
           push_slot_1130?: boolean
@@ -975,38 +1002,35 @@ export type Database = {
         }[]
       }
       consume_search_api_units: {
-        Args: { p_units: number; p_cap?: number }
+        Args: { p_cap?: number; p_units: number }
         Returns: boolean
       }
       count_period_digests: {
-        Args: { p_user: string; p_from: string }
+        Args: { p_from: string; p_user: string }
         Returns: number
       }
+      dispatch_deliver: { Args: never; Returns: undefined }
       dispatch_pipeline: { Args: never; Returns: undefined }
+      dispatch_pipeline_check: { Args: never; Returns: undefined }
       expire_credits: { Args: never; Returns: number }
       forfeit_user_credits: { Args: { p_user: string }; Returns: number }
-      get_digest_summary: {
-        Args: never
-        Returns: {
-          today_count: number
-          total_count: number
-        }[]
-      }
+      get_admin_overview: { Args: never; Returns: Json }
       get_bookmarked_digests: {
         Args: never
         Returns: {
-          id: string
+          bookmarked: boolean
           channel_id: string
+          duration_seconds: number
+          feedback: Json
+          id: string
+          pref_mode: string
+          published_at: string
+          summaries: Json
           title: string
           url: string
-          published_at: string
-          duration_seconds: number
-          summaries: Json
-          pref_mode: string
-          bookmarked: boolean
-          feedback: Json
         }[]
       }
+      get_channel_processing: { Args: never; Returns: Json }
       get_content_feedback_metrics: {
         Args: never
         Returns: {
@@ -1016,29 +1040,42 @@ export type Database = {
           up_count: number
         }[]
       }
+      get_cost_breakdown: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
       get_digest_dates: {
         Args: never
         Returns: {
           channel_id: string
-          kst_date: string
           cnt: number
+          kst_date: string
+        }[]
+      }
+      get_digest_summary: {
+        Args: never
+        Returns: {
+          today_count: number
+          total_count: number
         }[]
       }
       get_feed_digests: {
         Args: { p_from: string; p_to?: string; p_with_bookmarked?: boolean }
         Returns: {
-          id: string
+          bookmarked: boolean
           channel_id: string
+          duration_seconds: number
+          feedback: Json
+          id: string
+          pref_mode: string
+          published_at: string
+          summaries: Json
           title: string
           url: string
-          published_at: string
-          duration_seconds: number
-          summaries: Json
-          pref_mode: string
-          bookmarked: boolean
-          feedback: Json
         }[]
       }
+      get_growth_metrics: { Args: never; Returns: Json }
+      get_incident_log: { Args: { p_days?: number }; Returns: Json }
       get_month_value_stats: {
         Args: { p_from: string; p_mode?: string }
         Returns: {
@@ -1047,17 +1084,10 @@ export type Database = {
           video_seconds: number
         }[]
       }
+      get_ops_data: { Args: { p_digest_limit?: number }; Returns: Json }
+      get_pipeline_status: { Args: { p_date?: string }; Returns: Json }
       get_recent_digests: {
         Args: { p_limit?: number }
-        Returns: {
-          channel_id: string
-          id: string
-          published_at: string
-          title: string
-        }[]
-      }
-      get_today_digests: {
-        Args: never
         Returns: {
           channel_id: string
           id: string
@@ -1077,19 +1107,27 @@ export type Database = {
           summary_count: number
         }[]
       }
-      use_credits: {
-        Args: { p_payment_amount: number; p_user: string }
-        Returns: number
+      get_today_digests: {
+        Args: never
+        Returns: {
+          channel_id: string
+          id: string
+          published_at: string
+          title: string
+        }[]
       }
-      membership_bootstrap: {
+      membership_advance_period: {
         Args: {
-          p_anchor: number
+          p_billing_status: Database["public"]["Enums"]["billing_status"]
+          p_channel_limit: number
+          p_charge: number
+          p_clear_poc: boolean
+          p_idem: string
+          p_new_plan: Database["public"]["Enums"]["membership_plan"]
+          p_new_status: Database["public"]["Enums"]["membership_status"]
           p_next_billing: string
           p_period_end: string
           p_period_start: string
-          p_plan: Database["public"]["Enums"]["membership_plan"]
-          p_poc_free_until: string
-          p_status: Database["public"]["Enums"]["membership_status"]
           p_user: string
         }
         Returns: undefined
@@ -1105,10 +1143,15 @@ export type Database = {
         }
         Returns: number
       }
-      membership_schedule_change: {
+      membership_bootstrap: {
         Args: {
-          p_cancel: boolean
-          p_to: Database["public"]["Enums"]["membership_plan"]
+          p_anchor: number
+          p_next_billing: string
+          p_period_end: string
+          p_period_start: string
+          p_plan: Database["public"]["Enums"]["membership_plan"]
+          p_poc_free_until: string
+          p_status: Database["public"]["Enums"]["membership_status"]
           p_user: string
         }
         Returns: undefined
@@ -1117,41 +1160,47 @@ export type Database = {
         Args: { p_user: string }
         Returns: undefined
       }
-      membership_try_consume: {
-        Args: { p_kind: string; p_limit: number; p_period: string; p_user: string }
-        Returns: boolean
+      membership_poc_end: { Args: { p_user: string }; Returns: undefined }
+      membership_reconcile_channels: {
+        Args: { p_limit: number; p_user: string }
+        Returns: undefined
       }
-      membership_advance_period: {
+      membership_schedule_change: {
         Args: {
+          p_cancel: boolean
+          p_to: Database["public"]["Enums"]["membership_plan"]
           p_user: string
-          p_new_plan: Database["public"]["Enums"]["membership_plan"]
-          p_new_status: Database["public"]["Enums"]["membership_status"]
-          p_period_start: string
-          p_period_end: string
-          p_next_billing: string
-          p_charge: number
-          p_billing_status: Database["public"]["Enums"]["billing_status"]
-          p_channel_limit: number
-          p_idem: string
-          p_clear_poc: boolean
         }
         Returns: undefined
       }
-      membership_poc_end: { Args: { p_user: string }; Returns: undefined }
-      membership_reconcile_channels: {
-        Args: { p_user: string; p_limit: number }
-        Returns: undefined
+      membership_try_consume: {
+        Args: {
+          p_kind: string
+          p_limit: number
+          p_period: string
+          p_user: string
+        }
+        Returns: boolean
       }
       pipeline_health_snapshot: { Args: never; Returns: Json }
       plan_channel_limit: {
         Args: { p_plan: Database["public"]["Enums"]["membership_plan"] }
         Returns: number
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      use_credits: {
+        Args: { p_payment_amount: number; p_user: string }
+        Returns: number
+      }
     }
     Enums: {
-      billing_status: "success" | "failed" | "grace" | "skipped_free" | "proration"
-      membership_plan: "free" | "small" | "medium" | "large"
-      membership_status: "active" | "grace" | "canceled" | "ended" | "poc_free"
+      billing_status:
+        | "success"
+        | "failed"
+        | "grace"
+        | "skipped_free"
+        | "proration"
       channel_catalog_source: "user_selected" | "api" | "detected"
       credit_grant_status: "active" | "exhausted" | "expired" | "forfeited"
       credit_source: "referrer" | "referee"
@@ -1161,6 +1210,8 @@ export type Database = {
       delivery_status: "pending" | "sent" | "failed"
       failure_kind: "transient" | "permanent"
       feedback_rating: "up" | "down"
+      membership_plan: "free" | "small" | "medium" | "large"
+      membership_status: "active" | "grace" | "canceled" | "ended" | "poc_free"
       pause_reason: "manual" | "downgrade"
       referral_status: "pending" | "activated" | "void"
       summary_language: "ko" | "en"
@@ -1295,9 +1346,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      billing_status: ["success", "failed", "grace", "skipped_free", "proration"],
-      membership_plan: ["free", "small", "medium", "large"],
-      membership_status: ["active", "grace", "canceled", "ended", "poc_free"],
+      billing_status: [
+        "success",
+        "failed",
+        "grace",
+        "skipped_free",
+        "proration",
+      ],
       channel_catalog_source: ["user_selected", "api", "detected"],
       credit_grant_status: ["active", "exhausted", "expired", "forfeited"],
       credit_source: ["referrer", "referee"],
@@ -1307,6 +1362,8 @@ export const Constants = {
       delivery_status: ["pending", "sent", "failed"],
       failure_kind: ["transient", "permanent"],
       feedback_rating: ["up", "down"],
+      membership_plan: ["free", "small", "medium", "large"],
+      membership_status: ["active", "grace", "canceled", "ended", "poc_free"],
       pause_reason: ["manual", "downgrade"],
       referral_status: ["pending", "activated", "void"],
       summary_language: ["ko", "en"],

@@ -1,7 +1,12 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { fetchContent, type FetchedContent, type VideoRef } from '@/lib/pipeline/fetch-content';
 import { withRetry } from '@/lib/pipeline/retry';
-import { ytdlpCaption, whisperAudio } from '@/lib/pipeline/youtube-content';
+import {
+  ytdlpCaption,
+  whisperAudio,
+  getBotBlockCount,
+  resetBotBlockCount,
+} from '@/lib/pipeline/youtube-content';
 import { supadataCaption } from '@/lib/pipeline/supadata';
 import { planFailure, classifyFailure } from '@/lib/pipeline/retry-policy';
 import { CONTENT_CUTOFF_PUBLISHED_AT } from '@/lib/pipeline/content-cutoff';
@@ -26,6 +31,7 @@ export interface AcquireResult {
   failed: number; // 종점 failed (영구·최대초과)
   rescheduled: number; // 일시 실패로 재큐(next_retry_at)
   skipped: number; // 시간 예산 초과로 이번 런에서 처리 안 함(다음 런 이월)
+  botBlocks: number; // 이번 런에서 관찰된 유튜브 봇차단 횟수(쿠키 만료 알림 판단용)
 }
 
 type SupabaseClient = ReturnType<typeof createPipelineClient>;
@@ -56,8 +62,11 @@ export async function acquireTranscripts(
     ((v: VideoRef) =>
       fetchContent(v, { getCaption: captionWithFallback, transcribeAudio: whisperAudio }));
 
+  // 봇차단 카운터를 이 런 기준으로 초기화(모듈 전역이지만 런 경계에서 리셋 → 반복 호출에도 정확).
+  resetBotBlockCount();
+
   // 이전 런이 타임아웃/중단으로 남긴 'processing' 을 회복한다(다시 pending 으로).
-  // 워크플로 concurrency group(cancel-in-progress:false)로 런이 겹치지 않으므로,
+  // 워크플로 concurrency group(cancel-in-progress:false)로 런이 걹치지 않으므로,
   // 이 시점에 남은 processing 은 모두 지난 런의 미완료분 → 안전하게 재시도 대상으로 되돌린다.
   await supabase.from('videos').update({ status: 'pending' }).eq('status', 'processing');
 
@@ -129,5 +138,12 @@ export async function acquireTranscripts(
     }
   }
 
-  return { processed: done + failed + rescheduled, done, failed, rescheduled, skipped };
+  return {
+    processed: done + failed + rescheduled,
+    done,
+    failed,
+    rescheduled,
+    skipped,
+    botBlocks: getBotBlockCount(),
+  };
 }

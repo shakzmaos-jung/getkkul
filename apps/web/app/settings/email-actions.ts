@@ -6,7 +6,14 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createNotifier } from '@/lib/notify/create-notifier';
-import { generateOtp, hashOtp, isValidEmail, OTP_TTL_MS } from '@/lib/delivery/otp';
+import {
+  generateOtp,
+  hashOtp,
+  isValidEmail,
+  isOtpCooldownActive,
+  nextOtpAttemptState,
+  OTP_TTL_MS,
+} from '@/lib/delivery/otp';
 
 export type EmailState = {
   ok?: boolean;
@@ -42,7 +49,7 @@ export async function manageDeliveryEmail(
     const code = String(formData.get('code') ?? '').trim();
     const { data: s } = await admin
       .from('user_settings')
-      .select('pending_email, otp_hash, otp_expires_at')
+      .select('pending_email, otp_hash, otp_expires_at, otp_attempts')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -53,6 +60,16 @@ export async function manageDeliveryEmail(
       return { error: '인증 코드가 만료되었습니다. 다시 요청해 주세요.', step: 'request' };
     }
     if (hashOtp(code) !== s.otp_hash) {
+      // 시도 상한(8a): 초과 시 pending 을 무효화해 6자리 코드 브루트포스를 차단한다.
+      const { attempts, exhausted } = nextOtpAttemptState(s.otp_attempts ?? 0);
+      if (exhausted) {
+        await admin
+          .from('user_settings')
+          .update({ pending_email: null, otp_hash: null, otp_expires_at: null, otp_attempts: 0 })
+          .eq('user_id', user.id);
+        return { error: '인증 시도 횟수를 초과했습니다. 다시 요청해 주세요.', step: 'request' };
+      }
+      await admin.from('user_settings').update({ otp_attempts: attempts }).eq('user_id', user.id);
       return { error: '인증 코드가 올바르지 않습니다.', step: 'verify' };
     }
 
@@ -63,6 +80,7 @@ export async function manageDeliveryEmail(
         pending_email: null,
         otp_hash: null,
         otp_expires_at: null,
+        otp_attempts: 0,
       })
       .eq('user_id', user.id);
     if (error) return { error: '저장에 실패했습니다.', step: 'verify' };
@@ -79,13 +97,26 @@ export async function manageDeliveryEmail(
     return { error: '올바른 이메일 형식이 아닙니다.', step: 'request' };
   }
 
+  // 재요청 쿨다운(8b): 직전 요청이 60초 이내면 차단 → 임의 주소로의 인증메일 폭탄 방지.
+  const { data: prev } = await admin
+    .from('user_settings')
+    .select('otp_requested_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (isOtpCooldownActive(prev?.otp_requested_at, Date.now())) {
+    return { error: '잠시 후 다시 시도해 주세요. 인증 메일은 1분에 한 번 보낼 수 있어요.', step: 'request' };
+  }
+
   const code = generateOtp();
+  // otp_requested_at 을 발송 전에 기록 → 발송 실패로 반복 호출해도 쿨다운이 걸린다.
   const { error } = await admin
     .from('user_settings')
     .update({
       pending_email: email,
       otp_hash: hashOtp(code),
       otp_expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+      otp_requested_at: new Date().toISOString(),
+      otp_attempts: 0,
     })
     .eq('user_id', user.id);
   if (error) return { error: '요청 저장에 실패했습니다.', step: 'request' };
@@ -112,7 +143,13 @@ export async function resetDeliveryEmail(): Promise<void> {
   const admin = createAdminClient();
   await admin
     .from('user_settings')
-    .update({ delivery_email: null, pending_email: null, otp_hash: null, otp_expires_at: null })
+    .update({
+      delivery_email: null,
+      pending_email: null,
+      otp_hash: null,
+      otp_expires_at: null,
+      otp_attempts: 0,
+    })
     .eq('user_id', user.id);
   revalidatePath('/settings');
 }

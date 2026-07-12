@@ -251,7 +251,8 @@ export async function setSubscriptionPause(
     await supabase
       .from('subscriptions')
       .update({ paused: true, active: false, pause_reason: 'manual' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id); // RLS 회귀 대비 명시적 소유자 필터(IDOR 방어)
   } else {
     // 정지해제: 수신 채널(paused=false) 한도 초과면 차단.
     const check = await checkChannelLimit(user.id);
@@ -265,7 +266,8 @@ export async function setSubscriptionPause(
     await supabase
       .from('subscriptions')
       .update({ paused: false, active: true, pause_reason: null, active_since: new Date().toISOString() })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id); // RLS 회귀 대비 명시적 소유자 필터(IDOR 방어)
   }
 
   revalidatePath('/subscriptions');
@@ -285,7 +287,8 @@ export async function removeSubscription(formData: FormData): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  await supabase.from('subscriptions').delete().eq('id', id);
+  // RLS 로 본인 행만 삭제되지만, 회귀 대비 명시적 소유자 필터를 더한다(IDOR 방어).
+  await supabase.from('subscriptions').delete().eq('id', id).eq('user_id', user.id);
   revalidatePath('/subscriptions');
   revalidatePath('/feed');
   revalidatePath('/');
