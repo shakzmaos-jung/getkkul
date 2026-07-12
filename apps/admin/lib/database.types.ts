@@ -41,6 +41,14 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Json;
       };
+      get_pipeline_status: {
+        Args: { p_date?: string | null };
+        Returns: Json;
+      };
+      get_channel_processing: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

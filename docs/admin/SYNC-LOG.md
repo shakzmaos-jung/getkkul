@@ -119,5 +119,35 @@
 
 <!-- spec-sync: M2 done @ feat/m2-overview -->
 
+### [2026-07-12T09:56Z] M3 · §0.2 (개발 방법론 전환 — ultracode)
+- 분류: 결정(intentional) — 사용자 명시 지시
+- 어긋난 내용: SOT §0.2 #4는 "Agent Teams 미사용 · 단일 세션 순차 진행"을 명시하나, M3는 **ultracode(다중 에이전트 Workflow)**로 개발 — 그라운딩(4 탐색+종합, 5에이전트) + 적대적 검증(4렌즈+재검증, 15에이전트).
+- 원인/근거: 사용자가 "M3는 ultracode 모드로 전환해서 진행해보기"(2026-07-12) 명시 지시. 실험. HOTL 하드 게이트(RPC 스키마 승인)는 ultracode 안에서도 유지.
+- 조치: SOT §0.2의 "단일 세션 순차" 전제를 이 마일스톤 한정 예외로 기록. 지속 적용 시 §0.2 갱신 필요.
+- 트레이서빌리티: 워크플로 2건(grounding·adversarial-review).
+- 커밋: (M3, 본 PR)
+
+### [2026-07-12T09:56Z] M3 · REQ-PI-1 (적대적 리뷰가 잡은 3건 수정)
+- 분류: 드리프트(unintended) → 수정 완료
+- 어긋난 내용/수정:
+  1. **AC-PI-1c 발송 성공률**: deliverySuccessRate 계산·테스트했으나 UI에 미렌더(테스트가 거짓 확신) → deliverStageSubLabel 추출 + 렌더 + 회귀 테스트 추가.
+  2. **채널 RPC 컷오프 불일치**: new/pending/failed는 컷오프 적용, summarized/processing은 미적용(요약 1685=전체 카운트) → 전 컬럼 (published>=cutoff OR null)로 통일(요약 80=대상집합). 파이프라인 실제 대상과 일치.
+  3. **발송 ok 오탐**: 미실행(delivered=0,failures=0)에도 초록 → 중립(null)로 수정(타 단계와 대칭).
+- 원인/근거: ultracode 적대적 검증(4렌즈)이 CI/타입/테스트가 못 잡은 결함 3건 확인. 리뷰 가치 입증.
+- 조치: 코드 수정 + regression 테스트(deliverStageSubLabel) + RPC 재적용(라이브·리포).
+- 트레이서빌리티: `apps/admin/lib/pipeline/derive.test.ts`(30 admin 테스트), 마이그레이션 2건 갱신.
+- 커밋: (M3, 본 PR)
+
+### [2026-07-12T09:56Z] M3 · AC-PI-1a/b + REQ-NFR-1 (정의·범위)
+- 분류: 결정(intentional)
+- 어긋난 내용: 정의 확정(사용자 승인) — 대기=status 'pending', p_date 기본=오늘 KST, 채널=구독된 채널만, 실패=영구 vs 재시도소진 분리. AC-PI-1a "membership-cutoff"는 발송(per-user) 개념이라 파이프라인 처리 뷰엔 content-cutoff(또는 null)만 적용. 발송 단계 소요시간은 pipeline_runs 미기록 → null(정직).
+- 미이행(경미): REQ-NFR-1 "대량 테이블 서버 페이지네이션 25행"은 채널 33개라 전량 렌더(스크롤). 채널 증가 시 페이지네이션 도입 예정.
+- 조치: 라이브 스모크 검증(발송 성공률·채널 합계). 페이지네이션은 후속.
+- 트레이서빌리티: RPC get_pipeline_status·get_channel_processing, `lib/pipeline/*`, `app/(dashboard)/pipeline`.
+- 커밋: (M3, 본 PR)
+
+<!-- spec-sync: M3 done @ feat/m3-pipeline -->
+
+
 
 
