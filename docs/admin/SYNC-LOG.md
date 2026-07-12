@@ -48,7 +48,7 @@
 - 분류: 결정(intentional) — 스펙 정정
 - 어긋난 내용: §10.3은 Stop hook 무한루프 방지를 `stop_hook_active` 가드로 명시했으나, 현행 Claude Code(v2.1.205+)에 그 필드는 **존재하지 않는다**. 또 Stop hook은 서브에이전트를 직접 스폰할 수 없다.
 - 원인/근거: 문서 작성 시점 이후 훅 스펙 변경(공식 docs 확인).
-- 조치: **self-clearing 게이트**로 구현 — tip 커밋이 `(M<n>)`인데 SYNC-LOG에 `spec-sync: M<n> done` 마커가 없으면 block, 마커가 append되면 자동 통과(무한루프 불가). Stop hook은 차단 사유로 spec-sync 서브에이전트 실행을 지시(직접 스폰 대신). §10.3의 `stop_hook_active` 문구는 후속 갱신 권고.
+- 조치: **self-clearing 게이트**로 구현 — tip 커밋이 `(M<n>)`인데 SYNC-LOG에 `spec-sync: M<n> done` 마커가 없으면 동작, 마커가 append되면 자동 통과(무한루프 불가). Stop hook은 spec-sync 서브에이전트 실행을 안내(직접 스폰 불가). **사용자 결정(2026-07-12): 기본은 리마인더(비차단, `SPEC_SYNC_ENFORCE=0`) — 수동/승인 프로세스로 운영하고, 마일스톤마다 자동 강제(`=1`) 전환 여부를 사용자에게 묻는다.** §10.3의 `stop_hook_active` 문구·강제 전제는 후속 갱신 권고.
 - 트레이서빌리티: `.claude/hooks/spec-sync-gate.sh`·`spec-sync-flag.sh`·`.claude/settings.json`·`.claude/agents/spec-sync.md`. (테스트: 훅 4종 수동 검증 — block/pass/flag scope.)
 - 커밋: (본 엔트리 = spec-sync 활성화 커밋)
 
