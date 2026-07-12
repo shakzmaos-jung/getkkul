@@ -61,6 +61,10 @@ export type Database = {
         Args: { p_days?: number };
         Returns: Json;
       };
+      get_ops_data: {
+        Args: { p_digest_limit?: number };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
