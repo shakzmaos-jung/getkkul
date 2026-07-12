@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-13
+
+### Added
+- **서비스 소개** 화면 보강: 한 줄 소개 / 왜 만들었나 / 이런 분께 잘 맞아요 / 겟꿀 잘 쓰는 법.
+- **개발자 정보** 화면 보강: 프로필 이미지 자리(앰버 원형, '정' 이니셜 폴백) + 소개 본문.
+- 두 화면 문구 전부 i18n(`messages/ko.json` `about`·`developer`)로 관리.
+
 ## [0.6.1] - 2026-07-13
 
 ### Changed
@@ -99,7 +106,8 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.2
 [0.6.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.1
 [0.6.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.6.0
 [0.5.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.5.1
