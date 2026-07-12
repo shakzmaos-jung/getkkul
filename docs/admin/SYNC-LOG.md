@@ -148,6 +148,31 @@
 
 <!-- spec-sync: M3 done @ feat/m3-pipeline -->
 
+### [2026-07-12T10:22Z] M4 · REQ-CO-1 / AC-CO-1a (가격표 · 비용 계산)
+- 분류: 결정(intentional)
+- 어긋난 내용: 가격표를 §5.4대로 **TS 파일**(`packages/domain/src/pricing/llm-prices.ts`)로 두고 USD는 **앱에서 계산**(가격표×토큰, 코드 배포 무관). RPC(get_cost_breakdown)는 원자료(일별 토큰·이메일·쿼터)만 반환. packages/domain 첫 실제 콘텐츠(ADR-A7 JIT 생성).
+- 원인/근거: §5.4("가격 변동 시 이 파일만 수정"). 단가 gpt-5-nano input $0.20/output $1.25/cached $0.02 per 1M — 사용자 확인(2026-07-12). 라이브 검증: 30일 $0.59, 비율 7.6:1 우수.
+- 조치: computeUsd·ratioBadge를 @getkkul/domain에 두고 admin이 소비(transpilePackages). Overview ⑤ 미연동→실측 USD 연동(M2 약속 이행).
+- 트레이서빌리티: `packages/domain/.../llm-prices.test.ts`(6) + `apps/admin/lib/cost/derive.test.ts`(4).
+- 커밋: (M4, 본 PR)
+
+### [2026-07-12T10:22Z] M4 · AC-CO-1a (측정 한계 2건)
+- 분류: 드리프트(unintended, 데이터 제약) → 정직 표기
+- 어긋난 내용: AC-CO-1a "일/**모드별** USD" 중 **모드별(짧게/보통/길게) 분리 불가** — 토큰이 요약 배치 단위(pipeline_runs.stats)로만 기록. → 일별 총 USD만 제공, 모드별은 화면에 "미제공" 명시. 또 **캐시 토큰 미계측**(stats에 cached_tokens 없음) → USD는 prompt×0.20+completion×1.25(캐시 반영 안 됨). 가격표엔 cached 단가 보유.
+- 원인/근거: 기존 계측(summarize stats)의 구조. SYNC-LOG 예시 엔트리(cached-token)가 예견한 지점.
+- 조치: 정직 표기(page 하단 안내). 모드별·캐시 계측은 summarize stats 확장 시 후속(스키마 변경 에스컬레이션 대상).
+- 커밋: (M4, 본 PR)
+
+### [2026-07-12T10:22Z] M4 · REQ-CO-1 (예산 생략)
+- 분류: 결정(intentional)
+- 어긋난 내용: AC-CO-1의 "예산 대비 소진"을 생략 — 예산 설정 없이 실지출(USD·토큰)만 표시.
+- 원인/근거: 사용자 결정(2026-07-12, 개인 학습 프로젝트·저비용). 예산 config 부재.
+- 조치: 예산 도입 시 후속. YouTube 쿼터는 cap 대비(search_api_usage) 표시.
+- 커밋: (M4, 본 PR)
+
+<!-- spec-sync: M4 done @ feat/m4-cost -->
+
+
 
 
 

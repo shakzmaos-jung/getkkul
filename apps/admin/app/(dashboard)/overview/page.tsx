@@ -6,6 +6,8 @@ import {
   SERVICE_STATUS_LABEL,
 } from '@/lib/overview/derive';
 import { StatusSignal, BatchStrip, KPICard } from '@/components/overview/widgets';
+import { fetchCostBreakdown } from '@/lib/cost/fetch';
+import { totalUsd, formatUsd } from '@/lib/cost/derive';
 
 // 실시간 관제 데이터 — 빌드 프리렌더 금지, 매 요청 서버 조회(REQ-NFR-1 신선도).
 export const dynamic = 'force-dynamic';
@@ -37,6 +39,16 @@ export default async function OverviewPage() {
   const okStages = stages.filter((s) => s.ok).length;
   const { subscribers } = data;
 
+  // ⑤ 이번달 LLM 비용(M4 연동). 실패해도 화면 전체를 깨지 않고 미연동 표시.
+  let monthUsd: number | null = null;
+  try {
+    const kstToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
+    const monthStart = `${kstToday.slice(0, 8)}01`;
+    monthUsd = totalUsd(await fetchCostBreakdown(monthStart));
+  } catch {
+    monthUsd = null;
+  }
+
   return (
     <div className="space-y-8 p-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -64,7 +76,12 @@ export default async function OverviewPage() {
             sub={`+${subscribers.newLast7d} 순증 (7일)`}
           />
           <KPICard label="이메일 오픈율" value="미연동" sub="오픈 추적 미도입" muted />
-          <KPICard label="이번달 LLM 비용" value="미연동" sub="M4 비용 모듈에서" muted />
+          <KPICard
+            label="이번달 LLM 비용"
+            value={monthUsd === null ? '미연동' : formatUsd(monthUsd)}
+            sub={monthUsd === null ? '조회 실패' : 'gpt-5-nano 실측'}
+            muted={monthUsd === null}
+          />
           <KPICard label="열린 인시던트" value="미연동" sub="M7 인시던트에서" muted />
         </div>
       </section>
