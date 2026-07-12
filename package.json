@@ -16,6 +16,7 @@
     "pipeline": "npm run pipeline -w apps/web",
     "pipeline-check": "npm run pipeline-check -w apps/web",
     "deliver": "npm run deliver -w apps/web",
-    "gen:oss-licenses": "npm run gen:oss-licenses -w apps/web"
+    "gen:oss-licenses": "npm run gen:oss-licenses -w apps/web",
+    "gen:security": "node scripts/gen-security-snapshot.mjs"
   }
 }

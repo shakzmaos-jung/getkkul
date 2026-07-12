@@ -1,0 +1,37 @@
+name: security
+
+# 보안 스캐너 (M6, AC-SE-1a). 의존성 취약점(npm audit) + 시크릿 스캔(gitleaks).
+# 어드민 보안 페이지는 apps/admin/data/security-snapshot.json(npm audit 요약)을 표시하고,
+# gitleaks 는 이 워크플로가 PR 게이트로 집행한다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 1' # 매주 월요일
+
+jobs:
+  scan:
+    name: npm audit · gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # gitleaks 전체 이력 스캔
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 의존성 취약점: high/critical 이면 실패, moderate/low 는 리포트(비차단).
+      - name: npm audit
+        run: npm audit --audit-level=high
+
+      # 시크릿 스캔: 누출 발견 시 실패.
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

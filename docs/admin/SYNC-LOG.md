@@ -197,6 +197,30 @@
 
 <!-- spec-sync: M5 done @ feat/m5-growth -->
 
+### [2026-07-12T11:05Z] M6 · AC-SE-1a (CI 보안 스캐너 추가 · §9 #8)
+- 분류: 결정(intentional) — 사용자 승인
+- 어긋난 내용: 신규 CI 도구 추가 — `.github/workflows/security.yml`(npm audit + **gitleaks**). §9 #8 에스컬레이션, 사용자가 "gitleaks까지 추가" 선택(2026-07-12).
+- 원인/근거: AC-SE-1a(SCA·시크릿 CI 산출물 표시). npm audit high/critical 차단·moderate 리포트, gitleaks 누출 차단.
+- 조치: security.yml + 어드민 보안 페이지가 스냅샷 표시.
+- 커밋: (M6, 본 PR)
+
+### [2026-07-12T11:05Z] M6 · AC-SE-1a (SCA 표시 아키텍처)
+- 분류: 결정(intentional) — 설계
+- 어긋난 내용: 어드민은 서버리스라 라이브 npm audit 불가 → **스냅샷 파일**(`apps/admin/data/security-snapshot.json`, `scripts/gen-security-snapshot.mjs`로 생성)을 표시. generatedAt으로 신선도 노출. 현재 moderate 3.
+- 원인/근거: "CI 산출물 표시"의 현실적 구현(gen-oss-licenses 패턴). CI(security.yml)는 게이트로, 어드민은 스냅샷으로.
+- 조치: `npm run gen:security`로 갱신. 스냅샷 부재 시 "미구성".
+- 커밋: (M6, 본 PR)
+
+### [2026-07-12T11:05Z] M6 · AC-SE-1b (IDOR 자가점검 · 헤더)
+- 분류: 결정(intentional)
+- 어긋난 내용: AC-SE-1b "User A→ID 치환→User B 차단"을 별도 시나리오 실행이 아니라 **기존 access.test(비-admin 차단·ID 치환 차단, AC-AU-2b)를 코드화된 자가점검으로** 표기(통과). 보안 헤더는 어드민 next.config에 4종(X-Frame-Options·X-Content-Type-Options·Referrer-Policy·Permissions-Policy) 설정 후 표시.
+- 원인/근거: IDOR 방어가 이미 M1에서 순수 로직+테스트로 구현·검증됨. 재실행보다 그 결과를 노출.
+- 조치: `apps/admin/lib/security/checks.ts`(buildSecurityChecks) + 3 테스트.
+- 커밋: (M6, 본 PR)
+
+<!-- spec-sync: M6 done @ feat/m6-security -->
+
+
 
 
 
