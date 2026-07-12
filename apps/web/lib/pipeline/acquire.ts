@@ -76,7 +76,7 @@ export async function acquireTranscripts(
     .eq('status', 'pending')
     // 재시도 큐 소비(AC-B1.2): 신규(next_retry_at NULL) + 도래한 재시도만.
     .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
-    // 멤버십 츐7오프(2026-07-10 KST) 이전 업로드는 비조회라 전사하지 않음(NULL 은 미상이라 통과).
+    // 멤버십 컷오프(2026-07-10 KST) 이전 업로드는 비조회라 전사하지 않음(NULL 은 미상이라 통과).
     .or(`published_at.gte.${CONTENT_CUTOFF_PUBLISHED_AT},published_at.is.null`)
     // 최신 영상 우선(사용자가 곷바로 보는 것). 폭주로 백로그가 쌓여도 오늘 콘텐츠가 굶지 않도록.
     .order('published_at', { ascending: false, nullsFirst: false })

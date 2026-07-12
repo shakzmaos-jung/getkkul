@@ -125,9 +125,9 @@ export async function manageDeliveryEmail(
     await createNotifier().send(
       { email },
       {
-        subject: '겠꿀 수신 이메일 인증 코드',
-        text: `겠꿀 수신 이메일 인증 코드: ${code}\n10분 내에 입력해 주세요.`,
-        html: `<div style="font-family:sans-serif"><p>겠꿀 수신 이메일 인증 코드</p><p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p><p style="color:#6b7280">10분 내에 입력해 주세요.</p></div>`,
+        subject: '겟꿀 수신 이메일 인증 코드',
+        text: `겟꿀 수신 이메일 인증 코드: ${code}\n10분 내에 입력해 주세요.`,
+        html: `<div style="font-family:sans-serif"><p>겟꿀 수신 이메일 인증 코드</p><p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p><p style="color:#6b7280">10분 내에 입력해 주세요.</p></div>`,
       },
     );
   } catch {

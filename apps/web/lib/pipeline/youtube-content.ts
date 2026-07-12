@@ -14,7 +14,7 @@ let botBlockCount = 0;
 export function getBotBlockCount(): number {
   return botBlockCount;
 }
-/** acquire 런 시작 시 카운터를 0으로 초기화한다(런 격리 — 한 프로세스에서 여러 번 호출돼도 정확).*/
+/** acquire 런 시작 시 카운터를 0으로 초기화한다(런 격리 — 한 프로세스에서 여러 번 호출돼도 정확). */
 export function resetBotBlockCount(): void {
   botBlockCount = 0;
 }
@@ -37,7 +37,7 @@ function cookieArgs(): string[] {
 }
 
 // 우선순위 언어. 한 번에 여러 언어를 요청하면 자막 다운로드가 폭주해 YouTube 429 를
-// 유발하므로, 언어를 하나씩 순차 시도하고 첫 성공에서 멈추다.
+// 유발하므로, 언어를 하나씩 순차 시도하고 첫 성공에서 멈춘다.
 const CAPTION_LANGS = ['ko', 'en'];
 
 async function captionForLang(video: VideoRef, lang: string): Promise<string | null> {
