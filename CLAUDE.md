@@ -5,7 +5,7 @@
 
 ## 프로젝트 컨텍스트
 
-- **무엇**: 구독한 유튜브 채널을 대신 감시해, 새 영상의 핵심을 요약하고 하루 3회 정시에 밀어주는 개인용 큐레이션 서비스.
+- **무엇**: 구독한 유튜브 채널을 대신 감시해, 새 영상의 핵심을 요약하고 하루 4회(KST 07:30/11:30/17:30/21:30) 정시에 밀어주는 개인용 큐레이션 서비스.
 - **누구를 위해**: 나(운영자) + 소수의 친구(신뢰 그룹). 일반 공개 아님.
 - **성격**: 사업 진입이 아니라 (1) AI 에이전틱 개발 파이프라인 학습, (2) 나에게 최적화된 경량 버전. 차별화를 과장하지 않는다.
 
@@ -38,18 +38,18 @@
 두 경계를 **단일 인터페이스 뒤로 격리**한다. 이 경계 밖 코드는 구현 세부를 몰라야 한다.
 
 1. **콘텐츠 획득**: `fetchContent(source)` — RSS 감지 + 자막 우선/오디오 STT 폴백. 유튜브 방어 변화·소스 추가(v2 네이버 등)에 대응해 교체 가능해야 한다.
-2. **알림 발송**: `notify(user, message)` — v1은 이메일(Resend). 이후 텔레그램·카카오 구현체로 교체 시 상위 코드가 바뀌지 않아야 한다.
+2. **알림 발송**: `notify(user, message)` — v1은 이메일(기본 Gmail SMTP, 폴백 Resend). 이후 텔레그램·카카오 구현체로 교체 시 상위 코드가 바뀌지 않아야 한다. (현재 웹푸시는 별도 `PushNotifier` 로 병존 — 채널 중립 통합은 미결 과제, 격리 경계 재설계 시 ADR 필요.)
 
 - **감지·처리와 발송을 분리**한다: 전사·요약은 영상 감지 시점에 미리 수행·저장하고, 발송 시각에는 준비된 것만 밀어낸다.
 
 ## 기술 스택 & 규약
 
 - **DB·인증**: Supabase (Auth: Google 소셜 로그인 / RLS / Postgres)
-- **호스팅·프론트**: Vercel (v1은 `getkkul.vercel.app` 서브도메인). 프론트 프레임워크는 계획 단계에서 확정(Vercel 친화적인 Next.js 권장).
-- **스케줄**: Vercel Cron 또는 Supabase pg_cron/Edge Functions. 발송 KST 07:30 / 11:30 / 17:30.
-- **이메일**: Resend.
-- **요약**: LLM API(프로바이더는 계획 단계에서 확정).
-- **전사**: 자막 우선, 실패 시 오디오 STT(Whisper류; 프로바이더는 계획 단계에서 확정).
+- **호스팅·프론트**: Vercel (v1은 `getkkul.vercel.app`). 프레임워크는 Next.js(App Router) 확정. 모노레포(npm workspaces): `apps/web`(사용자앱)·`apps/admin`(관제).
+- **스케줄**: 처리·발송 파이프라인은 **GitHub Actions**(yt-dlp/ffmpeg 필요) + **Supabase pg_cron** 트리거로 구동(ADR-0004/0005). Vercel Cron 아님. 발송 슬롯 KST **07:30 / 11:30 / 17:30 / 21:30**(21:30 추가됨).
+- **이메일**: 기본 **Gmail SMTP**(GMAIL_* 있을 때, 무료·임의 수신), 없으면 **Resend** 폴백(`lib/notify/create-notifier.ts`). 발송 격리 인터페이스 `notify()` 뒤에 위치.
+- **요약**: OpenAI **gpt-5-nano** 단일 호출·reasoning-minimal(ADR-0010). 캐시 키 (video_id, length_mode, language).
+- **전사**: 자막 우선(yt-dlp → Supadata 폴백), 실패 시 오디오 STT(OpenAI Whisper).
 - **타임존**: 모든 타임스탬프 UTC 저장, 스케줄·표시는 KST 변환.
 - **언어**: 요약 한국어 기본 + 웹에서 영어 전환. 요약 캐시 키는 (video_id, length_mode, language).
 
