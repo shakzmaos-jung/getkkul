@@ -44,12 +44,13 @@ export default function CreditLedgerCard({
   const { balance, expiringSoon, totalEarned, totalUsed, transactions } = ledger;
   return (
     <div className="flex flex-col gap-4">
-      {/* 1) 총 획득 / 총 사용 / 잔여 */}
+      {/* 1) 크레딧 현황: 누적 획득 / 누적 사용 / 현재 잔여 */}
       <Card className="p-5">
+        <h3 className="mb-2 text-sm font-semibold">크레딧 현황</h3>
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="총 획득" value={formatWon(totalEarned)} testId="credit-earned" />
-          <Stat label="총 사용" value={formatWon(totalUsed)} testId="credit-used" />
-          <Stat label="잔여" value={formatWon(balance)} testId="credit-balance" />
+          <Stat label="누적 획득 크레딧" value={formatWon(totalEarned)} testId="credit-earned" />
+          <Stat label="누적 사용 크레딧" value={formatWon(totalUsed)} testId="credit-used" />
+          <Stat label="현재 잔여 크레딧" value={formatWon(balance)} testId="credit-balance" />
         </div>
         {expiringSoon > 0 && (
           <p className="mt-2 text-right text-xs text-danger" data-testid="credit-expiring">
