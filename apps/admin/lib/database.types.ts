@@ -57,6 +57,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Json;
       };
+      get_incident_log: {
+        Args: { p_days?: number };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

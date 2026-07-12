@@ -8,6 +8,7 @@ import {
 import { StatusSignal, BatchStrip, KPICard } from '@/components/overview/widgets';
 import { fetchCostBreakdown } from '@/lib/cost/fetch';
 import { totalUsd, formatUsd } from '@/lib/cost/derive';
+import { activeIncidentCount } from '@/lib/incidents/derive';
 
 // 실시간 관제 데이터 — 빌드 프리렌더 금지, 매 요청 서버 조회(REQ-NFR-1 신선도).
 export const dynamic = 'force-dynamic';
@@ -82,7 +83,11 @@ export default async function OverviewPage() {
             sub={monthUsd === null ? '조회 실패' : 'gpt-5-nano 실측'}
             muted={monthUsd === null}
           />
-          <KPICard label="열린 인시던트" value="미연동" sub="M7 인시던트에서" muted />
+          <KPICard
+            label="열린 인시던트"
+            value={String(activeIncidentCount(data.health))}
+            sub={activeIncidentCount(data.health) === 0 ? '정상 · 활성 없음' : '활성 인시던트'}
+          />
         </div>
       </section>
     </div>

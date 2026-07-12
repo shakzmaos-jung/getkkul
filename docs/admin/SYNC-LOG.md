@@ -220,6 +220,24 @@
 
 <!-- spec-sync: M6 done @ feat/m6-security -->
 
+### [2026-07-12T11:25Z] M7 · AC-AL-1a (인시던트 파생 · 무-테이블)
+- 분류: 결정(intentional) — 사용자 승인
+- 어긋난 내용: AC-AL-1a는 "운영자 알림(RSS 429·쿠키 만료·발송 실패)을 인시던트 소스로 수집"을 명시하나, 알림이 **이메일 전용(DB 미기록)**이라 저장된 소스가 없음. → 같은 신호(`pipeline_health_snapshot` + `pipeline_runs` 실패)에서 **인시던트를 파생**(get_incident_log). 인시던트 테이블 **미신설**.
+- 원인/근거: 어드민 read-layer + 파이프라인 로직 변경 non-goal. 사용자 결정(2026-07-12): 파생(A) 지금, 테이블(B)은 후속.
+- 조치: get_incident_log RPC(헬스+최근 실패). Overview ⑥ 열린 인시던트 → activeIncidentCount 연동.
+- 트레이서빌리티: `apps/admin/lib/incidents/derive.test.ts`(5).
+- 커밋: (M7, 본 PR)
+
+### [2026-07-12T11:25Z] M7 · AC-AL-1b (규칙 심각/보통) + 미이행(후속)
+- 분류: 결정(intentional) + 후속
+- 어긋난 내용: AC-AL-1b "규칙 심각/보통 분리"는 ALERT_RULES 정적 config + activeIncidents 분류(심각=파이프라인정지·쿠키만료·발송전면실패 / 보통=백로그·감지실패·실패영상·발송일부)로 충족. **미이행(후속)**: 포스트모템·열림/닫힘 추적·상태페이지 링크 — 인시던트 테이블 필요 → 미연동(사용자 결정).
+- 원인/근거: 파생 방식은 lifecycle/이력이 없음(설계상 한계). 인시던트가 잦아지면 테이블 도입.
+- 조치: 포스트모템·상태페이지는 화면에 "미연동" 명시. 테이블 도입은 후속 에스컬레이션.
+- 커밋: (M7, 본 PR)
+
+<!-- spec-sync: M7 done @ feat/m7-alerts -->
+
+
 
 
 
