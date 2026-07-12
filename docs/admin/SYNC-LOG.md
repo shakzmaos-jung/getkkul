@@ -237,6 +237,25 @@
 
 <!-- spec-sync: M7 done @ feat/m7-alerts -->
 
+### [2026-07-12T11:42Z] M8 · AC-OP-1b (파괴적 액션 보류)
+- 분류: 결정(intentional) — 사용자 승인
+- 어긋난 내용: AC-OP-1b "파이프라인/발송 수동 실행·재발송"(파괴적/부수효과 액션)을 **미구현**. M8은 조회 전용(채널/구독자·다이제스트 이력).
+- 원인/근거: 사용자 결정(2026-07-12) — 수동 실행·재발송은 실제 이메일 발송·API 비용 등 되돌릴 수 없는 부수효과라, 우선 안전한 조회만. §9 #7·CLAUDE.md 파괴적 작업 신중.
+- 조치: **후속** — 도입 시 서버 권한 재검증(master) + 확인 다이얼로그 + 멱등(deliveries UNIQUE 활용) 필수. 각 액션 개별 승인.
+- 트레이서빌리티: 조회부는 get_ops_data + maskEmail 테스트.
+- 커밋: (M8, 본 PR)
+
+### [2026-07-12T11:42Z] M8 · AC-OP-1a (maskEmail 재사용 · 마스킹 위치)
+- 분류: 결정(intentional)
+- 어긋난 내용: AC-OP-1a "기존 lib/referral/mask 재사용"을 위해 **maskEmail을 packages/domain으로 JIT 추출**(ADR-A7, 동일 로직). apps/web 사본은 **회귀 0 위해 미변경** → 임시 중복(통합은 후속). 마스킹은 **서버 fetch 레이어**에서 적용 — 원문 이메일은 서버에서만, 브라우저엔 마스킹만(개인정보 최소 노출).
+- 원인/근거: 전략 A(apps/web 무접촉). 보안(원문 최소 노출).
+- 조치: apps/web를 @getkkul/domain 참조로 통합은 후속(중복 해소).
+- 트레이서빌리티: `packages/domain/src/mask.test.ts`(3), `apps/admin/lib/ops/fetch.ts`(마스킹).
+- 커밋: (M8, 본 PR)
+
+<!-- spec-sync: M8 done @ feat/m8-ops -->
+
+
 
 
 
