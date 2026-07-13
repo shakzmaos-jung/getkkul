@@ -11,6 +11,7 @@ const healthy: HealthSnapshot = {
   failedVideosPostCutoff: { count: 1, samples: [{ title: '라이브', error: 'yt-dlp' }] },
   eligibleUnsummarized: 0,
   deliveryFailures24h: 0,
+  stuckDeliveryUsers: 0,
   deadDataPending: 148,
   today: { detected: 8, summarized: 72, delivered: 3 },
   summarizedRecentMedian: 140,
@@ -52,6 +53,14 @@ describe('evaluateIssues', () => {
         i.includes('실패 급증'),
       ),
     ).toBe(true);
+  });
+
+  it('발송 정체(적격 영상 있는데 발송 0)를 이상으로 잡는다 — 인시던트 2026-07-13 회귀', () => {
+    // 발송 실패 행이 0이어도(=silent) 정체 사용자가 있으면 알람. 헬스체크가 이번 무음
+    // 미발송을 4일간 못 잡았던 사각을 닫는다.
+    const issues = evaluateIssues({ ...healthy, deliveryFailures24h: 0, stuckDeliveryUsers: 2 });
+    expect(issues.some((i) => i.includes('발송 정체 2명'))).toBe(true);
+    expect(buildReport({ ...healthy, stuckDeliveryUsers: 2 }).ok).toBe(false);
   });
 });
 

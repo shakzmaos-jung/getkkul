@@ -22,6 +22,7 @@ export interface HealthSnapshot {
   failedVideosPostCutoff: { count: number; samples: { title: string; error: string }[] };
   eligibleUnsummarized: number;
   deliveryFailures24h: number;
+  stuckDeliveryUsers: number;
   deadDataPending: number;
   today: { detected: number; summarized: number; delivered: number };
   summarizedRecentMedian: number;
@@ -63,6 +64,11 @@ export function evaluateIssues(s: HealthSnapshot): string[] {
   if (s.deliveryFailures24h > 0) {
     issues.push(`발송 실패 ${s.deliveryFailures24h}건(status≠sent) — 이메일/푸시 전송 확인`);
   }
+  if (s.stuckDeliveryUsers > 0) {
+    issues.push(
+      `발송 정체 ${s.stuckDeliveryUsers}명 — 요약 준비된 적격 영상이 있는데 26h 내 정상 발송 0 (candidateVideos 상한/발송 경로 확인, 인시던트 2026-07-13 유형)`,
+    );
+  }
   return issues;
 }
 
@@ -79,7 +85,7 @@ export function buildReport(s: HealthSnapshot): HealthReport {
   const detectOk = s.detectFailures === 0 && s.lastPipelineRunAgeMin !== null && s.lastPipelineRunAgeMin <= STALE_PIPELINE_MINUTES;
   const acquireOk = !s.cookieExpirySuspected && s.failedVideosPostCutoff.count < FAILED_VIDEO_ALERT_THRESHOLD;
   const summarizeOk = s.eligibleUnsummarized === 0;
-  const deliveryOk = s.deliveryFailures24h === 0;
+  const deliveryOk = s.deliveryFailures24h === 0 && s.stuckDeliveryUsers === 0;
 
   const stages = [
     stage(detectOk, '탐지', `감지 실패 ${s.detectFailures}건 · 마지막 런 ${ageTxt}`),
@@ -89,7 +95,11 @@ export function buildReport(s: HealthSnapshot): HealthReport {
       `최근 3h 실패 ${s.acquireFailed3h} · 봇차단 의심 ${s.cookieExpirySuspected ? '예' : '아니오'} · 영구실패(참고) ${s.failedVideosPostCutoff.count}`,
     ),
     stage(summarizeOk, '요약', `미요약 대상 ${s.eligibleUnsummarized}건 · 오늘 요약 ${s.today.summarized}건`),
-    stage(deliveryOk, '발송', `발송 실패 ${s.deliveryFailures24h}건 · 오늘 발송 ${s.today.delivered}건`),
+    stage(
+      deliveryOk,
+      '발송',
+      `발송 실패 ${s.deliveryFailures24h}건 · 발송 정체 ${s.stuckDeliveryUsers}명 · 오늘 발송 ${s.today.delivered}건`,
+    ),
   ];
 
   const throughput = `오늘 처리량 — 신규 감지 ${s.today.detected} · 요약 ${s.today.summarized} · 발송 ${s.today.delivered} (최근 요약 중앙값 ${s.summarizedRecentMedian}/일)`;
