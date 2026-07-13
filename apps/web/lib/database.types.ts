@@ -1016,6 +1016,17 @@ export type Database = {
           up_count: number
         }[]
       }
+      get_deliverable_videos: {
+        Args: { p_user: string; p_mode: string }
+        Returns: {
+          video_id: string
+          title: string
+          url: string
+          headline: string
+          core_text: string
+          duration_seconds: number
+        }[]
+      }
       get_digest_dates: {
         Args: never
         Returns: {

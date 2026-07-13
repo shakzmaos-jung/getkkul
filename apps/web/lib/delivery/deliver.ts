@@ -1,8 +1,6 @@
 import { createPipelineClient } from '@/lib/pipeline/supabase';
 import { createNotifier } from '@/lib/notify/create-notifier';
 import { createPushNotifier } from '@/lib/notify/create-push-notifier';
-import { activeSinceByChannel, isAfterActiveSince } from '@/lib/subscriptions/active-window';
-import { passesDurationFilters } from '@/lib/youtube/duration';
 import { PLANS, type PlanCode } from '@/lib/membership/plans';
 import type { Notifier } from '@/lib/notify/notify';
 import type { PushNotifier, PushSubscriptionRecord } from '@/lib/notify/web-push';
@@ -115,11 +113,7 @@ export async function deliverAll(
     const recipient = setting?.delivery_email ?? user.email;
     let selection: DigestSelection | null = null;
     try {
-      const candidates = await candidateVideos(
-        supabase,
-        user.id,
-        memByUser.get(user.id)?.created_at ?? null,
-      );
+      const candidates = await candidateVideos(supabase, user.id);
       selection = selectDigestVideos(candidates);
       // 월 한도 초과분은 발송 보류(overflow 로 이월 표시). 한도 0이면 신규 없음.
       const remaining = digestRemaining(user.id);
@@ -221,74 +215,33 @@ export async function deliverAll(
   return { users: (users ?? []).length, sent, empty, failed, pushSent };
 }
 
-/** 해당 사용자에게 아직 발송되지 않은, 요약이 준비된 done 영상(오래된 순). */
-async function candidateVideos(
-  supabase: SupabaseClient,
-  userId: string,
-  membershipStart: string | null,
-): Promise<DigestVideo[]> {
+/**
+ * 해당 사용자에게 아직 발송되지 않은, 요약이 준비된 done 영상(오래된 순).
+ * 선별 규칙(구독·active_since·길이·멤버십 floor·요약존재·미발송)은 서버측 RPC
+ * get_deliverable_videos 로 일원화한다. 클라이언트에서 videos 를 무제한 조회하던 기존 방식은
+ * 과거 백카탈로그 확대 시 PostgREST 행 상한(≈1000)에 신규 콘텐츠가 절단되어 오탐("새 소식 없음")을
+ * 유발했다(정상 동작하는 get_feed_digests 와 동일한 서버측 필터로 정렬). RPC 는 limit 로 자체 상한.
+ */
+async function candidateVideos(supabase: SupabaseClient, userId: string): Promise<DigestVideo[]> {
   const { data: setting } = await supabase
     .from('user_settings')
-    .select('summary_length, exclude_over_2h')
+    .select('summary_length')
     .eq('user_id', userId)
     .maybeSingle();
   const mode = (setting?.summary_length ?? 'normal') as LengthMode;
-  const excludeOver2h = setting?.exclude_over_2h ?? true;
 
-  const { data: subs } = await supabase
-    .from('subscriptions')
-    .select('channel_id, active_since')
-    .eq('user_id', userId)
-    .eq('paused', false); // 일시정지 채널은 발송에서 제외
-  const activeSubs = subs ?? [];
-  const sinceByChannel = activeSinceByChannel(activeSubs);
-  const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
-  if (channelIds.length === 0) return [];
+  const { data, error } = await supabase.rpc('get_deliverable_videos', {
+    p_user: userId,
+    p_mode: mode,
+  });
+  if (error) throw new Error(`발송 대상 조회 실패: ${error.message}`);
 
-  const { data: videos } = await supabase
-    .from('videos')
-    .select('id, title, url, channel_id, created_at, published_at, duration_seconds')
-    .eq('status', 'done')
-    .in('channel_id', channelIds)
-    .order('published_at', { ascending: true });
-  // 멤버십 시작(업로드시점) 이후 + 정지해제 기준선 이후 + 영상 길이 필터(2분미만 항상 제외, 2시간이상 옵션).
-  const videoRows = (videos ?? [])
-    .filter(
-      (v) =>
-        membershipStart == null ||
-        (v.published_at != null && new Date(v.published_at) >= new Date(membershipStart)),
-    )
-    .filter((v) => isAfterActiveSince(v.created_at, sinceByChannel.get(v.channel_id)))
-    .filter((v) => passesDurationFilters(v.duration_seconds, excludeOver2h));
-  if (videoRows.length === 0) return [];
-  const videoIds = videoRows.map((v) => v.id);
-
-  const { data: sums } = await supabase
-    .from('summaries')
-    .select('video_id, headline, core_text')
-    .eq('length_mode', mode)
-    .eq('language', 'ko')
-    .in('video_id', videoIds);
-  const sumMap = new Map((sums ?? []).map((s) => [s.video_id, s]));
-
-  const { data: dels } = await supabase
-    .from('deliveries')
-    .select('video_id')
-    .eq('user_id', userId)
-    .eq('status', 'sent');
-  const alreadySent = new Set((dels ?? []).map((d) => d.video_id));
-
-  return videoRows
-    .filter((v) => sumMap.has(v.id) && !alreadySent.has(v.id))
-    .map((v) => {
-      const s = sumMap.get(v.id)!;
-      return {
-        videoId: v.id,
-        title: v.title ?? '',
-        url: v.url ?? '',
-        headline: s.headline ?? v.title ?? '',
-        coreText: s.core_text ?? '',
-        durationSeconds: v.duration_seconds,
-      };
-    });
+  return (data ?? []).map((r) => ({
+    videoId: r.video_id,
+    title: r.title ?? '',
+    url: r.url ?? '',
+    headline: r.headline ?? r.title ?? '',
+    coreText: r.core_text ?? '',
+    durationSeconds: r.duration_seconds,
+  }));
 }
