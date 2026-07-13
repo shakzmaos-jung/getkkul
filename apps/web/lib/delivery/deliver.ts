@@ -221,8 +221,11 @@ export async function deliverAll(
   return { users: (users ?? []).length, sent, empty, failed, pushSent };
 }
 
+/** 조회 안전 상한 — 서버 max-rows(기본 1000)에 조용히 잘리지 않도록 명시한다. */
+export const CANDIDATE_VIDEO_LIMIT = 1000;
+
 /** 해당 사용자에게 아직 발송되지 않은, 요약이 준비된 done 영상(오래된 순). */
-async function candidateVideos(
+export async function candidateVideos(
   supabase: SupabaseClient,
   userId: string,
   membershipStart: string | null,
@@ -245,12 +248,19 @@ async function candidateVideos(
   const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
   if (channelIds.length === 0) return [];
 
-  const { data: videos } = await supabase
+  // 멤버십 publish-floor(가입 이후만)를 SQL 로 내린다 → 서버 max-rows(기본 1000) 상한이
+  // '적격(가입 이후) 구간'에 적용되게 한다. 이 필터가 없으면 done 영상이 1000개↑인 사용자는
+  // '가장 오래된 1000개'(전부 floor 이전)만 받아 후보가 0이 되어 조용히 미발송된다
+  // (인시던트 2026-07-13: 멤버십 도입일 07-10 이후 고볼륨 구독자 전원 미수신).
+  let videoQuery = supabase
     .from('videos')
     .select('id, title, url, channel_id, created_at, published_at, duration_seconds')
     .eq('status', 'done')
-    .in('channel_id', channelIds)
-    .order('published_at', { ascending: true });
+    .in('channel_id', channelIds);
+  if (membershipStart) videoQuery = videoQuery.gte('published_at', membershipStart);
+  const { data: videos } = await videoQuery
+    .order('published_at', { ascending: true })
+    .limit(CANDIDATE_VIDEO_LIMIT);
   // 멤버십 시작(업로드시점) 이후 + 정지해제 기준선 이후 + 영상 길이 필터(2분미만 항상 제외, 2시간이상 옵션).
   const videoRows = (videos ?? [])
     .filter(
