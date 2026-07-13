@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { deliverAll } from './deliver';
+import { deliverAll, candidateVideos } from './deliver';
 import type { Notifier } from '@/lib/notify/notify';
 import type { PushNotifier } from '@/lib/notify/web-push';
 
@@ -182,5 +182,58 @@ describe('deliverAll — 채널 독립 격리 & 멱등(H6)', () => {
     expect(r.sent).toBe(0);
     expect(r.empty).toBe(0);
     expect(writes.deliveries).toEqual([]);
+  });
+});
+
+describe('candidateVideos — 조회 실패를 삼키지 않음(오탐 "새 소식 없음" 방지)', () => {
+  // 특정 테이블 조회만 error 를 돌려주는 최소 fake. 나머지는 정상 데이터.
+  function erroringSupabase(errorTable: string) {
+    const from = (table: string) => {
+      const b: Record<string, unknown> = {
+        select: () => b,
+        eq: () => b,
+        in: () => b,
+        gte: () => b,
+        order: () => b,
+        limit: () => b,
+        maybeSingle: () =>
+          Promise.resolve({ data: { summary_length: 'normal', exclude_over_2h: true }, error: null }),
+        then: (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) => {
+          const error = table === errorTable ? { message: 'statement timeout' } : null;
+          const data =
+            table === 'subscriptions'
+              ? [{ channel_id: 'c1', active_since: null }]
+              : table === 'videos'
+                ? [
+                    {
+                      id: 'v1',
+                      title: 'T',
+                      url: 'u',
+                      channel_id: 'c1',
+                      created_at: '2026-07-11T00:00:00Z',
+                      published_at: '2026-07-11T00:00:00Z',
+                      duration_seconds: 600,
+                    },
+                  ]
+                : [];
+          return Promise.resolve({ data: error ? null : data, error }).then(res, rej);
+        },
+      };
+      return b;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return { from } as any;
+  }
+
+  it('videos 조회 error 를 [] 로 삼키지 않고 throw 한다', async () => {
+    await expect(candidateVideos(erroringSupabase('videos'), 'u1', null)).rejects.toThrow(
+      /영상 조회 실패/,
+    );
+  });
+
+  it('summaries 조회 error 를 [] 로 삼키지 않고 throw 한다', async () => {
+    await expect(candidateVideos(erroringSupabase('summaries'), 'u1', null)).rejects.toThrow(
+      /요약 조회 실패/,
+    );
   });
 });

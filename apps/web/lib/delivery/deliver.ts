@@ -230,19 +230,24 @@ export async function candidateVideos(
   userId: string,
   membershipStart: string | null,
 ): Promise<DigestVideo[]> {
-  const { data: setting } = await supabase
+  // 조회 error 는 삼키지 않고 throw 한다. 삼켜서 [] 로 처리하면(과거 동작) 일시적 조회 실패가
+  // 조용한 "새 소식 없음"(오탐)으로 둔갑한다. throw 하면 deliverAll 의 per-user try/catch 가
+  // failed 로 잡아 다음 슬롯 재시도한다(H6 격리 유지, 전체 잡은 계속).
+  const { data: setting, error: settingErr } = await supabase
     .from('user_settings')
     .select('summary_length, exclude_over_2h')
     .eq('user_id', userId)
     .maybeSingle();
+  if (settingErr) throw new Error(`설정 조회 실패(${userId}): ${settingErr.message}`);
   const mode = (setting?.summary_length ?? 'normal') as LengthMode;
   const excludeOver2h = setting?.exclude_over_2h ?? true;
 
-  const { data: subs } = await supabase
+  const { data: subs, error: subsErr } = await supabase
     .from('subscriptions')
     .select('channel_id, active_since')
     .eq('user_id', userId)
     .eq('paused', false); // 일시정지 채널은 발송에서 제외
+  if (subsErr) throw new Error(`구독 조회 실패(${userId}): ${subsErr.message}`);
   const activeSubs = subs ?? [];
   const sinceByChannel = activeSinceByChannel(activeSubs);
   const channelIds = [...new Set(activeSubs.map((s) => s.channel_id))];
@@ -258,9 +263,10 @@ export async function candidateVideos(
     .eq('status', 'done')
     .in('channel_id', channelIds);
   if (membershipStart) videoQuery = videoQuery.gte('published_at', membershipStart);
-  const { data: videos } = await videoQuery
+  const { data: videos, error: videosErr } = await videoQuery
     .order('published_at', { ascending: true })
     .limit(CANDIDATE_VIDEO_LIMIT);
+  if (videosErr) throw new Error(`영상 조회 실패(${userId}): ${videosErr.message}`);
   // 멤버십 시작(업로드시점) 이후 + 정지해제 기준선 이후 + 영상 길이 필터(2분미만 항상 제외, 2시간이상 옵션).
   const videoRows = (videos ?? [])
     .filter(
@@ -273,19 +279,21 @@ export async function candidateVideos(
   if (videoRows.length === 0) return [];
   const videoIds = videoRows.map((v) => v.id);
 
-  const { data: sums } = await supabase
+  const { data: sums, error: sumsErr } = await supabase
     .from('summaries')
     .select('video_id, headline, core_text')
     .eq('length_mode', mode)
     .eq('language', 'ko')
     .in('video_id', videoIds);
+  if (sumsErr) throw new Error(`요약 조회 실패(${userId}): ${sumsErr.message}`);
   const sumMap = new Map((sums ?? []).map((s) => [s.video_id, s]));
 
-  const { data: dels } = await supabase
+  const { data: dels, error: delsErr } = await supabase
     .from('deliveries')
     .select('video_id')
     .eq('user_id', userId)
     .eq('status', 'sent');
+  if (delsErr) throw new Error(`발송이력 조회 실패(${userId}): ${delsErr.message}`);
   const alreadySent = new Set((dels ?? []).map((d) => d.video_id));
 
   return videoRows
