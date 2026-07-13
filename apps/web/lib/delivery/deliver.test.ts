@@ -23,7 +23,9 @@ function makeSupabase(canned: Record<string, Rows>, singles: Record<string, unkn
       select: () => b,
       eq: () => b,
       in: () => b,
+      gte: () => b,
       order: () => b,
+      limit: () => b,
       maybeSingle: () => Promise.resolve({ data: singles[table] ?? null, error: null }),
       upsert: (rows: Record<string, unknown> | Record<string, unknown>[]) => {
         const arr = Array.isArray(rows) ? rows : [rows];
@@ -67,7 +69,6 @@ function oneUserFixture(overrides: { videos?: Rows } = {}) {
       push_subscriptions: [{ user_id: 'u1', endpoint: 'e1', p256dh: 'p', auth: 'a' }],
       membership: [],
       membership_usage: [],
-      // candidateVideos 내부 조회들
       subscriptions: [{ channel_id: 'c1', active_since: null }],
       videos: overrides.videos ?? [
         {
@@ -81,7 +82,7 @@ function oneUserFixture(overrides: { videos?: Rows } = {}) {
         },
       ],
       summaries: [{ video_id: 'vid1', headline: 'H', core_text: 'C' }],
-      deliveries: [], // 아직 발송된 것 없음
+      deliveries: [],
     } as Record<string, Rows>,
     singles: {
       user_settings: { summary_length: 'normal', exclude_over_2h: true },
@@ -115,10 +116,9 @@ describe('deliverAll — 채널 독립 격리 & 멱등(H6)', () => {
       nowIso: '2026-07-12T00:00:00Z',
     });
 
-    expect(r.pushSent).toBe(1); // 푸시 성공
-    expect(r.sent).toBe(0); // 이메일 실패 → 이메일 발송수 0
-    expect(r.failed).toBe(0); // 한 채널이라도 성공 → failed 아님
-    // 원장에 새 항목이 sent 로 멱등 기록(onConflict user_id,video_id).
+    expect(r.pushSent).toBe(1);
+    expect(r.sent).toBe(0);
+    expect(r.failed).toBe(0);
     expect(writes.deliveries).toEqual([
       expect.objectContaining({ user_id: 'u1', video_id: 'vid1', status: 'sent', channel: 'push' }),
     ]);
@@ -132,7 +132,7 @@ describe('deliverAll — 채널 독립 격리 & 멱등(H6)', () => {
     const r = await deliverAll('0730', {
       supabase: client,
       notifier,
-      pushNotifier: null, // 푸시 비활성
+      pushNotifier: null,
       nowIso: '2026-07-12T00:00:00Z',
     });
 
