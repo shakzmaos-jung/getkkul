@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-07-14
+
+### Changed
+- **발송 선별 조회 실패 하드닝**(#99 후속): `candidateVideos` 의 각 조회(user_settings·subscriptions·videos·summaries·deliveries)가 `error` 를 무시하고 빈 배열로 처리하던 것을 **`if (error) throw`** 로 변경. 일시적 조회 실패(연결 포화·타임아웃·`.in()` URL 초과 등)가 조용한 "새 소식 없음"(오탐)으로 둔갑하지 않고, `deliverAll` 의 per-user try/catch 가 `failed` 로 잡아 다음 슬롯 재시도한다(H6 격리 유지, 전체 잡은 계속). #100 의 정체 신호 모니터링과 함께 무음 미발송을 **예방+탐지**로 이중 방어. (`lib/delivery/deliver.ts`)
+  - 회귀 테스트: videos·summaries 조회 error 시 `candidateVideos` 가 throw 하는지 검증(`deliver.test.ts`).
+
 ## [0.7.3] - 2026-07-13
 
 ### Changed
