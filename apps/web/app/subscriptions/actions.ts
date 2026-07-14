@@ -45,6 +45,7 @@ export type AddSubscriptionState = {
   ok?: boolean;
   error?: string;
   addedTitle?: string;
+  already?: boolean; // 이미 구독 중(23505). 검색 UI 가 "이미 등록된 채널입니다" 피드백 구분에 사용.
 };
 
 /**
@@ -89,7 +90,7 @@ export async function addSubscription(
 
   if (error) {
     if (error.code === '23505') {
-      return { error: `이미 구독 중인 채널입니다: ${channel.title}` }; // AC-B1.2
+      return { error: `이미 구독 중인 채널입니다: ${channel.title}`, already: true }; // AC-B1.2
     }
     return { error: '구독 추가에 실패했습니다.' };
   }
@@ -217,7 +218,7 @@ export async function addSubscriptionById(channelId: string): Promise<AddSubscri
     channel_handle: channel.handle,
   });
   if (error) {
-    if (error.code === '23505') return { error: `이미 구독 중인 채널입니다: ${channel.title}` };
+    if (error.code === '23505') return { error: `이미 구독 중인 채널입니다: ${channel.title}`, already: true };
     return { error: '구독 추가에 실패했습니다.' };
   }
 
