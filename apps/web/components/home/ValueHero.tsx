@@ -8,13 +8,21 @@ interface Props {
   value: ValueSummary;
   subscriptionCount: number;
   totalDigestCount: number;
+  monthlyVideoCount: number;
 }
 
 /**
  * 홈 가치 히어로 — 진입 즉시 지불가치(이번달 압축·절약 시간)를 상기시킨다.
- * 인사말 + 플랜 배지 + 이번달 압축 통계 + 보조 수치(누적·구독).
+ * 인사말 + 플랜 배지 + 이번달 압축 통계 + 보조 수치(그동안 누적·이번달 누적 영상·구독 중인 채널).
  */
-export default function ValueHero({ name, badge, value, subscriptionCount, totalDigestCount }: Props) {
+export default function ValueHero({
+  name,
+  badge,
+  value,
+  subscriptionCount,
+  totalDigestCount,
+  monthlyVideoCount,
+}: Props) {
   const hasStats = value.videoCount > 0;
   return (
     <Card
@@ -50,13 +58,17 @@ export default function ValueHero({ name, badge, value, subscriptionCount, total
         </p>
       )}
 
-      <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
         <Link href="/feed" data-testid="hero-total" className="transition-colors hover:text-foreground">
-          그동안 누적 <b className="text-foreground/80">{totalDigestCount}</b>
+          그동안 누적 <b className="text-foreground/80">{totalDigestCount}</b>개
+        </Link>
+        <span aria-hidden>·</span>
+        <Link href="/feed" data-testid="hero-month" className="transition-colors hover:text-foreground">
+          이번달 누적 영상 <b className="text-foreground/80">{monthlyVideoCount}</b>개
         </Link>
         <span aria-hidden>·</span>
         <Link href="/subscriptions" data-testid="hero-subs" className="transition-colors hover:text-foreground">
-          구독 <b className="text-foreground/80">{subscriptionCount}</b>
+          구독 중인 채널 <b className="text-foreground/80">{subscriptionCount}</b>개
         </Link>
       </div>
     </Card>
