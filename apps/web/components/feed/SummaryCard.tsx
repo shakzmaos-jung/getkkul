@@ -24,7 +24,7 @@ const CV = messages.feed.cardViews;
 const VIEWS: { view: CardView; label: string }[] = [
   { view: 'simple', label: CV.simple },
   { view: 'detail', label: CV.detail },
-  { view: 'insight', label: CV.insight },
+  { view: 'full', label: CV.full },
 ];
 
 interface Props {

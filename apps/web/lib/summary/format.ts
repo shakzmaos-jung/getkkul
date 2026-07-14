@@ -2,9 +2,9 @@
  * 요약 정보 계층 타입 및 검증 (요약품질 SSR 부록 REQ-A/B/C, ADR-0013/0014).
  * 순수 함수 — 단위 테스트 대상. 값 키는 ADR-0002(short/normal/long).
  *
- * 정보 계층(깊이): 요점(short)=무엇을 다뤘나+핵심 사실 / 핵심(normal)=맥락·개념 누락 없이 핵심 사실 /
- * 심층(long)=핵심 사실(부가·수치·예시 확장) + 맥락·인사이트. 각 모드는 **불릿 배열**로 표현한다.
- * 검증은 문장 수가 아니라 **단조성**(요점 ≤ 핵심 ≤ 심층, 정보량 기준)으로 한다. 하이라이트는 폐지(ADR-0014).
+ * 상세도 스펙트럼: 간단히(short)=주제+결론+핵심사실 / 자세히(normal)=고르게 빠짐없이 충실 /
+ * 최대한(long)=수치·사례까지 최대 상세(facts) + 핵심 함의(insights, 있을 때만). 각 모드는 **불릿 배열**로 표현.
+ * 검증은 문장 수가 아니라 **단조성**(간단히 ≤ 자세히 ≤ 최대한, 정보량 기준)으로 한다. 하이라이트는 폐지(ADR-0014).
  */
 
 export type LengthMode = 'short' | 'normal' | 'long';
@@ -20,12 +20,12 @@ const MODE_RANK: Record<LengthMode, number> = { short: 0, normal: 1, long: 2 };
 export const MODE_LABELS: Record<LengthMode, string> = {
   short: '간단히',
   normal: '자세히',
-  long: '인사이트',
+  long: '최대한',
 };
 export const MODE_DESC: Record<LengthMode, string> = {
-  short: '핵심 요점만 짧게',
-  normal: '맥락까지 더해 자세히',
-  long: '사실·수치 + 맥락·인사이트까지',
+  short: '주제·결론만 빠르게',
+  normal: '영상 내용을 고르게 충실히',
+  long: '수치·사례까지 최대한 상세히',
 };
 
 /** 임의 값이 유효한 길이 모드인지 판정한다(폼 입력 검증용). */
