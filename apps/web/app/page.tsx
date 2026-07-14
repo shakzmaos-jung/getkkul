@@ -30,14 +30,22 @@ export default async function Home() {
   const todayKst = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE }).format(new Date());
 
   const monthStart = `${todayKst.slice(0, 7)}-01T00:00:00+09:00`; // 이번달 1일 00:00 KST
+  const allTimeFrom = '1970-01-01T00:00:00+09:00'; // 누적 집계 하한(실제 경계는 멤버십 floor)
 
   // 다이제스트 집계·오늘 목록·이번달 가치 통계·플랜 배지를 한 번에(피드와 동일 조건).
-  const [{ data: subs }, { data: summary }, { data: todayRows }, { data: membership }, { data: valueRows }] =
+  const [
+    { data: subs },
+    { data: summary },
+    { data: todayRows },
+    { data: membership },
+    { data: valueRows },
+    { data: allTimeRows },
+  ] =
     await timed('/', () =>
       Promise.all([
         supabase
           .from('subscriptions')
-          .select('channel_id, channel_title, channel_thumbnail, channel_handle')
+          .select('channel_id, channel_title, channel_thumbnail, channel_handle, paused')
           .eq('user_id', user.id),
         supabase.rpc('get_digest_summary'),
         // 오늘 하루치 카드 데이터(피드 카드와 동일 소스). 다음날 00:00 KST 미만.
@@ -52,9 +60,12 @@ export default async function Home() {
           .maybeSingle(),
         // 이번달 압축·절약(가치 히어로). 읽는 시간 기준 모드는 normal 로 고정(대표값).
         supabase.rpc('get_month_value_stats', { p_from: monthStart, p_mode: 'normal' }),
+        // 누적(가입 이후 전체) 원본·읽는 시간 — 대시보드 '총 누적' 셀. 멤버십 floor 가 실제 하한.
+        supabase.rpc('get_month_value_stats', { p_from: allTimeFrom, p_mode: 'normal' }),
       ]),
     );
-  const subscriptionCount = (subs ?? []).length; // 구독 수는 일시정지 포함 전체
+  const activeChannelCount = (subs ?? []).filter((s) => !s.paused).length; // 구독 중(수신)
+  const pausedChannelCount = (subs ?? []).filter((s) => s.paused).length; // 일시정지
 
   // 인사말·배지·이번달 가치.
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
@@ -63,6 +74,8 @@ export default async function Home() {
   const badge = planBadgeText(membership ?? null);
   const v = valueRows?.[0] ?? { video_count: 0, video_seconds: 0, read_chars: 0 };
   const value = computeValueSummary(v.video_count, Number(v.video_seconds), Number(v.read_chars));
+  const av = allTimeRows?.[0] ?? { video_count: 0, video_seconds: 0, read_chars: 0 };
+  const allTimeValue = computeValueSummary(av.video_count, Number(av.video_seconds), Number(av.read_chars));
   const channelById = new Map<string, ChannelMeta>(
     (subs ?? []).map((s) => [
       s.channel_id,
@@ -73,8 +86,17 @@ export default async function Home() {
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
 
   const stats = summary?.[0] ?? { today_count: 0, total_count: 0, period_count: 0 };
-  const totalDigestCount = stats.total_count; // 그동안 누적(가입 이후 전체)
-  const monthlyVideoCount = stats.period_count; // 이번달 누적 영상(현재 멤버십 주기, 주기마다 리셋)
+  // 실적 대시보드 셀(각 셀 내부는 동일 집계 소스로 일관: 개수 + 원본/읽는 시간).
+  const total = {
+    count: stats.total_count, // 총 누적 다이제스트(가입 이후 전체)
+    originalText: allTimeValue.originalText,
+    readText: allTimeValue.readText,
+  };
+  const month = {
+    count: value.videoCount, // 이번달(달력) 다이제스트
+    originalText: value.originalText,
+    readText: value.readText,
+  };
 
   // 피드 카드와 동일 매핑 → 채널 메타·요약. 홈에선 카드 헤더 메타(읽는 시간·압축률·원본)만 표시한다.
   const today: HomeDigestItem[] = (todayRows ?? [])
@@ -108,9 +130,10 @@ export default async function Home() {
           </div>
         )}
         <HomeDashboard
-          subscriptionCount={subscriptionCount}
-          totalDigestCount={totalDigestCount}
-          monthlyVideoCount={monthlyVideoCount}
+          activeChannelCount={activeChannelCount}
+          pausedChannelCount={pausedChannelCount}
+          total={total}
+          month={month}
           today={today}
           greetingName={greetingName}
           badge={badge}

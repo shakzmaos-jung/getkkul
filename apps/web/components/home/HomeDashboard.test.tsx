@@ -13,7 +13,10 @@ const value: ValueSummary = {
   compressionPct: 93.3,
 };
 
-const base = { greetingName: '정상화', badge: '얼리버드 무료 · Medium', value };
+const total = { count: 128, originalText: '80시간', readText: '6시간' };
+const month = { count: 42, originalText: '20시간', readText: '2시간' };
+
+const base = { greetingName: '정상화', badge: '얼리버드 무료 · Medium', value, total, month };
 
 const today = [
   {
@@ -32,54 +35,77 @@ const today = [
 ];
 
 describe('HomeDashboard', () => {
-  it('구독 0개면 빈 상태 안내 + 채널 추가, 히어로/통계 감춤', () => {
-    render(<HomeDashboard subscriptionCount={0} totalDigestCount={0} monthlyVideoCount={0} today={[]} {...base} />);
+  it('구독 0개면 빈 상태 안내 + 채널 추가, 히어로/대시보드/오늘 감춤', () => {
+    render(
+      <HomeDashboard activeChannelCount={0} pausedChannelCount={0} today={[]} {...base} />,
+    );
     expect(screen.getByText(/아직 구독한 채널이 없어요/)).toBeTruthy();
     expect(screen.getByTestId('empty-add-channel')).toBeTruthy();
     expect(screen.queryByTestId('value-hero')).toBeNull();
+    expect(screen.queryByTestId('home-stats')).toBeNull();
     expect(screen.queryByTestId('home-today')).toBeNull();
   });
 
-  it('구독이 있으면 가치 히어로(인사말·배지·이번달 압축·절약·보조수치) + 오늘의 다이제스트', () => {
+  it('일시정지만 있고 구독 중 0이어도 계정에 채널이 있으면 대시보드 표시', () => {
     render(
-      <HomeDashboard
-        subscriptionCount={3}
-        totalDigestCount={128}
-        monthlyVideoCount={42}
-        today={today}
-        {...base}
-      />,
+      <HomeDashboard activeChannelCount={0} pausedChannelCount={2} today={[]} {...base} />,
+    );
+    expect(screen.getByTestId('home-stats')).toBeTruthy();
+    expect(screen.queryByText(/아직 구독한 채널이 없어요/)).toBeNull();
+  });
+
+  it('가치 히어로(인사말·배지·이번달 압축·절약) + 실적 대시보드 + 오늘의 다이제스트', () => {
+    render(
+      <HomeDashboard activeChannelCount={3} pausedChannelCount={1} today={today} {...base} />,
     );
     const hero = screen.getByTestId('value-hero');
     expect(hero.textContent).toContain('정상화 님');
     expect(hero.textContent).toContain('얼리버드 무료 · Medium');
     expect(hero.textContent).toContain('12개');
     expect(hero.textContent).toContain('4시간 40분'); // 절약
-    expect(screen.getByTestId('hero-total').textContent).toContain('그동안 누적');
-    expect(screen.getByTestId('hero-total').textContent).toContain('128개');
-    expect(screen.getByTestId('hero-month').textContent).toContain('이번달 누적 영상');
-    expect(screen.getByTestId('hero-month').textContent).toContain('42개');
-    expect(screen.getByTestId('hero-subs').textContent).toContain('구독 중인 채널');
-    expect(screen.getByTestId('hero-subs').textContent).toContain('3개');
+
+    const totalCell = screen.getByTestId('stat-total');
+    expect(totalCell.textContent).toContain('총 누적 다이제스트');
+    expect(totalCell.textContent).toContain('128');
+    expect(totalCell.textContent).toContain('원본 영상 80시간');
+    expect(totalCell.textContent).toContain('읽는 시간 6시간');
+
+    const monthCell = screen.getByTestId('stat-month');
+    expect(monthCell.textContent).toContain('이번달 다이제스트');
+    expect(monthCell.textContent).toContain('42');
+    expect(monthCell.textContent).toContain('원본 영상 20시간');
+
+    const chCell = screen.getByTestId('stat-channels');
+    expect(chCell.textContent).toContain('구독 중인 채널');
+    expect(chCell.textContent).toContain('3');
+    expect(chCell.textContent).toContain('일시정지');
+    expect(chCell.textContent).toContain('1개');
+
     expect(screen.getByTestId('home-today')).toBeTruthy();
     expect(screen.getByText('영상 A')).toBeTruthy();
   });
 
-  it('보조 수치는 각각 링크로 이동(그동안 누적·이번달→피드, 구독→구독관리)', () => {
-    render(<HomeDashboard subscriptionCount={3} totalDigestCount={0} monthlyVideoCount={0} today={[]} {...base} />);
-    expect(screen.getByTestId('hero-total').getAttribute('href')).toBe('/feed');
-    expect(screen.getByTestId('hero-month').getAttribute('href')).toBe('/feed');
-    expect(screen.getByTestId('hero-subs').getAttribute('href')).toBe('/subscriptions');
+  it('대시보드 셀은 각각 링크로 이동(총 누적·이번달→피드, 채널→구독관리)', () => {
+    render(
+      <HomeDashboard activeChannelCount={3} pausedChannelCount={0} today={[]} {...base} />,
+    );
+    expect(screen.getByTestId('stat-total').getAttribute('href')).toBe('/feed');
+    expect(screen.getByTestId('stat-month').getAttribute('href')).toBe('/feed');
+    expect(screen.getByTestId('stat-channels').getAttribute('href')).toBe('/subscriptions');
   });
 
   it('이번달 실적 0이면 히어로가 안내 문구를 보여준다', () => {
     const empty: ValueSummary = { videoCount: 0, originalText: '0초', readText: '0초', savedText: '0초', compressionPct: null };
-    render(<HomeDashboard subscriptionCount={2} totalDigestCount={0} monthlyVideoCount={0} today={[]} {...base} value={empty} />);
+    render(
+      <HomeDashboard activeChannelCount={2} pausedChannelCount={0} today={[]} {...base} value={empty} />,
+    );
     expect(screen.getByTestId('value-hero').textContent).toContain('이번달 아직 다이제스트가 없어요');
   });
 
   it('오늘 카드: 채널·핸들·업데이트·원본·읽는시간·압축률 + 다이제스트 딥링크', () => {
-    render(<HomeDashboard subscriptionCount={1} totalDigestCount={1} monthlyVideoCount={1} today={today} {...base} />);
+    render(
+      <HomeDashboard activeChannelCount={1} pausedChannelCount={0} today={today} {...base} />,
+    );
     const row = screen.getByTestId('today-item');
     expect(row.textContent).toContain('채널1');
     expect(row.textContent).toContain('@ch1');

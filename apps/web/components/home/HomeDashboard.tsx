@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import ValueHero from '@/components/home/ValueHero';
+import HomeStatsGrid, { type HomeStatGroup } from '@/components/home/HomeStatsGrid';
 import type { ValueSummary } from '@/lib/summary/reading';
 
 export interface HomeDigestItem {
@@ -27,9 +28,10 @@ function GoToDigestIcon() {
 }
 
 interface Props {
-  subscriptionCount: number;
-  totalDigestCount: number;
-  monthlyVideoCount: number;
+  activeChannelCount: number;
+  pausedChannelCount: number;
+  total: HomeStatGroup; // 총 누적(다이제스트·원본·읽는 시간)
+  month: HomeStatGroup; // 이번달(다이제스트·원본·읽는 시간)
   today: HomeDigestItem[];
   greetingName: string;
   badge: string;
@@ -41,15 +43,16 @@ interface Props {
  * 그 아래 오늘의 다이제스트. 구독 0개면 빈 상태 안내 + 채널 추가 버튼.
  */
 export default function HomeDashboard({
-  subscriptionCount,
-  totalDigestCount,
-  monthlyVideoCount,
+  activeChannelCount,
+  pausedChannelCount,
+  total,
+  month,
   today,
   greetingName,
   badge,
   value,
 }: Props) {
-  const isEmpty = subscriptionCount === 0;
+  const isEmpty = activeChannelCount + pausedChannelCount === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -69,17 +72,17 @@ export default function HomeDashboard({
         </Card>
       ) : (
         <>
-          {/* 1. 가치 히어로 — 진입 즉시 이번달 압축·절약 상기(인사말·배지·보조수치) */}
-          <ValueHero
-            name={greetingName}
-            badge={badge}
-            value={value}
-            subscriptionCount={subscriptionCount}
-            totalDigestCount={totalDigestCount}
-            monthlyVideoCount={monthlyVideoCount}
+          {/* 1. 가치 히어로 — 진입 즉시 이번달 압축·절약 상기(인사말·배지) */}
+          <ValueHero name={greetingName} badge={badge} value={value} />
+
+          {/* 2. 실적 대시보드 — 총 누적·이번달·구독 채널(강조 숫자 + 약한 보조수치) */}
+          <HomeStatsGrid
+            total={total}
+            month={month}
+            channels={{ active: activeChannelCount, paused: pausedChannelCount }}
           />
 
-          {/* 2. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
+          {/* 3. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
           <div data-testid="home-today">
             <h2 className="mb-2 text-base font-semibold tracking-tight">
               오늘의 다이제스트{today.length > 0 ? ` (${today.length})` : ''}
