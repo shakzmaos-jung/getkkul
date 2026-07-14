@@ -72,8 +72,9 @@ export default async function Home() {
 
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
 
-  const stats = summary?.[0] ?? { today_count: 0, total_count: 0 };
-  const totalDigestCount = stats.total_count;
+  const stats = summary?.[0] ?? { today_count: 0, total_count: 0, period_count: 0 };
+  const totalDigestCount = stats.total_count; // 그동안 누적(가입 이후 전체)
+  const monthlyVideoCount = stats.period_count; // 이번달 누적 영상(현재 멤버십 주기, 주기마다 리셋)
 
   // 피드 카드와 동일 매핑 → 채널 메타·요약. 홈에선 카드 헤더 메타(읽는 시간·압축률·원본)만 표시한다.
   const today: HomeDigestItem[] = (todayRows ?? [])
@@ -109,6 +110,7 @@ export default async function Home() {
         <HomeDashboard
           subscriptionCount={subscriptionCount}
           totalDigestCount={totalDigestCount}
+          monthlyVideoCount={monthlyVideoCount}
           today={today}
           greetingName={greetingName}
           badge={badge}

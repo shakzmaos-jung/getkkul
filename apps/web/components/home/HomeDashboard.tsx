@@ -29,6 +29,7 @@ function GoToDigestIcon() {
 interface Props {
   subscriptionCount: number;
   totalDigestCount: number;
+  monthlyVideoCount: number;
   today: HomeDigestItem[];
   greetingName: string;
   badge: string;
@@ -42,6 +43,7 @@ interface Props {
 export default function HomeDashboard({
   subscriptionCount,
   totalDigestCount,
+  monthlyVideoCount,
   today,
   greetingName,
   badge,
@@ -74,6 +76,7 @@ export default function HomeDashboard({
             value={value}
             subscriptionCount={subscriptionCount}
             totalDigestCount={totalDigestCount}
+            monthlyVideoCount={monthlyVideoCount}
           />
 
           {/* 2. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}

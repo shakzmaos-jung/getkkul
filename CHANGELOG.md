@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-07-14
+
+### Changed
+- **홈 히어로 하단 통계 문구·단위·의미 정리**: 보조 수치를 3개 칩으로 명확화 — `그동안 누적 N개`(가입 이후 전체 누적, 값 유지), **`이번달 누적 영상 N개`(신규)**, `구독 중인 채널 N개`(기존 `구독` 재명명). 모든 수치에 `개` 단위 추가.
+  - '이번달 누적 영상'은 **현재 이용 중인 월 멤버십 주기(`period_start`) 기준 누적**으로, 다음 월 구독이 시작되면 0부터 다시 카운팅된다. `get_digest_summary()` 에 `period_count` 컬럼 추가(주기 floor=`greatest(가입시각, period_start@KST)`, 같은 RPC 내 계산이라 홈 로딩 왕복 증가 없음). `today_count`/`total_count` 는 불변(회귀 없음). (`components/home/ValueHero.tsx`, `app/page.tsx`)
+
 ## [0.7.4] - 2026-07-14
 
 ### Changed

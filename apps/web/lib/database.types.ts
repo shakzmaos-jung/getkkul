@@ -1057,6 +1057,7 @@ export type Database = {
         Returns: {
           today_count: number
           total_count: number
+          period_count: number
         }[]
       }
       get_feed_digests: {
