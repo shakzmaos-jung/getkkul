@@ -73,7 +73,7 @@ export default function ThemeSelect({ compact = false }: { compact?: boolean }) 
             <Swatch id={id} />
             <span className="min-w-0">
               <span className="block text-sm font-medium">{m.label}</span>
-              {!compact && <span className="block text-xs text-muted-foreground">{m.desc}</span>}
+              <span className="block text-xs text-muted-foreground">{m.desc}</span>
             </span>
             {selected && (
               <CheckIcon className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-accent" />
