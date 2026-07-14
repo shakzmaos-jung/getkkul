@@ -43,11 +43,18 @@ function Swatch({ id }: { id: ThemePreference }) {
   );
 }
 
-/** 테마 선택 — system + 5종 라디오 카드. 선택 즉시 반영·저장(localStorage + DB). */
-export default function ThemeSelect() {
+/**
+ * 테마 선택 — system + 5종 라디오 카드. 선택 즉시 반영·저장(localStorage + DB).
+ * compact: 사이드패널 아코디언용 축약(단일열 · 설명 생략 · 패딩 축소). 기본은 설정 화면용(설명 포함 2열).
+ */
+export default function ThemeSelect({ compact = false }: { compact?: boolean }) {
   const { preference, setPreference } = useTheme();
   return (
-    <div role="radiogroup" aria-label={t.title} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <div
+      role="radiogroup"
+      aria-label={t.title}
+      className={compact ? 'grid grid-cols-1 gap-1.5' : 'grid grid-cols-1 gap-2 sm:grid-cols-2'}
+    >
       {THEME_PREFERENCES.map((id) => {
         const selected = preference === id;
         const m = t[id];
@@ -59,14 +66,14 @@ export default function ThemeSelect() {
             aria-checked={selected}
             data-testid={`theme-${id}`}
             onClick={() => setPreference(id)}
-            className={`relative flex items-center gap-3 rounded-lg border p-3 pr-8 text-left transition-colors ${
-              selected ? 'border-accent bg-accent/10' : 'border-border hover:border-foreground/40'
-            }`}
+            className={`relative flex items-center gap-3 rounded-lg border pr-8 text-left transition-colors ${
+              compact ? 'p-2.5' : 'p-3'
+            } ${selected ? 'border-accent bg-accent/10' : 'border-border hover:border-foreground/40'}`}
           >
             <Swatch id={id} />
             <span className="min-w-0">
               <span className="block text-sm font-medium">{m.label}</span>
-              <span className="block text-xs text-muted-foreground">{m.desc}</span>
+              {!compact && <span className="block text-xs text-muted-foreground">{m.desc}</span>}
             </span>
             {selected && (
               <CheckIcon className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-accent" />

@@ -80,4 +80,21 @@ describe('SideMenu (재설계 — 프로필·이동 통일·그룹)', () => {
     renderMenu({ open: false, onClose: () => {} });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
+
+  it('화면 그룹: 테마 아코디언 — 펼쳐서 그 자리에서 선택(설정 이동 아님, 화면 유지)', () => {
+    renderMenu({ open: true, onClose: () => {} });
+    const toggle = screen.getByTestId('menu-theme');
+    expect(toggle.tagName).toBe('BUTTON'); // 이동 링크가 아니라 아코디언 토글
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('theme-dark')).toBeNull(); // 접힘: 옵션 미표시
+
+    fireEvent.click(toggle); // 펼치기
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('theme-system')).toBeTruthy();
+    expect(screen.getByTestId('theme-dark')).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId('theme-dark')); // 인라인 선택
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark'); // 즉시 반영
+    expect(screen.getByRole('dialog')).toBeTruthy(); // 패널 유지(설정으로 나가지 않음)
+  });
 });
