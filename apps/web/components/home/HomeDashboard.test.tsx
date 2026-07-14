@@ -65,10 +65,8 @@ describe('HomeDashboard', () => {
     const t = screen.getByTestId('stat-total');
     expect(t.textContent).toContain('총 누적 다이제스트');
     expect(t.textContent).toContain('128');
-
-    const o = screen.getByTestId('stat-original');
-    expect(o.textContent).toContain('원본 영상 시간 누계');
-    expect(o.textContent).toContain('80');
+    expect(t.textContent).toContain('원본 영상 시간 누계'); // 원본 시간은 총 누적 카드 안으로 이동
+    expect(t.textContent).toContain('80');
 
     const c = screen.getByTestId('stat-compressed');
     expect(c.textContent).toContain('압축 영상 시간 누계');
@@ -86,7 +84,6 @@ describe('HomeDashboard', () => {
   it('대시보드 셀은 모두 피드로 이동', () => {
     render(<HomeDashboard subscriptionCount={3} today={[]} {...base} />);
     expect(screen.getByTestId('stat-total').getAttribute('href')).toBe('/feed');
-    expect(screen.getByTestId('stat-original').getAttribute('href')).toBe('/feed');
     expect(screen.getByTestId('stat-compressed').getAttribute('href')).toBe('/feed');
   });
 

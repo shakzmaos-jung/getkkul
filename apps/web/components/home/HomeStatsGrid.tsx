@@ -56,8 +56,8 @@ const CELL = 'flex h-full flex-col gap-1.5 p-3 transition-colors hover:border-ac
 const LABEL = 'text-[11px] text-muted-foreground sm:text-xs';
 
 /**
- * 홈 상단 실적 대시보드 — 1×3 그리드(누적 가치). 각 셀은 강조 실적(크게) + 약한 보조 수치(작게·톤다운).
- * (1) 총 누적 다이제스트 (2) 원본 영상 시간 누계 (3) 압축 영상 시간 누계(+아껴진 시간·압축률). 셀 클릭 시 피드로.
+ * 홈 상단 실적 대시보드 — 1×2 그리드(누적 가치). 각 셀은 강조 실적(크게) + 약한 보조 수치(작게·톤다운).
+ * (1) 총 누적 다이제스트(+원본 영상 시간 누계) (2) 압축 영상 시간 누계(+아껴진 시간·압축률). 셀 클릭 시 피드로.
  */
 export default function HomeStatsGrid({
   digestCount,
@@ -67,18 +67,14 @@ export default function HomeStatsGrid({
   compressionPct,
 }: CumulativeStats) {
   return (
-    <div data-testid="home-stats" className="grid grid-cols-3 gap-2 sm:gap-3">
+    <div data-testid="home-stats" className="grid grid-cols-2 gap-2 sm:gap-3">
       <Link href="/feed" data-testid="stat-total" className="block min-w-0">
         <Card className={CELL}>
           <span className={LABEL}>총 누적 다이제스트</span>
           <BigCount value={digestCount} />
-        </Card>
-      </Link>
-
-      <Link href="/feed" data-testid="stat-original" className="block min-w-0">
-        <Card className={CELL}>
-          <span className={LABEL}>원본 영상 시간 누계</span>
-          <BigTime text={originalText} />
+          <div className="mt-0.5 flex flex-col gap-0.5">
+            <SubStat label="원본 영상 시간 누계" value={originalText} />
+          </div>
         </Card>
       </Link>
 
