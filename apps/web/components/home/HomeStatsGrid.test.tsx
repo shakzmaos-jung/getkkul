@@ -12,18 +12,20 @@ const props = {
   compressionPct: 92.6,
 };
 
-describe('HomeStatsGrid (홈 누적 실적 대시보드 1×3)', () => {
-  it('세 셀: 총 누적 다이제스트 · 원본 시간 누계 · 압축 시간 누계(+아껴진 시간·압축률)', () => {
+describe('HomeStatsGrid (홈 누적 실적 대시보드 1×2)', () => {
+  it('총 누적 다이제스트 셀: 개수(강조) + 원본 영상 시간 누계(약한 위계, 같은 카드 내)', () => {
     render(<HomeStatsGrid {...props} />);
     const t = screen.getByTestId('stat-total');
     expect(t.textContent).toContain('총 누적 다이제스트');
     expect(t.textContent).toContain('1,234'); // 천단위 구분
+    expect(t.textContent).toContain('원본 영상 시간 누계');
+    expect(t.textContent).toContain('820');
+    // 원본 시간은 별도 카드가 아니라 총 누적 카드 안으로 이동됨
+    expect(screen.queryByTestId('stat-original')).toBeNull();
+  });
 
-    const o = screen.getByTestId('stat-original');
-    expect(o.textContent).toContain('원본 영상 시간 누계');
-    expect(o.textContent).toContain('820');
-    expect(o.textContent).toContain('시간');
-
+  it('압축 영상 시간 누계 셀: 압축 시간(강조) + 아껴진 시간·압축률(약한 위계)', () => {
+    render(<HomeStatsGrid {...props} />);
     const c = screen.getByTestId('stat-compressed');
     expect(c.textContent).toContain('압축 영상 시간 누계');
     expect(c.textContent).toContain('61');
@@ -47,7 +49,6 @@ describe('HomeStatsGrid (홈 누적 실적 대시보드 1×3)', () => {
   it('셀 링크는 모두 /feed', () => {
     render(<HomeStatsGrid {...props} />);
     expect(screen.getByTestId('stat-total').getAttribute('href')).toBe('/feed');
-    expect(screen.getByTestId('stat-original').getAttribute('href')).toBe('/feed');
     expect(screen.getByTestId('stat-compressed').getAttribute('href')).toBe('/feed');
   });
 
