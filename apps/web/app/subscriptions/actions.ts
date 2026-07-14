@@ -231,7 +231,7 @@ export async function addSubscriptionById(channelId: string): Promise<AddSubscri
 /**
  * 구독 일시정지/해제. paused=true 면 해당 채널 다이제스트를 피드·홈·발송에서 제외한다.
  * 수동 정지는 pause_reason='manual'. 정지해제 시 수신 채널이 플랜 한도를 넘으면 차단한다
- * (다운그레이드 자동정지 채널은 업그레이드 시 자동 복원되므로 수동 해제 대상 아님).
+ * (멤버십 한도로 자동정지된 채널도 동일 — 상위 플랜으로 한도가 커지면 사용자가 직접 정지해제. 자동 복원 없음).
  * RLS('own subs - update')로 본인 행만 갱신. 감지는 채널 공유라 전역 유지.
  */
 export async function setSubscriptionPause(

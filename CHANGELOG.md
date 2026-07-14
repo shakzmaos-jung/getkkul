@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-07-15
+
+### Changed
+- **멤버십 채널 한도 상시 시행 + 다운그레이드 자동정지 정책 정리**: 구독중(수신) 채널이 플랜 한도를 넘으면 초과분을 자동 일시정지하고 "멤버십 플랜 한도" 사유로 표시한다. 한도를 다운/업그레이드 **이벤트가 아니라 불변식**으로 상시 시행 — 주기 잡이 매 사이클 `membership_enforce_all_limits()` 를 호출해, POC 부여 등으로 생긴 "그냥 초과" 상태(예: medium인데 구독중 21)도 자동 교정한다.
+  - **업그레이드 시 자동 복원 → 수동 해제로 변경**: 상위 플랜으로 올려도 자동정지 채널이 저절로 되살아나지 않는다. 사용자가 직접 [정지해제] 한다(한도 내에서만 가능). 자동정지 채널에도 정지해제 버튼을 노출한다.
+  - **정지 순서**: 초과 시 최근 추가한 채널부터 정지(오래 구독한 채널 보존).
+  - 사유 문구·뱃지 정리("멤버십 자동정지"), `membership_reconcile_channels` 정지 전용 축소, ADR-0015 개정. (`supabase/migrations/20260715000000_membership_enforce_limits.sql`, `lib/membership/run-cycle.ts`, `components/subscriptions/*`, `lib/subscriptions/pause.ts`)
+
 ## [0.9.1] - 2026-07-14
 
 ### Changed

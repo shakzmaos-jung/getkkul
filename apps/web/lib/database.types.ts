@@ -1165,6 +1165,7 @@ export type Database = {
         Returns: undefined
       }
       membership_poc_end: { Args: { p_user: string }; Returns: undefined }
+      membership_enforce_all_limits: { Args: never; Returns: number }
       membership_reconcile_channels: {
         Args: { p_limit: number; p_user: string }
         Returns: undefined
