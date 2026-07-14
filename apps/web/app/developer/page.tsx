@@ -4,7 +4,6 @@ import { ProfileAvatar } from '@/components/settings/ProfileAvatar';
 import { messages } from '@/lib/i18n';
 
 const REPO_URL = 'https://github.com/shakzmaos-jung/getkkul';
-const REMEMBER_URL = 'https://link.rmbr.in/79cmk2';
 // 프로필 이미지 경로(교체 용이). public/profile.png 를 추가하면 자동 표시, 없으면 '정' 이니셜 폴백.
 const PROFILE_IMAGE_SRC = '/profile.png';
 
@@ -14,15 +13,6 @@ function MailIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
       <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-    </svg>
-  );
-}
-function ProfileCardIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <circle cx="8" cy="11" r="2" />
-      <path d="M6 16c0-1.1 1.3-2 2-2s2 .9 2 2M14 10h4M14 14h3" />
     </svg>
   );
 }
@@ -66,10 +56,6 @@ export default function DeveloperPage() {
             <a href={`mailto:${d.links.email}`} className={LINK}>
               <MailIcon />
               {d.links.email}
-            </a>
-            <a href={REMEMBER_URL} target="_blank" rel="noopener noreferrer" className={LINK}>
-              <ProfileCardIcon />
-              {d.links.remember}
             </a>
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className={LINK}>
               <GithubIcon />
