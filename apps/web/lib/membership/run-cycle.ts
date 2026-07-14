@@ -121,6 +121,10 @@ export async function runMembershipCycle(
     transitions++;
   }
 
+  // 멤버십 채널 한도 상시 시행: 전 사용자 구독중 채널을 플랜 한도 이하로 유지(초과분 자동 정지, 멱등).
+  // 다운/업그레이드 이벤트뿐 아니라 "그냥 초과" 상태(POC 부여 등)도 매 주기 교정한다.
+  await admin.rpc('membership_enforce_all_limits');
+
   // PoC 종료 7일 전 1회 안내(AC-F1.3/G1.3).
   const warnBefore = new Date(now.getTime() + SEVEN_DAYS_MS).toISOString();
   const { data: warnList } = await admin

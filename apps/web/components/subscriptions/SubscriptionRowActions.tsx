@@ -6,24 +6,21 @@ import { removeSubscription, setSubscriptionPause } from '@/app/subscriptions/ac
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/ToastProvider';
-import { isAutoPaused, type PauseReason } from '@/lib/subscriptions/pause';
 
 /**
  * 구독 행 액션: [일시정지/정지해제] [삭제].
- * - 다운그레이드 자동 정지(downgrade)는 수동 해제 불가 → 토글 버튼 숨김(업그레이드 시 자동 복원).
+ * - 자동정지(멤버십 한도)·수동정지 모두 [정지해제] 노출 — 상위 플랜에서 직접 해제. 한도 초과 시 해제는 서버에서 차단.
  * - 일시정지/정지해제: 스피너 → 결과 토스트(한도 초과 등 에러 시 상태 유지) → 해당 탭 이동.
  * - 삭제: 확인 모달(삭제/취소). 배경 클릭·ESC 로 닫힘.
  */
 export default function SubscriptionRowActions({
   id,
   paused,
-  pauseReason,
   title,
   onPausedChange,
 }: {
   id: string;
   paused: boolean;
-  pauseReason: PauseReason;
   title: string;
   onPausedChange?: (nextPaused: boolean) => void;
 }) {
@@ -64,24 +61,20 @@ export default function SubscriptionRowActions({
     }
   }
 
-  const autoPaused = paused && isAutoPaused(pauseReason);
-
   return (
     <div className="flex shrink-0 items-center gap-2">
-      {/* 다운그레이드 자동 정지는 수동 토글 숨김(업그레이드 시 자동 복원) */}
-      {!autoPaused && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={pending}
-          onClick={togglePause}
-          data-testid="toggle-pause-subscription"
-          className="min-w-[72px]"
-        >
-          {pending ? <Spinner size={14} /> : paused ? '정지해제' : '일시정지'}
-        </Button>
-      )}
+      {/* 자동정지(멤버십 한도)·수동정지 모두 [정지해제] 노출. 한도 초과 시 해제는 서버(checkChannelLimit)에서 차단. */}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        disabled={pending}
+        onClick={togglePause}
+        data-testid="toggle-pause-subscription"
+        className="min-w-[72px]"
+      >
+        {pending ? <Spinner size={14} /> : paused ? '정지해제' : '일시정지'}
+      </Button>
 
       {/* 삭제(모달 확인) */}
       <Button

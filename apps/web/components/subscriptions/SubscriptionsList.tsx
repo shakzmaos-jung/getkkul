@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { TabCards } from '@/components/ui/TabCards';
 import SubscriptionRowActions from '@/components/subscriptions/SubscriptionRowActions';
-import { pauseReasonLabel, type PauseReason } from '@/lib/subscriptions/pause';
+import { isAutoPaused, pauseReasonLabel, type PauseReason } from '@/lib/subscriptions/pause';
 
 export type SubItem = {
   id: string;
@@ -96,7 +96,7 @@ export default function SubscriptionsList({ subs }: { subs: SubItem[] }) {
                       )}
                       {s.paused && (
                         <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-semibold text-foreground/70">
-                          ⏸ 일시정지됨
+                          {isAutoPaused(s.pause_reason) ? '⏸ 멤버십 자동정지' : '⏸ 일시정지됨'}
                         </span>
                       )}
                     </div>
@@ -116,7 +116,6 @@ export default function SubscriptionsList({ subs }: { subs: SubItem[] }) {
               <SubscriptionRowActions
                 id={s.id}
                 paused={s.paused}
-                pauseReason={s.pause_reason}
                 title={s.channel_title ?? s.channel_id}
                 onPausedChange={(next) => setTab(next ? 'paused' : 'active')}
               />
