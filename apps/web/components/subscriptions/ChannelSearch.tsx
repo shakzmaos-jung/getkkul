@@ -59,17 +59,27 @@ export default function ChannelSearch() {
     }
   }
 
+  /** 검색 결과 목록 닫기(채널을 고르지 않아도 닫을 수 있는 UX). 입력어는 유지해 재검색 가능. */
+  function dismiss() {
+    setCandidates([]);
+    setCapped(false);
+    setSearched(false);
+  }
+
   async function add(c: SearchCandidate) {
     if (adding) return;
     setAdding(c.channelId);
     const r = await addSubscriptionById(c.channelId);
     setAdding(null);
     if (r.ok) {
-      showToast(`추가됨: ${r.addedTitle}`);
+      showToast('채널 등록이 완료되었습니다');
+      dismiss(); // 등록 완료 시 검색 결과 목록 자동 닫기
+      router.refresh();
+    } else if (r.already) {
+      showToast('이미 등록된 채널입니다');
       setCandidates((prev) =>
         prev.map((x) => (x.channelId === c.channelId ? { ...x, subscribed: true } : x)),
       );
-      router.refresh();
     } else {
       showToast(r.error ?? '추가에 실패했습니다');
     }
@@ -113,40 +123,65 @@ export default function ChannelSearch() {
       )}
 
       {candidates.length > 0 && (
-        <ul
-          data-testid="channel-candidates"
-          className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border"
-        >
-          {candidates.map((c) => {
-            const subs = formatSubs(c.subscriberHint);
-            const meta = [c.handle, subs].filter(Boolean).join(' · ');
-            return (
-              <li key={c.channelId} className="flex items-center gap-3 px-3 py-2">
-                <ChannelAvatar src={c.thumbnail} title={c.title} size={36} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{c.title}</p>
-                  {meta && <p className="truncate text-xs text-muted-foreground">{meta}</p>}
-                </div>
-                {c.subscribed ? (
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
-                    구독됨
-                  </span>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    disabled={adding === c.channelId}
-                    onClick={() => add(c)}
-                    data-testid="candidate-add"
-                  >
-                    {adding === c.channelId ? <Spinner size={12} /> : '추가'}
-                  </Button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="flex flex-col gap-1.5">
+          {/* 목록 헤더: 결과 수 + 닫기(채널을 고르지 않아도 목록 닫기) */}
+          <div className="flex items-center justify-between px-0.5">
+            <span className="text-xs text-muted-foreground">
+              검색 결과 {candidates.length}
+              {capped ? '+' : ''}개
+            </span>
+            <button
+              type="button"
+              onClick={dismiss}
+              data-testid="channel-candidates-close"
+              aria-label="검색 결과 닫기"
+              className="rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              닫기 ✕
+            </button>
+          </div>
+          <ul
+            data-testid="channel-candidates"
+            className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border"
+          >
+            {candidates.map((c) => {
+              const subs = formatSubs(c.subscriberHint);
+              const meta = [c.handle, subs].filter(Boolean).join(' · ');
+              return (
+                <li key={c.channelId} className="flex items-center gap-3 px-3 py-2">
+                  <ChannelAvatar src={c.thumbnail} title={c.title} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{c.title}</p>
+                    {meta && <p className="truncate text-xs text-muted-foreground">{meta}</p>}
+                  </div>
+                  {c.subscribed ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => showToast('이미 등록된 채널입니다')}
+                      data-testid="candidate-subscribed"
+                      className="shrink-0"
+                    >
+                      구독됨
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="primary"
+                      disabled={adding === c.channelId}
+                      onClick={() => add(c)}
+                      data-testid="candidate-add"
+                    >
+                      {adding === c.channelId ? <Spinner size={12} /> : '추가'}
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       {showEmpty && (
