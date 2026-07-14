@@ -45,7 +45,7 @@ export default async function Home() {
       Promise.all([
         supabase
           .from('subscriptions')
-          .select('channel_id, channel_title, channel_thumbnail, channel_handle, paused')
+          .select('channel_id, channel_title, channel_thumbnail, channel_handle')
           .eq('user_id', user.id),
         supabase.rpc('get_digest_summary'),
         // 오늘 하루치 카드 데이터(피드 카드와 동일 소스). 다음날 00:00 KST 미만.
@@ -64,8 +64,7 @@ export default async function Home() {
         supabase.rpc('get_month_value_stats', { p_from: allTimeFrom, p_mode: 'normal' }),
       ]),
     );
-  const activeChannelCount = (subs ?? []).filter((s) => !s.paused).length; // 구독 중(수신)
-  const pausedChannelCount = (subs ?? []).filter((s) => s.paused).length; // 일시정지
+  const subscriptionCount = (subs ?? []).length; // 구독 전체(빈 상태 판단용)
 
   // 인사말·배지·이번달 가치.
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
@@ -86,16 +85,13 @@ export default async function Home() {
   const kstDate = new Intl.DateTimeFormat('en-CA', { timeZone: KST_TIME_ZONE });
 
   const stats = summary?.[0] ?? { today_count: 0, total_count: 0, period_count: 0 };
-  // 실적 대시보드 셀(각 셀 내부는 동일 집계 소스로 일관: 개수 + 원본/읽는 시간).
-  const total = {
-    count: stats.total_count, // 총 누적 다이제스트(가입 이후 전체)
+  // 실적 대시보드(누적) — 총 누적 다이제스트 개수 + 원본/압축 영상 시간·아껴진 시간·압축률.
+  const cumulative = {
+    digestCount: stats.total_count, // 총 누적 다이제스트(가입 이후 전체)
     originalText: allTimeValue.originalText,
-    readText: allTimeValue.readText,
-  };
-  const month = {
-    count: value.videoCount, // 이번달(달력) 다이제스트
-    originalText: value.originalText,
-    readText: value.readText,
+    compressedText: allTimeValue.readText,
+    savedText: allTimeValue.savedText,
+    compressionPct: allTimeValue.compressionPct,
   };
 
   // 피드 카드와 동일 매핑 → 채널 메타·요약. 홈에선 카드 헤더 메타(읽는 시간·압축률·원본)만 표시한다.
@@ -130,10 +126,8 @@ export default async function Home() {
           </div>
         )}
         <HomeDashboard
-          activeChannelCount={activeChannelCount}
-          pausedChannelCount={pausedChannelCount}
-          total={total}
-          month={month}
+          subscriptionCount={subscriptionCount}
+          cumulative={cumulative}
           today={today}
           greetingName={greetingName}
           badge={badge}

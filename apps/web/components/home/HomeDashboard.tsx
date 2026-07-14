@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import ValueHero from '@/components/home/ValueHero';
-import HomeStatsGrid, { type HomeStatGroup } from '@/components/home/HomeStatsGrid';
+import HomeStatsGrid, { type CumulativeStats } from '@/components/home/HomeStatsGrid';
 import type { ValueSummary } from '@/lib/summary/reading';
 
 export interface HomeDigestItem {
@@ -28,10 +28,8 @@ function GoToDigestIcon() {
 }
 
 interface Props {
-  activeChannelCount: number;
-  pausedChannelCount: number;
-  total: HomeStatGroup; // 총 누적(다이제스트·원본·읽는 시간)
-  month: HomeStatGroup; // 이번달(다이제스트·원본·읽는 시간)
+  subscriptionCount: number; // isEmpty 판단(구독 전체)
+  cumulative: CumulativeStats; // 누적 실적(대시보드)
   today: HomeDigestItem[];
   greetingName: string;
   badge: string;
@@ -43,16 +41,14 @@ interface Props {
  * 그 아래 오늘의 다이제스트. 구독 0개면 빈 상태 안내 + 채널 추가 버튼.
  */
 export default function HomeDashboard({
-  activeChannelCount,
-  pausedChannelCount,
-  total,
-  month,
+  subscriptionCount,
+  cumulative,
   today,
   greetingName,
   badge,
   value,
 }: Props) {
-  const isEmpty = activeChannelCount + pausedChannelCount === 0;
+  const isEmpty = subscriptionCount === 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,12 +71,8 @@ export default function HomeDashboard({
           {/* 1. 가치 히어로 — 진입 즉시 이번달 압축·절약 상기(인사말·배지) */}
           <ValueHero name={greetingName} badge={badge} value={value} />
 
-          {/* 2. 실적 대시보드 — 총 누적·이번달·구독 채널(강조 숫자 + 약한 보조수치) */}
-          <HomeStatsGrid
-            total={total}
-            month={month}
-            channels={{ active: activeChannelCount, paused: pausedChannelCount }}
-          />
+          {/* 2. 실적 대시보드 — 총 누적 다이제스트·원본/압축 영상 시간 누계 */}
+          <HomeStatsGrid {...cumulative} />
 
           {/* 3. 오늘의 다이제스트 (오늘 KST, 개수 제한 없음) → 앱 내 다이제스트 카드로 이동 */}
           <div data-testid="home-today">
