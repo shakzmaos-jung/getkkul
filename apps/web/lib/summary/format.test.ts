@@ -22,8 +22,8 @@ describe('isLengthMode', () => {
 });
 
 describe('MODE_LABELS (설정 요약 길이 의역)', () => {
-  it('간단히/자세히/인사이트', () => {
-    expect(MODE_LABELS).toEqual({ short: '간단히', normal: '자세히', long: '인사이트' });
+  it('간단히/자세히/최대한', () => {
+    expect(MODE_LABELS).toEqual({ short: '간단히', normal: '자세히', long: '최대한' });
   });
 });
 

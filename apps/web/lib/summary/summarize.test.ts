@@ -33,11 +33,11 @@ const validAll = JSON.stringify({
 });
 
 describe('allModesSystemPrompt (프롬프트 계약)', () => {
-  it('깊이 사다리·불릿·과교정을 지시하고 하이라이트는 없다', () => {
+  it('상세도 3단계(간단히/자세히/최대한)·불릿·과교정을 지시하고 하이라이트는 없다', () => {
     const p = allModesSystemPrompt('ko');
-    expect(p).toContain('요점');
-    expect(p).toContain('핵심');
-    expect(p).toContain('심층');
+    expect(p).toContain('간단히');
+    expect(p).toContain('자세히');
+    expect(p).toContain('최대한');
     expect(p).toContain('points');
     expect(p).toContain('facts');
     expect(p).toContain('insights');
