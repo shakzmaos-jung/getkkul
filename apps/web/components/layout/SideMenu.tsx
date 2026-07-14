@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { messages } from '@/lib/i18n';
+import ThemeSelect from '@/components/theme/ThemeSelect';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { planBadgeText } from '@/lib/membership/plan-badge';
 
@@ -106,7 +107,7 @@ interface Profile {
 /**
  * 우측 슬라이드 인 사이드 메뉴(재설계, ADR-0011). 위→아래:
  * 프로필 카드(→/account, 로그아웃·계정삭제는 계정 화면 내) → "메뉴" 그룹(설정·서비스소개·개발자정보·라이선스,
- * 전부 이동) → "화면" 그룹(다크토글) → 메타 푸터(버전·카피라이트). 아코디언 폐지(상호작용 유형 통일).
+ * 전부 이동) → "화면" 그룹(인라인 테마 아코디언 — 화면 유지한 채 선택·실시간 미리보기) → 메타 푸터(버전·카피라이트).
  * 오버레이 탭 / ESC / 우측 스와이프로 닫힘. 열림 시 포커스 트랩. transform 200ms 슬라이드.
  */
 export default function SideMenu({ open, onClose }: Props) {
@@ -185,6 +186,7 @@ export default function SideMenu({ open, onClose }: Props) {
   }, [open, profile]);
 
   const { preference } = useTheme();
+  const [themeOpen, setThemeOpen] = useState(false);
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -273,20 +275,34 @@ export default function SideMenu({ open, onClose }: Props) {
             </div>
           </section>
 
-          {/* "화면" 그룹 — 테마 선택 진입(설정#theme). 현재 선택 테마 라벨 표시. */}
+          {/* "화면" 그룹 — 인라인 테마 아코디언. 화면을 떠나지 않고 그 자리에서 선택(패널 색 실시간 변경). */}
           <section>
             <GroupLabel>{messages.theme.sectionLabel}</GroupLabel>
             <div className="overflow-hidden rounded-xl border border-border">
-              <Link href="/settings#theme" onClick={onClose} data-testid="menu-theme" className={NAV_ROW}>
+              <button
+                type="button"
+                aria-expanded={themeOpen}
+                aria-controls="menu-theme-panel"
+                data-testid="menu-theme"
+                onClick={() => setThemeOpen((v) => !v)}
+                className={NAV_ROW}
+              >
                 <span className="flex items-center gap-2.5">
                   <MoonIcon />
                   {messages.theme.menuLabel}
                 </span>
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {messages.theme[preference].label}
-                  <ChevronRight />
+                  <span className={`inline-flex transition-transform ${themeOpen ? 'rotate-90' : ''}`}>
+                    <ChevronRight />
+                  </span>
                 </span>
-              </Link>
+              </button>
+              {themeOpen && (
+                <div id="menu-theme-panel" className="border-t border-border p-2">
+                  <ThemeSelect compact />
+                </div>
+              )}
             </div>
           </section>
 
