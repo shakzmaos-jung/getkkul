@@ -65,7 +65,7 @@ describe('HomeDashboard', () => {
     const t = screen.getByTestId('stat-total');
     expect(t.textContent).toContain('총 누적 다이제스트');
     expect(t.textContent).toContain('128');
-    expect(t.textContent).toContain('원본 영상 시간 누계'); // 원본 시간은 총 누적 카드 안으로 이동
+    expect(t.textContent).toContain('원본 영상 시간'); // 원본 시간은 총 누적 카드 안으로 이동
     expect(t.textContent).toContain('80');
 
     const c = screen.getByTestId('stat-compressed');
