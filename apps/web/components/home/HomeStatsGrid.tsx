@@ -52,7 +52,8 @@ function SubStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const CELL = 'flex h-full flex-col gap-1.5 p-3 transition-colors hover:border-accent/30 sm:p-4';
+// h-full+w-full: Link(flex 그리드 아이템)가 stretch 로 늘어난 높이를 Card 가 확실히 채우도록(두 카드 높이 일치).
+const CELL = 'flex h-full w-full flex-col gap-1.5 p-3 transition-colors hover:border-accent/30 sm:p-4';
 const LABEL = 'text-[11px] text-muted-foreground sm:text-xs';
 
 /**
@@ -68,17 +69,17 @@ export default function HomeStatsGrid({
 }: CumulativeStats) {
   return (
     <div data-testid="home-stats" className="grid grid-cols-2 gap-2 sm:gap-3">
-      <Link href="/feed" data-testid="stat-total" className="block min-w-0">
+      <Link href="/feed" data-testid="stat-total" className="flex min-w-0">
         <Card className={CELL}>
           <span className={LABEL}>총 누적 다이제스트</span>
           <BigCount value={digestCount} />
           <div className="mt-0.5 flex flex-col gap-0.5">
-            <SubStat label="원본 영상 시간 누계" value={originalText} />
+            <SubStat label="원본 영상 시간" value={originalText} />
           </div>
         </Card>
       </Link>
 
-      <Link href="/feed" data-testid="stat-compressed" className="block min-w-0">
+      <Link href="/feed" data-testid="stat-compressed" className="flex min-w-0">
         <Card className={CELL}>
           <span className={LABEL}>압축 영상 시간 누계</span>
           <BigTime text={compressedText} />

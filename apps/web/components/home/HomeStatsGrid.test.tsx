@@ -13,12 +13,13 @@ const props = {
 };
 
 describe('HomeStatsGrid (홈 누적 실적 대시보드 1×2)', () => {
-  it('총 누적 다이제스트 셀: 개수(강조) + 원본 영상 시간 누계(약한 위계, 같은 카드 내)', () => {
+  it('총 누적 다이제스트 셀: 개수(강조) + 원본 영상 시간(약한 위계, 같은 카드 내)', () => {
     render(<HomeStatsGrid {...props} />);
     const t = screen.getByTestId('stat-total');
     expect(t.textContent).toContain('총 누적 다이제스트');
     expect(t.textContent).toContain('1,234'); // 천단위 구분
-    expect(t.textContent).toContain('원본 영상 시간 누계');
+    expect(t.textContent).toContain('원본 영상 시간');
+    expect(t.textContent).not.toContain('누계'); // 라벨에서 "누계" 제거됨
     expect(t.textContent).toContain('820');
     // 원본 시간은 별도 카드가 아니라 총 누적 카드 안으로 이동됨
     expect(screen.queryByTestId('stat-original')).toBeNull();
