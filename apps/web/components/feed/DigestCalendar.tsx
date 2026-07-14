@@ -74,7 +74,7 @@ export default function DigestCalendar({
   }
 
   const weekendColor = (wd: number, active: boolean) =>
-    active ? '' : wd === 0 ? 'text-red-500' : wd === 6 ? 'text-blue-500' : '';
+    active ? '' : wd === 0 ? 'text-cal-sun' : wd === 6 ? 'text-cal-sat' : '';
 
   return (
     <Card className="p-3">

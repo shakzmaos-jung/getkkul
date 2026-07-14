@@ -1,0 +1,105 @@
+import type { AppliedTheme } from './resolve';
+
+/**
+ * 각 테마의 토큰 값(키 = CSS 커스텀 프로퍼티명). **globals.css 의 [data-theme] 블록과 동일해야 한다**
+ * — theme-tokens.test 가 (1) globals.css 와의 값 일치, (2) 본문·링크·오류 대비 WCAG AA 를 강제한다.
+ * 테마 추가/수정 = 여기 + globals.css 두 곳의 값 변경(테스트가 불일치를 잡음).
+ */
+export const THEME_TOKENS: Record<AppliedTheme, Record<string, string>> = {
+  light: {
+    '--background': '#ffffff',
+    '--foreground': '#17171a',
+    '--card': '#ffffff',
+    '--muted': '#f4f4f6',
+    '--muted-foreground': '#5c5c64',
+    '--border': '#e6e6ea',
+    '--ring': '#0061d5',
+    '--accent': '#0061d5',
+    '--accent-foreground': '#ffffff',
+    '--danger': '#ce2c31',
+    '--danger-foreground': '#ffffff',
+    '--brand': '#f5a623',
+    '--brand-foreground': '#1a1206',
+    '--overlay': 'rgba(18, 18, 23, 0.45)',
+    '--cal-sun': '#ce2c31',
+    '--cal-sat': '#0061d5',
+  },
+  dark: {
+    '--background': '#151517',
+    '--foreground': '#ececef',
+    '--card': '#1e1e22',
+    '--muted': '#27272c',
+    '--muted-foreground': '#a3a3ad',
+    '--border': '#323238',
+    '--ring': '#63a8ff',
+    '--accent': '#63a8ff',
+    '--accent-foreground': '#0a0f16',
+    '--danger': '#ff6b70',
+    '--danger-foreground': '#1a0a0b',
+    '--brand': '#f5a623',
+    '--brand-foreground': '#1a1206',
+    '--overlay': 'rgba(0, 0, 0, 0.6)',
+    '--cal-sun': '#ff6b70',
+    '--cal-sat': '#63a8ff',
+  },
+  paper: {
+    '--background': '#f3ede1',
+    '--foreground': '#312e28',
+    '--card': '#faf5ea',
+    '--muted': '#e7dfcf',
+    '--muted-foreground': '#6a6456',
+    '--border': '#dad0bc',
+    '--ring': '#175f86',
+    '--accent': '#175f86',
+    '--accent-foreground': '#ffffff',
+    '--danger': '#9f3232',
+    '--danger-foreground': '#ffffff',
+    '--brand': '#b3781a',
+    '--brand-foreground': '#ffffff',
+    '--overlay': 'rgba(40, 30, 20, 0.4)',
+    '--cal-sun': '#9f3232',
+    '--cal-sat': '#175f86',
+  },
+  grayscale: {
+    '--background': '#ffffff',
+    '--foreground': '#141414',
+    '--card': '#ffffff',
+    '--muted': '#efefef',
+    '--muted-foreground': '#565656',
+    '--border': '#d7d7d7',
+    '--ring': '#2b2b2b',
+    '--accent': '#2b2b2b',
+    '--accent-foreground': '#ffffff',
+    '--danger': '#8f4a4a',
+    '--danger-foreground': '#ffffff',
+    '--brand': '#6f6f6f',
+    '--brand-foreground': '#ffffff',
+    '--overlay': 'rgba(0, 0, 0, 0.5)',
+    '--cal-sun': '#6f6f6f',
+    '--cal-sat': '#565656',
+  },
+  nightshift: {
+    '--background': '#1a1512',
+    '--foreground': '#ede3d4',
+    '--card': '#241d17',
+    '--muted': '#2f251d',
+    '--muted-foreground': '#b3a591',
+    '--border': '#3b2f25',
+    '--ring': '#e6a55f',
+    '--accent': '#e6a55f',
+    '--accent-foreground': '#1a1206',
+    '--danger': '#f0836a',
+    '--danger-foreground': '#1a0a06',
+    '--brand': '#f2ac52',
+    '--brand-foreground': '#1a1206',
+    '--overlay': 'rgba(0, 0, 0, 0.55)',
+    '--cal-sun': '#f0836a',
+    '--cal-sat': '#c9a978',
+  },
+};
+
+/** 미리보기 스와치용(선택 카드). 적용 테마별 대표 4색. */
+export function themeSwatch(t: AppliedTheme): { bg: string; card: string; accent: string; brand: string } {
+  const v = THEME_TOKENS[t];
+  return { bg: v['--background'], card: v['--card'], accent: v['--accent'], brand: v['--brand'] };
+}

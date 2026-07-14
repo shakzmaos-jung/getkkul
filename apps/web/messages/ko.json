@@ -4,6 +4,18 @@
     "confirm": "확인",
     "cancel": "취소"
   },
+  "theme": {
+    "sectionLabel": "화면",
+    "menuLabel": "테마",
+    "title": "테마",
+    "desc": "읽기 편한 화면 배색을 고릅니다. 선택은 기기 간에 유지돼요.",
+    "system": { "label": "시스템", "desc": "기기 밝기 설정을 따릅니다" },
+    "light": { "label": "라이트", "desc": "기본 주간 화면" },
+    "dark": { "label": "다크", "desc": "어두운 화면 · 눈부심 완화" },
+    "paper": { "label": "페이퍼", "desc": "크림 배경 + 먹색 · 독서에 편안" },
+    "grayscale": { "label": "그레이스케일", "desc": "거의 흑백 · 집중 읽기" },
+    "nightshift": { "label": "나이트시프트", "desc": "따뜻한 어두운 화면 · 청색광 완화" }
+  },
   "summaryLength": {
     "short": "요점",
     "normal": "핵심",

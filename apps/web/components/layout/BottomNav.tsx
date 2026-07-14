@@ -4,9 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { NAV_TABS, activeTabKey, type NavKey } from '@/lib/nav/tabs';
 
-/** 겟꿀 브랜드 앰버(활성 탭). 앱 accent(파랑)와 별개. 라이트/다크 공통. */
-const BRAND = '#F5A623';
-
 function Icon({ tab }: { tab: NavKey }) {
   const common = {
     width: 22,
@@ -84,8 +81,8 @@ export default function BottomNav({
         {shownIndex >= 0 && (
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-y-2 left-0 w-1/4 rounded-2xl transition-transform duration-200 ease-out"
-            style={{ transform: `translateX(${shownIndex * 100}%)`, backgroundColor: `${BRAND}26` }}
+            className="pointer-events-none absolute inset-y-2 left-0 w-1/4 rounded-2xl bg-brand/15 transition-transform duration-200 ease-out"
+            style={{ transform: `translateX(${shownIndex * 100}%)` }}
           />
         )}
         {NAV_TABS.map((t) => {
@@ -99,7 +96,7 @@ export default function BottomNav({
               data-testid={`nav-${t.key}`}
               onClick={() => setPendingKey(t.key)}
               className="relative z-10 flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1.5"
-              style={{ color: isActive ? BRAND : undefined }}
+              style={{ color: isActive ? 'var(--brand)' : undefined }}
             >
               <span className={isActive ? '' : 'text-muted-foreground'}>
                 <Icon tab={t.key} />
@@ -113,7 +110,7 @@ export default function BottomNav({
               {count != null && count > 0 && (
                 <span
                   aria-label={`새 항목 ${count}개`}
-                  className="absolute right-[calc(50%-1.5rem)] top-2 min-w-[16px] rounded-full bg-danger px-1 text-center text-[10px] font-semibold leading-4 text-white"
+                  className="absolute right-[calc(50%-1.5rem)] top-2 min-w-[16px] rounded-full bg-danger px-1 text-center text-[10px] font-semibold leading-4 text-danger-foreground"
                 >
                   {count > 99 ? '99+' : count}
                 </span>

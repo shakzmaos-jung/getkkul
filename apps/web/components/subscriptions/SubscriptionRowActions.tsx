@@ -96,7 +96,7 @@ export default function SubscriptionRowActions({
 
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
           onClick={() => setConfirmOpen(false)}
         >
           <div
@@ -124,7 +124,7 @@ export default function SubscriptionRowActions({
                 <button
                   type="submit"
                   data-testid="remove-subscription"
-                  className="h-9 rounded-lg bg-danger px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                  className="h-9 rounded-lg bg-danger px-4 text-sm font-medium text-danger-foreground transition-opacity hover:opacity-90"
                 >
                   삭제
                 </button>

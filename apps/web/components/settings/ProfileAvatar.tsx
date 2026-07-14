@@ -21,7 +21,7 @@ export function ProfileAvatar({
   const showImg = !!src && !failed;
   return (
     <div
-      className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F5A623]/15 ring-4 ring-[#F5A623]/40"
+      className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand/15 ring-4 ring-brand/40"
       style={{ width: size, height: size }}
     >
       {showImg ? (
@@ -36,7 +36,7 @@ export function ProfileAvatar({
           className="h-full w-full object-cover"
         />
       ) : (
-        <span aria-hidden className="text-3xl font-bold text-[#F5A623]">
+        <span aria-hidden className="text-3xl font-bold text-brand">
           {initial}
         </span>
       )}

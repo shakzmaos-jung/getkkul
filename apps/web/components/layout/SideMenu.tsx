@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import ThemeToggle from '@/components/layout/ThemeToggle';
+import { useTheme } from '@/components/theme/ThemeProvider';
+import { messages } from '@/lib/i18n';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { planBadgeText } from '@/lib/membership/plan-badge';
 
@@ -183,6 +184,8 @@ export default function SideMenu({ open, onClose }: Props) {
     };
   }, [open, profile]);
 
+  const { preference } = useTheme();
+
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
   }
@@ -201,7 +204,7 @@ export default function SideMenu({ open, onClose }: Props) {
         onClick={onClose}
         aria-hidden
         data-testid="menu-overlay"
-        className={`fixed inset-0 z-50 bg-black/40 transition-opacity duration-200 ease-out ${
+        className={`fixed inset-0 z-50 bg-overlay transition-opacity duration-200 ease-out ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
@@ -270,17 +273,20 @@ export default function SideMenu({ open, onClose }: Props) {
             </div>
           </section>
 
-          {/* "화면" 그룹 — 다크모드 인라인 토글 */}
+          {/* "화면" 그룹 — 테마 선택 진입(설정#theme). 현재 선택 테마 라벨 표시. */}
           <section>
-            <GroupLabel>화면</GroupLabel>
+            <GroupLabel>{messages.theme.sectionLabel}</GroupLabel>
             <div className="overflow-hidden rounded-xl border border-border">
-              <div className={NAV_ROW}>
+              <Link href="/settings#theme" onClick={onClose} data-testid="menu-theme" className={NAV_ROW}>
                 <span className="flex items-center gap-2.5">
                   <MoonIcon />
-                  테마
+                  {messages.theme.menuLabel}
                 </span>
-                <ThemeToggle />
-              </div>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {messages.theme[preference].label}
+                  <ChevronRight />
+                </span>
+              </Link>
             </div>
           </section>
 

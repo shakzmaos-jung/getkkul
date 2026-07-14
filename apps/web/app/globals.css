@@ -1,39 +1,137 @@
 @import "tailwindcss";
 
-:root {
+/* ── 테마 토큰 (읽기 테마 5종 + 시스템) ───────────────────────────────
+   각 테마 = 토큰 값 세트. 새 테마 추가/수정은 아래 [data-theme] 블록의 값 변경만으로.
+   'system' 은 JS(ThemeProvider)가 OS 밝기에 따라 light/dark 로 해석해 data-theme 를 세팅한다.
+   값은 lib/theme/tokens.ts 와 동일해야 한다(theme-tokens.test 가 강제). 전부 WCAG AA 통과. */
+
+/* Light (기본) */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
   --background: #ffffff;
-  --foreground: #0a0a0a;
+  --foreground: #17171a;
   --card: #ffffff;
-  --muted: #f6f6f7;
-  --muted-foreground: #6b6b70;
-  --border: #ececee;
-  --accent: #0070f3;
-  --danger: #e5484d;
+  --muted: #f4f4f6;
+  --muted-foreground: #5c5c64;
+  --border: #e6e6ea;
+  --ring: #0061d5;
+  --accent: #0061d5;
+  --accent-foreground: #ffffff;
+  --danger: #ce2c31;
+  --danger-foreground: #ffffff;
+  --brand: #f5a623;
+  --brand-foreground: #1a1206;
+  --overlay: rgba(18, 18, 23, 0.45);
+  --cal-sun: #ce2c31;
+  --cal-sat: #0061d5;
 }
 
-/* 다크 토큰 (재사용). 수동 토글([data-theme=dark]) 또는 시스템(설정 없을 때) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --card: #0f0f10;
-    --muted: #18181b;
-    --muted-foreground: #9a9aa2;
-    --border: #27272a;
-    --accent: #4a9eff;
-    --danger: #f2555a;
-  }
-}
-
+/* Dark (톤 조정: 순검정 아님, 카드 한 단계 밝게 층 분리) */
 :root[data-theme="dark"] {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #0f0f10;
-  --muted: #18181b;
-  --muted-foreground: #9a9aa2;
-  --border: #27272a;
-  --accent: #4a9eff;
-  --danger: #f2555a;
+  color-scheme: dark;
+  --background: #151517;
+  --foreground: #ececef;
+  --card: #1e1e22;
+  --muted: #27272c;
+  --muted-foreground: #a3a3ad;
+  --border: #323238;
+  --ring: #63a8ff;
+  --accent: #63a8ff;
+  --accent-foreground: #0a0f16;
+  --danger: #ff6b70;
+  --danger-foreground: #1a0a0b;
+  --brand: #f5a623;
+  --brand-foreground: #1a1206;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --cal-sun: #ff6b70;
+  --cal-sat: #63a8ff;
+}
+
+/* Paper (크림 배경 + 먹색, 독서/전자잉크) */
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --background: #f3ede1;
+  --foreground: #312e28;
+  --card: #faf5ea;
+  --muted: #e7dfcf;
+  --muted-foreground: #6a6456;
+  --border: #dad0bc;
+  --ring: #175f86;
+  --accent: #175f86;
+  --accent-foreground: #ffffff;
+  --danger: #9f3232;
+  --danger-foreground: #ffffff;
+  --brand: #b3781a;
+  --brand-foreground: #ffffff;
+  --overlay: rgba(40, 30, 20, 0.4);
+  --cal-sun: #9f3232;
+  --cal-sat: #175f86;
+}
+
+/* Grayscale (거의 흑백, 상태는 명도 차로 최소 구분) */
+:root[data-theme="grayscale"] {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #141414;
+  --card: #ffffff;
+  --muted: #efefef;
+  --muted-foreground: #565656;
+  --border: #d7d7d7;
+  --ring: #2b2b2b;
+  --accent: #2b2b2b;
+  --accent-foreground: #ffffff;
+  --danger: #8f4a4a;
+  --danger-foreground: #ffffff;
+  --brand: #6f6f6f;
+  --brand-foreground: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.5);
+  --cal-sun: #6f6f6f;
+  --cal-sat: #565656;
+}
+
+/* Night Shift (웜 다크, 청색광 저감 배색 — accent 를 파랑 대신 웜앰버) */
+:root[data-theme="nightshift"] {
+  color-scheme: dark;
+  --background: #1a1512;
+  --foreground: #ede3d4;
+  --card: #241d17;
+  --muted: #2f251d;
+  --muted-foreground: #b3a591;
+  --border: #3b2f25;
+  --ring: #e6a55f;
+  --accent: #e6a55f;
+  --accent-foreground: #1a1206;
+  --danger: #f0836a;
+  --danger-foreground: #1a0a06;
+  --brand: #f2ac52;
+  --brand-foreground: #1a1206;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --cal-sun: #f0836a;
+  --cal-sat: #c9a978;
+}
+
+/* system(=data-theme 미설정) 사용자를 위한 JS 이전/무JS 폴백: OS 다크면 Dark 토큰 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: #151517;
+    --foreground: #ececef;
+    --card: #1e1e22;
+    --muted: #27272c;
+    --muted-foreground: #a3a3ad;
+    --border: #323238;
+    --ring: #63a8ff;
+    --accent: #63a8ff;
+    --accent-foreground: #0a0f16;
+    --danger: #ff6b70;
+    --danger-foreground: #1a0a0b;
+    --brand: #f5a623;
+    --brand-foreground: #1a1206;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --cal-sun: #ff6b70;
+    --cal-sat: #63a8ff;
+  }
 }
 
 @theme inline {
@@ -43,8 +141,16 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-ring: var(--ring);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-overlay: var(--overlay);
+  --color-cal-sun: var(--cal-sun);
+  --color-cal-sat: var(--cal-sat);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
