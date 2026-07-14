@@ -32,7 +32,7 @@ export function ConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[65] flex items-center justify-center bg-overlay p-4"
       onClick={onClose}
     >
       <div
@@ -54,7 +54,7 @@ export function ConfirmDialog({
             size="sm"
             onClick={onConfirm}
             disabled={pending}
-            className={danger ? 'border-danger bg-danger text-white hover:opacity-90' : undefined}
+            className={danger ? 'border-danger bg-danger text-danger-foreground hover:opacity-90' : undefined}
           >
             {confirmLabel}
           </Button>

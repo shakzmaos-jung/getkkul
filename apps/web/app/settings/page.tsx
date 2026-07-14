@@ -8,6 +8,8 @@ import DeliverySlotsForm from '@/components/settings/DeliverySlotsForm';
 import VideoDurationFilterForm from '@/components/settings/VideoDurationFilterForm';
 import PushSettings from '@/components/settings/PushSettings';
 import SkipEmptyForm from '@/components/settings/SkipEmptyForm';
+import ThemeSelect from '@/components/theme/ThemeSelect';
+import { messages } from '@/lib/i18n';
 import type { LengthMode } from '@/lib/summary/format';
 import { SLOT_CODES, type SlotCode } from '@/lib/time';
 import { timed } from '@/lib/perf';
@@ -53,6 +55,12 @@ export default async function SettingsPage() {
       <AppHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-4">
+          <Card id="theme" className="scroll-mt-20 p-5">
+            <h2 className="mb-1 text-sm font-semibold">{messages.theme.title}</h2>
+            <p className="mb-3 text-xs text-muted-foreground">{messages.theme.desc}</p>
+            <ThemeSelect />
+          </Card>
+
           <Card className="p-5">
             <h2 className="mb-1 text-sm font-semibold">요약 길이</h2>
             <p className="mb-3 text-xs text-muted-foreground">

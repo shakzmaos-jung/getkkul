@@ -830,6 +830,7 @@ export type Database = {
           skip_empty_email: boolean
           skip_empty_push: boolean
           summary_length: Database["public"]["Enums"]["summary_length"]
+          theme: string | null
           user_id: string
         }
         Insert: {
@@ -848,6 +849,7 @@ export type Database = {
           skip_empty_email?: boolean
           skip_empty_push?: boolean
           summary_length?: Database["public"]["Enums"]["summary_length"]
+          theme?: string | null
           user_id: string
         }
         Update: {
@@ -866,6 +868,7 @@ export type Database = {
           skip_empty_email?: boolean
           skip_empty_push?: boolean
           summary_length?: Database["public"]["Enums"]["summary_length"]
+          theme?: string | null
           user_id?: string
         }
         Relationships: [

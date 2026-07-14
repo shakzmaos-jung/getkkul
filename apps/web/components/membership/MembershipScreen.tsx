@@ -125,7 +125,7 @@ export default function MembershipScreen({
       {view.pocActive && pocUntilText && (
         <div
           data-testid="poc-banner"
-          className="rounded-xl border border-accent bg-accent/10 p-4 dark:bg-accent/15"
+          className="rounded-xl border border-accent bg-accent/10 p-4"
         >
           <p className="flex items-center gap-2 text-sm font-semibold text-accent">
             <span aria-hidden>🎉</span>
@@ -332,7 +332,7 @@ function ChangeConfirm({
   const up = planRank(to) > planRank(from);
   const cancel = to === 'free';
   return (
-    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-black/40 p-4" onClick={onCancel}>
+    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-overlay p-4" onClick={onCancel}>
       <div
         role="dialog"
         aria-modal="true"

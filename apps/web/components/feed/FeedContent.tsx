@@ -162,7 +162,7 @@ export default function FeedContent({
     hashScrolled.current = true;
     el.scrollIntoView({ block: 'start', behavior: 'smooth' }); // scroll-mt-20 이 헤더 오프셋 처리
     el.style.transition = 'box-shadow 0.4s ease';
-    el.style.boxShadow = '0 0 0 2px #F5A623';
+    el.style.boxShadow = '0 0 0 2px var(--brand)';
     window.setTimeout(() => {
       el.style.boxShadow = '';
     }, 1600);

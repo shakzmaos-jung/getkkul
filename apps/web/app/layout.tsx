@@ -4,6 +4,8 @@ import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import AppChrome from "@/components/layout/AppChrome";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { getThemePreference } from "@/lib/theme/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,11 +47,17 @@ export const viewport: Viewport = {
   themeColor: "#F59E0B",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // SSR 초기 테마(DB, 로그인 시). 부트스트랩과 ThemeProvider 가 동일 우선순위(SSR>localStorage>system)로 사용.
+  const initialTheme = await getThemePreference();
+  const bootstrap =
+    `(function(){try{var p=${JSON.stringify(initialTheme)}||localStorage.getItem('theme')||'system';` +
+    `var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;` +
+    `document.documentElement.setAttribute('data-theme',p==='system'?(m?'dark':'light'):p);}catch(e){}})();`;
   return (
     <html
       lang="ko"
@@ -57,16 +65,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}",
-          }}
-        />
-        <ServiceWorkerRegister />
-        <ToastProvider>
-          <AppChrome>{children}</AppChrome>
-        </ToastProvider>
+        <script dangerouslySetInnerHTML={{ __html: bootstrap }} />
+        <ThemeProvider initialPreference={initialTheme}>
+          <ServiceWorkerRegister />
+          <ToastProvider>
+            <AppChrome>{children}</AppChrome>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
