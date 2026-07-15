@@ -23,6 +23,7 @@
   1. 사용자 대면 변경이 있는 PR 에서 `package.json` 버전을 규칙대로 bump.
   2. 같은 PR 에서 `CHANGELOG.md` 에 `[X.Y.Z] - YYYY-MM-DD` 섹션 추가(Added/Changed/Fixed/Removed). "Keep a Changelog" 형식.
   3. main 머지 후 `git tag -a vX.Y.Z -m "..." && git push --tags`. 필요 시 GitHub Releases 로 확장.
+  4. 같은 PR 에서 `apps/admin/lib/versions/data.ts` 최상단에 신규 엔트리 추가 — 요약 + 3단계 설명(개발자/비개발자/사용자영향) + `prs`(PR 번호) + 실제 머지날짜. getkkul-admin '버전 히스토리' 메뉴가 이를 테이블로 노출한다(무결성 테스트가 정렬·필수필드·타입 델타 강제).
 
 ## 근거
 
