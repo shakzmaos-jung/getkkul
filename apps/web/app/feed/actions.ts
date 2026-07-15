@@ -69,6 +69,7 @@ export async function setContentFeedback(
   videoId: string,
   mode: string,
   rating: 'up' | 'down' | null,
+  reason?: string,
 ): Promise<void> {
   if (!videoId || !isLengthMode(mode)) return;
 
@@ -79,6 +80,7 @@ export async function setContentFeedback(
   if (!user) redirect('/login');
 
   if (rating === null) {
+    // 토글 해제: 현재 상태만 삭제(이벤트 로그는 미기록).
     await supabase
       .from('content_feedback')
       .delete()
@@ -86,19 +88,32 @@ export async function setContentFeedback(
       .eq('video_id', videoId)
       .eq('length_mode', mode)
       .eq('language', 'ko');
-  } else {
-    await supabase.from('content_feedback').upsert(
-      {
-        user_id: user.id,
-        video_id: videoId,
-        length_mode: mode,
-        language: 'ko',
-        rating,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,video_id,length_mode,language' },
-    );
+    return;
   }
+
+  // 현재 상태(카드 UI 토글) upsert.
+  await supabase.from('content_feedback').upsert(
+    {
+      user_id: user.id,
+      video_id: videoId,
+      length_mode: mode,
+      language: 'ko',
+      rating,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,video_id,length_mode,language' },
+  );
+
+  // 이벤트 로그(추가전용, 어드민 이력). 사유는 싫어요에서만·200자 제한. best-effort(실패해도 UI 유지).
+  const cleanReason = rating === 'down' && reason ? reason.slice(0, 200).trim() || null : null;
+  await supabase.from('feedback_events').insert({
+    user_id: user.id,
+    video_id: videoId,
+    length_mode: mode,
+    language: 'ko',
+    rating,
+    reason: cleanReason,
+  });
 }
 
 /**

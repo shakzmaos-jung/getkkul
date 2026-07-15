@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
 import ContentQA from '@/components/feed/ContentQA';
+import DislikeFeedbackModal from '@/components/feed/DislikeFeedbackModal';
 import { setVideoLength, setContentFeedback } from '@/app/feed/actions';
 import { hms, computeReading } from '@/lib/summary/reading';
 import { formatKstDateTime } from '@/lib/time';
@@ -142,10 +143,25 @@ export default function SummaryCard({
   // 피드백(👍/👎): 자세히·인사이트는 같은 long 요약 → enum 기준(공유). 낙관적 로컬 상태.
   const fbEnum = VIEW_ENUM[view];
   const [fb, setFb] = useState<Partial<Record<LengthMode, FeedbackRating>>>(feedback);
+  const [dislikeOpen, setDislikeOpen] = useState(false);
   function rate(r: FeedbackRating) {
     const next: FeedbackRating | null = fb[fbEnum] === r ? null : r;
     setFb((prev) => ({ ...prev, [fbEnum]: next ?? undefined }));
     startTransition(() => setContentFeedback(videoId, fbEnum, next));
+  }
+  // 👎: 이미 싫어요면 즉시 토글 해제, 아니면 사유 모달을 먼저 연다(보내기 전까진 미기록).
+  function onDown() {
+    if (fb[fbEnum] === 'down') {
+      setFb((prev) => ({ ...prev, [fbEnum]: undefined }));
+      startTransition(() => setContentFeedback(videoId, fbEnum, null));
+    } else {
+      setDislikeOpen(true);
+    }
+  }
+  function submitDislike(reason: string) {
+    setFb((prev) => ({ ...prev, [fbEnum]: 'down' })); // 낙관적
+    startTransition(() => setContentFeedback(videoId, fbEnum, 'down', reason));
+    setDislikeOpen(false);
   }
 
   // 시간 절약 어필: 현재 뷰 텍스트 글자수 → 읽는 시간, 영상 대비 압축률.
@@ -385,7 +401,7 @@ export default function SummaryCard({
           </button>
           <button
             type="button"
-            onClick={() => rate('down')}
+            onClick={onDown}
             aria-label="별로예요"
             aria-pressed={fb[fbEnum] === 'down'}
             data-testid="feedback-down"
@@ -397,6 +413,12 @@ export default function SummaryCard({
           </button>
         </div>
       )}
+
+      <DislikeFeedbackModal
+        open={dislikeOpen}
+        onSubmit={submitDislike}
+        onClose={() => setDislikeOpen(false)}
+      />
     </Card>
   );
 }

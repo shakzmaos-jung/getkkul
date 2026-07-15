@@ -248,6 +248,54 @@ export type Database = {
           },
         ]
       }
+      feedback_events: {
+        Row: {
+          created_at: string
+          id: string
+          language: Database["public"]["Enums"]["summary_language"]
+          length_mode: Database["public"]["Enums"]["summary_length"]
+          rating: Database["public"]["Enums"]["feedback_rating"]
+          reason: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: Database["public"]["Enums"]["summary_language"]
+          length_mode: Database["public"]["Enums"]["summary_length"]
+          rating: Database["public"]["Enums"]["feedback_rating"]
+          reason?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: Database["public"]["Enums"]["summary_language"]
+          length_mode?: Database["public"]["Enums"]["summary_length"]
+          rating?: Database["public"]["Enums"]["feedback_rating"]
+          reason?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_events_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_terms: {
         Row: {
           created_at: string

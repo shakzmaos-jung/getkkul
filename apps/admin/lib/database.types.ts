@@ -57,6 +57,17 @@ export type Database = {
         Args: Record<string, never>;
         Returns: Json;
       };
+      get_feedback_events: {
+        Args: {
+          p_rating?: string | null;
+          p_search?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
       get_incident_log: {
         Args: { p_days?: number };
         Returns: Json;
