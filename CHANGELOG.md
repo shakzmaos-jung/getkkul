@@ -115,7 +115,7 @@
 - **다이제스트 미발송 인시던트 복구**: `candidateVideos` 의 done 영상 조회가 서버 max-rows(1000) 상한에 걸려, 구독 채널의 done 영상이 1000개를 넘는 사용자는 **가장 오래된 1000개**(전부 멤버십 publish-floor 이전)만 받아 후보가 0이 되어 조용히 미발송되던 버그. 멤버십 floor(`published_at >= 가입시각`)를 SQL(`.gte`)로 내려 상한이 '적격(가입 이후) 구간'에 적용되게 하고 안전 `.limit()` 명시. 멤버십 도입(2026-07-10) 이후 고볼륨 구독자 전원이 미수신하던 문제 해소. (`lib/delivery/deliver.ts`)
   - 회귀 테스트: 서버 상한 초과 상황에서 floor 이후 영상이 후보로 남는지 검증(`candidate-videos.test.ts`).
 
-## [0.7.1] - 2026-07-12
+## [0.7.1] - 2026-07-13
 
 ### Security
 - **OTP 남용 방지**(8a/8b): 수신 이메일 인증에 요청 쿨다운(60초)과 검증 시도 상한(5회)을 추가. 임의 주소로의 인증메일 폭탄과 6자리 코드 브루트포스를 차단. `user_settings.otp_attempts`/`otp_requested_at` 컬럼 추가(service_role write 전용, 비파괴).
@@ -133,7 +133,7 @@
 ### Tests
 - 신규: `run-stage`(단계 격리), `deliverAll`(이메일/푸시 독립 격리·멱등·skip-empty), `detect`(RSS→API 폴백·채널 격리), `safeNextPath`, `requireAdmin`, OTP 쿨다운·시도상한(`otp`/`manageDeliveryEmail`).
 
-## [0.7.0] - 2026-07-13
+## [0.7.0] - 2026-07-12
 
 ### Added
 - **파이프라인 자동 점검·리포트**(gk_pipeline_check, ADR-0016): 탐지·전사·요약·발송 4단계 건강 상태를 하루 8회(KST 08/10/12/14/16/18/20/22) 점검해 운영자 이메일로 리포트. 상태 제목 인코딩(✅ 정상 / ⚠️ 이상 N건).
@@ -141,12 +141,12 @@
   - 채팅 즉시 점검용 `gk_pipeline_check` 스킬(`npm run pipeline-check -- --no-email`).
   - 오탐 방지: 모든 backlog 신호는 콘텐츠 컷오프(2026-07-10) 이후만 집계 — 신규 구독 채널의 과거 영상(dead data)은 알람 대상 아님.
 
-## [0.6.4] - 2026-07-13
+## [0.6.4] - 2026-07-12
 
 ### Changed
 - 크레딧 현황 지표 워딩 간결화: 누적 획득 크레딧/누적 사용 크레딧/현재 잔여 크레딧 → **누적 획득 / 누적 사용 / 현재 잔여**.
 
-## [0.6.3] - 2026-07-13
+## [0.6.3] - 2026-07-12
 
 ### Changed
 - 하단 GNB '채널' → **'구독 채널'**(헤더 타이틀 포함).
@@ -154,14 +154,14 @@
 - 크레딧 현황 지표 워딩: 총 획득/사용/잔여 → **누적 획득/사용·현재 잔여 크레딧**, 카드 제목 '크레딧 현황' 추가.
 - 서비스 소개 태그라인 → **"구독한 유튜브 콘텐츠의 핵심만"**.
 
-## [0.6.2] - 2026-07-13
+## [0.6.2] - 2026-07-12
 
 ### Added
 - **서비스 소개** 화면 보강: 한 줄 소개 / 왜 만들었나 / 이런 분께 잘 맞아요 / 겟꿀 잘 쓰는 법.
 - **개발자 정보** 화면 보강: 프로필 이미지 자리(앰버 원형, '정' 이니셜 폴백) + 소개 본문.
 - 두 화면 문구 전부 i18n(`messages/ko.json` `about`·`developer`)로 관리.
 
-## [0.6.1] - 2026-07-13
+## [0.6.1] - 2026-07-12
 
 ### Changed
 - 알림(이메일·푸시) 시각 선택 카드 1×4 → **2×2**(시각적 여유).
@@ -172,7 +172,7 @@
 - 친구 초대 '초대한 내역'의 친구 이메일 **마스킹**(크레딧 화면과 동일 규칙).
 - 멤버십 **얼리버드 무료 배너 안 보임** 수정(Card `bg-card`와 `bg-accent` 충돌로 흰 배경+흰 글씨 → 일반 div 로).
 
-## [0.6.0] - 2026-07-13
+## [0.6.0] - 2026-07-12
 
 ### Changed
 - **다이제스트 카드 탭 재구성**: 요점/핵심/심층 → **간단히 / 자세히 / 인사이트**(간단히=요점, 자세히=핵심 사실, 인사이트=맥락·인사이트). 콘텐츠 빈약 시 자세히·인사이트 안내.
@@ -189,7 +189,7 @@
 ### Fixed
 - 영상 길이 필터 툴팁: 불투명 배경 + **뷰포트 밖으로 삐져나오지 않도록** 위치 보정(모바일 포함).
 
-## [0.5.1] - 2026-07-13
+## [0.5.1] - 2026-07-12
 
 ### Added
 - 설정 영상 길이 필터 카드에 **ⓘ 탭 툴팁**(hover 아님, 모바일 발견성) — '2분 미만 제외', '2시간 이상 제외' 각각 설명. 문구는 i18n(`messages/ko.json`).
@@ -200,7 +200,7 @@
 ### Fixed
 - `get_feed_digests` 회귀 2건 복구(2026-07-12 요약개편 시 유실): 길이 하한 60→120, **멤버십 게시 하한(mfloor) 재적용**(가입 이전 백카탈로그 노출 차단).
 
-## [0.5.0] - 2026-07-13
+## [0.5.0] - 2026-07-12
 
 ### Added
 - 홈 **가치 히어로**: 진입 시 인사말·플랜 배지 + 이번달 압축·절약 시간(원본 대비)을 상기.
@@ -212,7 +212,7 @@
 - 멤버십 **다운그레이드 시 초과 채널을 삭제 아닌 사유 있는 일시정지**로(업그레이드 시 자동 복원) — `pause_reason`, 피드·발송 실제 제외(gap 해소, ADR-0015).
 - 채널 카드 가독성(채널명·핸들 짤림 개선, "구독 시작일시", 정지 사유 표시). 멤버십 얼리버드 배너 시각 강조.
 
-## [0.4.0] - 2026-07-13
+## [0.4.0] - 2026-07-12
 
 ### Changed
 - **요약 표현 개선**(ADR-0014): 요점/핵심/심층을 **불릿 배열**로 생성·표시(항목마다 줄바꿈).
@@ -254,7 +254,23 @@
 - 유튜브 채널 구독·영상 감지·전사·요약·하루 정시 발송(이메일/웹푸시).
 - 멤버십/크레딧·친구 초대(추천) 시스템, PWA, 설정·다이제스트·홈 화면.
 
-[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/shakzmaos-jung/getkkul/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.12.0
+[0.11.3]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.11.3
+[0.11.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.11.2
+[0.11.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.11.1
+[0.11.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.11.0
+[0.10.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.10.2
+[0.10.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.10.1
+[0.10.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.10.0
+[0.9.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.9.1
+[0.9.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.9.0
+[0.8.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.8.2
+[0.8.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.8.1
+[0.8.0]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.8.0
+[0.7.6]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.6
+[0.7.5]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.5
+[0.7.4]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.4
 [0.7.3]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.3
 [0.7.2]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.2
 [0.7.1]: https://github.com/shakzmaos-jung/getkkul/releases/tag/v0.7.1
