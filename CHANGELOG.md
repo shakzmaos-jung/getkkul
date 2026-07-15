@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-15
+
+### Added
+- **다이제스트 싫어요 사유 모달**: 요약 카드에서 싫어요(👎)를 누르면 화면 중앙 모달로 무엇이 아쉬웠는지 남길 수 있다(선택·최대 200자, `n/200` 카운터 우하단). 텍스트 없이 **[보내기]** 가능, **[닫기]** 는 취소. 좋아요/토글 해제는 기존처럼 즉시. (`components/feed/DislikeFeedbackModal.tsx`, `app/feed/actions.ts`)
+- **어드민 '피드백' 메뉴(좋아요/싫어요 이벤트 이력)**: 반응을 표할 때마다 **추가전용 이벤트 로그**(`feedback_events`)에 영구 누적(반응을 바꾸거나 취소해도 과거 이벤트·사유 보존). getkkul-admin 신규 메뉴에서 **필터(반응)·검색(영상·채널·이메일·사유)·페이지네이션**으로 조회(이메일 마스킹·KST). (`supabase/migrations/20260715010000_feedback_events.sql` + `get_feedback_events` RPC, `apps/admin/**/feedback/*`)
+
 ## [0.11.3] - 2026-07-15
 
 ### Changed

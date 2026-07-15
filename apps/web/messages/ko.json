@@ -30,6 +30,13 @@
       "feedbackTitle": "이 요약 어때요?",
       "feedbackTooltipLabel": "피드백 활용 안내",
       "feedbackTooltip": "여러분의 평가는 익명으로 모여 요약 품질을 더 낫게 다듬는 데 쓰여요."
+    },
+    "dislike": {
+      "title": "어떤 점이 아쉬우셨나요?",
+      "subtitle": "무엇이 아쉬웠는지 알려주시면, 더 좋은 요약과 서비스로 보답하겠습니다.",
+      "placeholder": "예: 핵심이 빠졌어요, 요약이 부정확해요 (입력하지 않아도 보내실 수 있어요)",
+      "submit": "보내기",
+      "close": "닫기"
     }
   },
   "settings": {
