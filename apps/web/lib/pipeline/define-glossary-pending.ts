@@ -28,10 +28,14 @@ export async function defineGlossaryPending(
   }
   if (candidates.size === 0) return { pending: 0, defined: 0 };
 
-  // 이미 정의된 용어 제외(재호출 방지).
-  const { data: gts, error: gErr } = await supabase.from('glossary_terms').select('term');
+  // 이미 등록된 표기(term_ko ∪ term_en, disabled 포함) 제외(재호출·부활 방지).
+  const { data: gts, error: gErr } = await supabase.from('glossary_terms').select('term_ko, term_en');
   if (gErr) throw new Error(`glossary_terms 조회 실패: ${gErr.message}`);
-  const defined = new Set((gts ?? []).map((g) => g.term));
+  const defined = new Set<string>();
+  for (const g of gts ?? []) {
+    if (g.term_ko) defined.add(g.term_ko);
+    if (g.term_en) defined.add(g.term_en);
+  }
 
   const pending = [...candidates].filter((t) => !defined.has(t)).slice(0, BATCH);
   if (pending.length === 0) return { pending: 0, defined: 0 };
@@ -39,8 +43,10 @@ export async function defineGlossaryPending(
   const defs = await defineTerms(pending, { client: deps.client });
   if (defs.length === 0) return { pending: pending.length, defined: 0 };
 
+  // define_glossary_terms RPC 는 {term_ko, term_en, definition} 배열을 받는다.
+  const payload = defs.map((d) => ({ term_ko: d.termKo, term_en: d.termEn, definition: d.definition }));
   const { data: n, error: defErr } = await supabase.rpc('define_glossary_terms', {
-    p_defs: defs as unknown as Json,
+    p_defs: payload as unknown as Json,
   });
   if (defErr) throw new Error(`용어 정의 저장 실패: ${defErr.message}`);
   return { pending: pending.length, defined: (n as number) ?? 0 };

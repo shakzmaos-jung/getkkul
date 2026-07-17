@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.14.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [121],
+    summary: '용어 툴팁 한글/영어 병기·동음이의·중첩 + 어드민 용어사전 CRUD(등록·삭제·일시정지·메모)',
+    dev: 'glossary_terms 를 term(PK)→id(PK) 재키 + term_ko/term_en 분리 + 동음이의(다중 행) + disabled(일시정지) + note(메모). render-terms 겹침 커버리지 세그먼트로 중첩/동음이의 다중 툴팁, TermTooltip 다중 엔트리·ko/en 헤더·밑줄 강조. define-terms 가 ko/en 표기 함께 산출(추가 호출 0). 어드민 add/save/set_disabled/delete RPC + 이력(action/before/after) — requireAdmin 게이트.',
+    nonDev: '요약 속 용어 툴팁이 한글과 영어를 함께 보여주고, 같은 이름에 뜻이 여러 개면 다 보여준다. "Hermes 에이전트"처럼 겹치는 용어도 부분마다 알맞게 뜬다. 용어 밑줄도 더 잘 보이게 했다. 관리자 화면에서는 용어를 직접 추가·수정·삭제하고, 잠시 끄기(일시정지)나 분야 메모를 남길 수 있다.',
+    userImpact: '어려운 용어의 한글·영어를 한 번에 확인하고, 같은 단어의 여러 뜻도 볼 수 있다. 용어 표시가 더 눈에 띈다. (새로 처리되는 영상부터 반영)',
+  },
+  {
     version: '0.13.0',
     date: '2026-07-17',
     type: 'minor',

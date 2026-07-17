@@ -68,23 +68,47 @@ export type Database = {
         };
         Returns: Json;
       };
-      edit_glossary_term: {
-        Args: { p_term: string; p_definition: string; p_editor: string };
-        Returns: undefined;
+      add_glossary_term: {
+        Args: {
+          p_term_ko: string;
+          p_term_en: string;
+          p_definition: string;
+          p_note: string;
+          p_editor: string;
+        };
+        Returns: string | null;
+      };
+      save_glossary_term: {
+        Args: {
+          p_id: string;
+          p_term_ko: string;
+          p_term_en: string;
+          p_definition: string;
+          p_note: string;
+          p_editor: string;
+        };
+        Returns: string;
+      };
+      set_glossary_disabled: {
+        Args: { p_id: string; p_disabled: boolean; p_editor: string };
+        Returns: string;
+      };
+      delete_glossary_term: {
+        Args: { p_id: string; p_editor: string };
+        Returns: string;
       };
       get_glossary: {
         Args: {
           p_source?: string | null;
+          p_status?: string | null;
           p_search?: string | null;
-          p_from?: string | null;
-          p_to?: string | null;
           p_limit?: number;
           p_offset?: number;
         };
         Returns: Json;
       };
       get_glossary_history: {
-        Args: { p_term: string };
+        Args: { p_term_id: string };
         Returns: Json;
       };
       get_incident_log: {

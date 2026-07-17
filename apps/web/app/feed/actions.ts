@@ -16,6 +16,7 @@ import type { Database } from '@/lib/database.types';
 import { mapDigestRow, type ChannelMeta, type MappedDigest } from '@/lib/feed/map-digests';
 import { consumeAiQuery } from '@/lib/membership/enforce';
 import type { LengthMode } from '@/lib/summary/format';
+import type { GlossaryEntry } from '@/lib/feed/render-terms';
 
 /**
  * 다이제스트 카드별 요약 길이 선택을 영상별·계정 단위로 저장 (최신값 upsert).
@@ -122,7 +123,7 @@ export async function setContentFeedback(
  */
 export async function fetchGlossaryForVideos(
   videoIds: string[],
-): Promise<Record<string, { term: string; definition: string }[]>> {
+): Promise<Record<string, GlossaryEntry[]>> {
   if (videoIds.length === 0) return {};
   const supabase = await createClient();
   const {
@@ -131,9 +132,14 @@ export async function fetchGlossaryForVideos(
   if (!user) return {};
   const { data, error } = await supabase.rpc('get_video_glossary', { p_video_ids: videoIds });
   if (error || !data) return {};
-  const map: Record<string, { term: string; definition: string }[]> = {};
+  const map: Record<string, GlossaryEntry[]> = {};
   for (const r of data) {
-    (map[r.video_id] ??= []).push({ term: r.term, definition: r.definition });
+    (map[r.video_id] ??= []).push({
+      id: r.id,
+      termKo: r.term_ko,
+      termEn: r.term_en,
+      definition: r.definition,
+    });
   }
   return map;
 }

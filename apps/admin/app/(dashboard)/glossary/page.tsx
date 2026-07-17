@@ -32,14 +32,14 @@ export default async function GlossaryPage({
 
   const pages = totalPages(data.total, q.limit);
   const href = (page: number) =>
-    `/glossary${glossaryQueryString({ source: q.source, search: q.search, page })}`;
+    `/glossary${glossaryQueryString({ source: q.source, status: q.status, search: q.search, page })}`;
   const linkCls =
     'rounded-lg border border-hairline bg-surface-1 px-3 py-1.5 text-ink-subtle hover:text-ink';
 
   return (
     <div className="space-y-4 p-8">
       <h2 className="text-sm font-medium text-ink-muted">용어 정의 (총 {data.total}개)</h2>
-      <FilterBar source={q.source ?? ''} search={q.search ?? ''} />
+      <FilterBar source={q.source ?? ''} status={q.status ?? ''} search={q.search ?? ''} />
       <GlossaryTable rows={data.rows} />
       <div className="flex items-center justify-between text-xs text-ink-subtle">
         <span>
@@ -59,7 +59,8 @@ export default async function GlossaryPage({
         </div>
       </div>
       <p className="text-xs text-ink-tertiary">
-        정의는 요약 파이프라인이 용어당 1회 생성(LLM) · 관리자가 수정하면 출처가 관리자로 바뀌고 파이프라인이 다시 덮어쓰지 않습니다. 이메일 마스킹.
+        정의는 파이프라인이 용어당 1회 생성(LLM). 관리자가 등록·수정·삭제할 수 있고, 수정하면 출처가 관리자로 바뀌어 파이프라인이 덮어쓰지 않습니다.
+        일시정지는 DB에 두되 사용자 툴팁에서만 숨깁니다. 이메일 마스킹.
       </p>
     </div>
   );

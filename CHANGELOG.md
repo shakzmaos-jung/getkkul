@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-07-18
+
+### Added
+- **용어 툴팁 한글·영어 병기 + 동음이의 + 중첩 용어**: 요약 카드 용어 툴팁이 이제 `한글 · 영어`를 함께 보여주고(한쪽만 있으면 그쪽만), 같은 이름에 뜻이 여러 개면(동음이의) 모두 나열한다. "Hermes 에이전트"와 "에이전트"가 모두 사전에 있으면 겹치는 부분을 클릭할 때 둘 다, 고유한 부분을 클릭할 때 해당 용어만 표시한다. 본문 용어 밑줄도 더 또렷하게 강조. (`lib/feed/render-terms.tsx`, `components/ui/TermTooltip.tsx`)
+- **어드민 용어사전 CRUD + 일시정지 + 메모**: 관리자가 용어를 직접 등록·수정(한글/영어/정의)·삭제할 수 있고, "일시 사용정지"로 사용자 툴팁에서만 숨길 수 있다(DB 유지·해제 시 복구). 동음이의 구분용 메모(이력 없음)와 등록/수정/일시정지/삭제 이력을 제공. (`apps/admin/**/glossary/*`, `add_glossary_term`·`save_glossary_term`·`set_glossary_disabled`·`delete_glossary_term` RPC)
+
+### Changed
+- **용어사전 데이터 모델 재설계**: 용어명이 기본키이던 구조를 고유 id 기반으로 바꾸고 이름을 한글/영어로 분리, 같은 이름의 여러 뜻(동음이의)을 허용. 용어 정의 생성 시 한국어·영어 표기를 함께 산출(추가 LLM 호출 없음). (`supabase/migrations/20260718010000_glossary_v2.sql`, `lib/glossary/define-terms.ts`)
+
 ## [0.13.0] - 2026-07-17
 
 ### Added
