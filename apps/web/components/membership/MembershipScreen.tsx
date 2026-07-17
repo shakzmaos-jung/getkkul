@@ -74,6 +74,11 @@ export default function MembershipScreen({
   const [tab, setTab] = useState<'current' | 'history'>('current');
 
   const cur = view.planCode;
+  const scheduledTarget: PlanCode | null = view.scheduledChange
+    ? view.scheduledChange.cancel
+      ? 'free'
+      : view.scheduledChange.planCode
+    : null;
 
   function apply(to: PlanCode) {
     setConfirm(null);
@@ -201,6 +206,7 @@ export default function MembershipScreen({
             const up = planRank(code) > planRank(cur);
             // Large 는 PG 연동 전까지 "추후 오픈" 잠금. Free/Small/Medium 은 개방(실 전환 가능).
             const locked = code === 'large' && !isCurrent;
+            const isScheduled = code === scheduledTarget && !isCurrent;
             return (
               <Card
                 key={code}
@@ -208,13 +214,20 @@ export default function MembershipScreen({
                 className={`flex flex-col items-center gap-1.5 p-2 text-center ${
                   isCurrent
                     ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
-                    : locked
-                      ? 'cursor-pointer opacity-50 transition-opacity hover:opacity-70'
-                      : ''
+                    : isScheduled
+                      ? 'border-danger/50 ring-1 ring-danger/25'
+                      : locked
+                        ? 'cursor-pointer opacity-50 transition-opacity hover:opacity-70'
+                        : ''
                 }`}
                 data-testid={`plan-${code}`}
               >
                 <span className="text-sm font-semibold">{p.name}</span>
+                {isScheduled && (
+                  <span className="rounded-full bg-danger/15 px-1.5 py-0.5 text-[9px] font-semibold leading-tight text-danger">
+                    예약됨
+                  </span>
+                )}
                 {isCurrent && view.pocActive ? (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold leading-tight text-background">
                     얼리버드 무료
@@ -251,6 +264,17 @@ export default function MembershipScreen({
                   <span className="mt-auto w-full rounded-lg bg-muted px-1 py-1.5 text-[11px] text-muted-foreground">
                     추후 오픈
                   </span>
+                ) : isScheduled ? (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="mt-auto w-full px-1"
+                    disabled={pending}
+                    onClick={undo}
+                    data-testid={`cancel-${code}`}
+                  >
+                    예약 취소
+                  </Button>
                 ) : (
                   <Button
                     size="sm"
@@ -281,10 +305,29 @@ export default function MembershipScreen({
           proration={view.upgradeProration[confirm]}
           pocActive={view.pocActive}
           pending={pending}
+          nextBillingText={nextBillingText}
+          activeChannels={view.usage.channel}
           onCancel={() => setConfirm(null)}
           onConfirm={() => apply(confirm)}
         />
       )}
+    </div>
+  );
+}
+
+/** 한도 비교 한 줄(현재 → 변경 후). 감소면 red 강조 + 옵션 note(예: 채널 정지 수). */
+function LimitRow({ label, fromV, toV, note }: { label: string; fromV: number; toV: number; note?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums">
+        <span className="text-muted-foreground">{fromV.toLocaleString('ko-KR')}</span>
+        <span className="mx-1 text-muted-foreground">→</span>
+        <span className={toV < fromV ? 'font-semibold text-danger' : 'font-medium text-foreground'}>
+          {toV.toLocaleString('ko-KR')}
+        </span>
+        {note && <span className="ml-1 text-[11px] font-medium text-danger">{note}</span>}
+      </span>
     </div>
   );
 }
@@ -295,6 +338,8 @@ function ChangeConfirm({
   proration,
   pocActive,
   pending,
+  nextBillingText,
+  activeChannels,
   onCancel,
   onConfirm,
 }: {
@@ -303,11 +348,17 @@ function ChangeConfirm({
   proration?: number;
   pocActive: boolean;
   pending: boolean;
+  nextBillingText: string;
+  activeChannels: number;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const up = planRank(to) > planRank(from);
   const cancel = to === 'free';
+  const fromP = PLANS[from];
+  const toP = PLANS[to];
+  const pausedCount = Math.max(0, activeChannels - toP.channelLimit);
+
   return (
     <div className="fixed inset-0 z-[65] flex items-center justify-center bg-overlay p-4" onClick={onCancel}>
       <div
@@ -317,28 +368,51 @@ function ChangeConfirm({
         className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl"
       >
         <h2 className="text-sm font-semibold">
-          {up ? `${PLANS[to].name} 업그레이드` : cancel ? '멤버십 해지' : `${PLANS[to].name} 다운그레이드`}
+          {up ? `${toP.name} 업그레이드` : cancel ? '멤버십 해지' : `${toP.name} 다운그레이드`}
         </h2>
-        <div className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {up ? (
-            <>
-              지금 올리면 남은 기간 차액{' '}
-              <span className="font-semibold text-foreground">{won(proration ?? 0)}</span>
-              {pocActive ? '(무PG 기간이라 실제 청구 0원)' : '이 즉시 크레딧에서 차감됩니다'}, 상위 혜택이
-              즉시 적용됩니다.
-            </>
-          ) : cancel ? (
-            <>다음 결제일에 결제하지 않고, 이번 주기 종료일에 Free 로 전환됩니다. 이번 주기 혜택은 유지되고 환급은 없습니다.</>
-          ) : (
-            <>다음 주기부터 적용됩니다. 이번 주기는 현재 혜택을 유지하며 환급은 없습니다. 채널이 한도를 넘으면 초과분은 비활성(보관)됩니다.</>
-          )}
-        </div>
+
+        {up ? (
+          <div className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            지금 올리면 남은 기간 차액{' '}
+            <span className="font-semibold text-foreground">{won(proration ?? 0)}</span>
+            {pocActive ? '(무PG 기간이라 실제 청구 0원)' : '이 즉시 크레딧에서 차감됩니다'}, 상위 혜택이 즉시
+            적용됩니다.
+          </div>
+        ) : (
+          <div className="mt-2 space-y-3 text-sm">
+            <p className="leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">{nextBillingText}</span>부터{' '}
+              {cancel ? 'Free 로 전환(해지)' : `${toP.name} 적용`} — 그때까지 현재{' '}
+              <span className="font-medium text-foreground">{fromP.name}</span> 혜택은 유지되고 환급은
+              없습니다.
+            </p>
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
+              <p className="mb-1.5 font-medium text-foreground">변경 후 월 한도</p>
+              <div className="space-y-1">
+                <LimitRow
+                  label="구독 채널"
+                  fromV={fromP.channelLimit}
+                  toV={toP.channelLimit}
+                  note={pausedCount > 0 ? `· ${pausedCount}개 일시정지(보관)` : undefined}
+                />
+                <LimitRow label="다이제스트" fromV={fromP.digestLimit} toV={toP.digestLimit} />
+                <LimitRow label="AI 질의" fromV={fromP.aiQueryLimit} toV={toP.aiQueryLimit} />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel} disabled={pending}>
             취소
           </Button>
-          <Button variant="primary" onClick={onConfirm} disabled={pending} data-testid="confirm-change">
-            {pending ? <Spinner size={14} /> : up ? '업그레이드' : cancel ? '해지' : '변경 예약'}
+          <Button
+            variant={up ? 'primary' : 'danger-solid'}
+            onClick={onConfirm}
+            disabled={pending}
+            data-testid="confirm-change"
+          >
+            {pending ? <Spinner size={14} /> : up ? '업그레이드' : cancel ? '해지 예약' : '다운그레이드 예약'}
           </Button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-solid';
 type Size = 'sm' | 'md';
 
 const VARIANTS: Record<Variant, string> = {
@@ -8,6 +8,7 @@ const VARIANTS: Record<Variant, string> = {
   secondary: 'border border-border bg-card text-foreground hover:bg-muted',
   ghost: 'text-muted-foreground hover:bg-muted hover:text-foreground',
   danger: 'border border-border text-danger hover:bg-danger/10',
+  'danger-solid': 'bg-danger text-white hover:bg-danger/90',
 };
 
 const SIZES: Record<Size, string> = {
