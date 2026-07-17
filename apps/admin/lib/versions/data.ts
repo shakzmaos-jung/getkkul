@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.15.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [122],
+    summary: '멤버십 메뉴 2탭(현재/이용내역) + 이용내역 카드 + 어드민 멤버십 이력 메뉴',
+    dev: '멤버십 페이지에 TabCards(현재/이용내역). buildBillingCards 가 billing_history 를 billing_period 로 그룹핑 → 기간별 카드(청구/결제·수단·상태·결제일·월중 업그레이드). 결제는 크레딧 전용(스키마 변경 없음), 결제수단·복합결제는 파생·UI 구조만. 어드민 get_membership_history RPC + M13 멤버십 이력 메뉴(상태 필터·이메일 검색·마스킹). 운영자 계정 샘플 이력 시드.',
+    nonDev: '멤버십 화면 위에 탭 2개(현재 멤버십 / 이용내역)가 생겼다. 이용내역 탭에서 지난 구독·결제 내역을 카드로 볼 수 있고, 월 중에 플랜을 올린 경우 그 내역도 같은 카드에 함께 나온다. 결제는 아직 크레딧 기반(카드결제 미연동)이라 결제 수단은 크레딧으로 표시. 관리자 화면엔 전체 구독자의 결제 이력 메뉴가 생겼다.',
+    userImpact: '내 멤버십 결제·업그레이드 내역을 한눈에 카드로 확인할 수 있다. (지금은 시연용 샘플 포함, 실제 결제 주기가 돌면 실데이터로 채워짐)',
+  },
+  {
     version: '0.14.0',
     date: '2026-07-18',
     type: 'minor',

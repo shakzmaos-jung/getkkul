@@ -115,6 +115,15 @@ export type Database = {
         Args: { p_days?: number };
         Returns: Json;
       };
+      get_membership_history: {
+        Args: {
+          p_status?: string | null;
+          p_search?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
       get_ops_data: {
         Args: { p_digest_limit?: number };
         Returns: Json;

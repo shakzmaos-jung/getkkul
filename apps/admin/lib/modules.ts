@@ -1,4 +1,4 @@
-// 관제 어드민 12개 모듈 (좌측 GNB 순서, EXECUTION-PLAN §4).
+// 관제 어드민 13개 모듈 (좌측 GNB 순서, EXECUTION-PLAN §4).
 // icon: 사이드바 접힘 상태에서 아이콘만 표시.
 export type AdminModule = {
   id: string;
@@ -22,4 +22,5 @@ export const MODULES: readonly AdminModule[] = [
   { id: 'versions', path: '/versions', label: '버전 히스토리', desc: '릴리스별 변경 · 3단계 설명 · PR', milestone: 'M10', icon: '🏷️' },
   { id: 'send-history', path: '/send-history', label: '발송 이력', desc: '이메일 · 푸시 슬롯 발송 로그', milestone: 'M11', icon: '📨' },
   { id: 'glossary', path: '/glossary', label: '용어사전', desc: '용어 정의 조회 · 수정 · 이력', milestone: 'M12', icon: '📚' },
+  { id: 'membership', path: '/membership', label: '멤버십 이력', desc: '구독 · 결제 · 업그레이드 이력', milestone: 'M13', icon: '💳' },
 ] as const;
