@@ -466,6 +466,53 @@ export type Database = {
           },
         ]
       }
+      send_log: {
+        Row: {
+          created_at: string
+          email_status: string | null
+          error: string | null
+          id: string
+          item_count: number
+          push_status: string | null
+          send_date: string
+          slot: Database["public"]["Enums"]["delivery_slot"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_status?: string | null
+          error?: string | null
+          id?: string
+          item_count?: number
+          push_status?: string | null
+          send_date: string
+          slot: Database["public"]["Enums"]["delivery_slot"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_status?: string | null
+          error?: string | null
+          id?: string
+          item_count?: number
+          push_status?: string | null
+          send_date?: string
+          slot?: Database["public"]["Enums"]["delivery_slot"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "send_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membership: {
         Row: {
           anchor_day: number

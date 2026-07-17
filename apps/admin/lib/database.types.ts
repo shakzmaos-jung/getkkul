@@ -76,6 +76,18 @@ export type Database = {
         Args: { p_digest_limit?: number };
         Returns: Json;
       };
+      get_send_history: {
+        Args: {
+          p_slot?: string | null;
+          p_status?: string | null;
+          p_search?: string | null;
+          p_from?: string | null;
+          p_to?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.12.1',
+    date: '2026-07-17',
+    type: 'patch',
+    prs: [119],
+    summary: '발송 중복·개수불일치 인시던트 수정 + 어드민 발송 이력 메뉴',
+    dev: '이중 트리거(GitHub 크론 제거→pg_cron 단독) + send_log(user,slot,day) 원자적 클레임으로 슬롯당 1회 발송 보장. 발송→기록 레이스와 빈 core_text 요약 포함(제목≠본문)도 수정. 어드민 get_send_history 기반 발송 이력 메뉴(필터·검색·마스킹).',
+    nonDev: '한 알림 시간에 이메일이 여러 통 가거나, 제목의 개수와 본문 개수가 다르던 문제를 고쳤다. 관리자 화면에는 실제 발송 내역을 조회하는 메뉴를 추가했다.',
+    userImpact: '이제 한 발송 시간대(07:30 등)에 이메일이 정확히 한 통만 오고, 제목에 표시된 개수와 본문 콘텐츠 개수가 일치한다.',
+  },
+  {
     version: '0.12.0',
     date: '2026-07-15',
     type: 'minor',

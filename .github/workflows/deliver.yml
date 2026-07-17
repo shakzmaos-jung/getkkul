@@ -1,14 +1,10 @@
 name: deliver
 
 # 다이제스트 발송 (ADR-0005). KST 07:30 / 11:30 / 17:30 / 21:30 = UTC 22:30 / 02:30 / 08:30 / 12:30.
-# 정시성은 Supabase pg_cron(dispatch_deliver)이 담당하고, 아래 GitHub 네이티브 크론은
-# pg_cron 장애 대비 백업이다(지연 발화해도 scripts/deliver.ts 의 시각 가드가 off-slot 을 차단).
+# 트리거는 Supabase pg_cron(dispatch_deliver → workflow_dispatch) 단독. GitHub 네이티브 schedule 은
+# pg_cron 과 동시 발화해 슬롯당 중복 발송을 유발하므로 제거했다(2026-07-17 인시던트). 슬롯당 1회 발송은
+# scripts/deliver.ts 의 send_log 클레임(user,slot,day)이 보장하므로 어떤 트리거가 재발화해도 안전하다.
 on:
-  schedule:
-    - cron: '30 22 * * *' # 07:30 KST
-    - cron: '30 2 * * *' # 11:30 KST
-    - cron: '30 8 * * *' # 17:30 KST
-    - cron: '30 12 * * *' # 21:30 KST
   workflow_dispatch:
     inputs:
       force:

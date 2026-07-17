@@ -18,7 +18,8 @@ import { slotPushEnabled, shouldSendEmptyAware, renderPushMessage } from '@/lib/
 
 /**
  * 사용자별 다이제스트 발송 (SSR REQ-E/F). 준비된(done+요약) 미발송 영상을 담아 발송.
- * 멱등성: deliveries UNIQUE(user_id, video_id) upsert. 빈 슬롯도 "새 소식 없음" 발송(E2.3).
+ * 슬롯 멱등: send_log UNIQUE(user_id, slot, send_date) 원자적 클레임 → 트리거·동시성 무관 슬롯당 1회(중복 발송 방지).
+ * 영상 멱등: deliveries UNIQUE(user_id, video_id) upsert(슬롯 간 후보 제외). 빈 슬롯도 설정 따라 "새 소식 없음"(E2.3).
  * 발송 실패는 failed 기록 → 다음 슬롯 재시도(E3.3). 개별 사용자 실패가 전체를 막지 않음(H6).
  */
 type SupabaseClient = ReturnType<typeof createPipelineClient>;
@@ -29,6 +30,7 @@ export interface DeliverResult {
   empty: number; // 새 항목 없는데 "새 소식 없음"을 발송한 수
   failed: number;
   pushSent: number; // 푸시(새 항목) 발송 사용자 수
+  skipped: number; // 이미 처리된(슬롯 클레임 충돌) 사용자 스킵 수
 }
 
 export async function deliverAll(
@@ -45,6 +47,7 @@ export async function deliverAll(
   const pushNotifier =
     deps.pushNotifier !== undefined ? deps.pushNotifier : createPushNotifier();
   const nowIso = deps.nowIso ?? new Date().toISOString();
+  const sendDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date(nowIso)); // 슬롯 KST 날짜(멱등 키)
   const appBaseUrl = process.env.APP_BASE_URL;
 
   const { data: users, error } = await supabase.from('profiles').select('id, email');
@@ -93,6 +96,7 @@ export async function deliverAll(
   let empty = 0;
   let failed = 0;
   let pushSent = 0;
+  let skipped = 0;
 
   for (const user of users ?? []) {
     const setting = settingsByUser.get(user.id);
@@ -138,6 +142,24 @@ export async function deliverAll(
       const sendEmail = emailActive && !!recipient && shouldSendEmptyAware(hasItems, skipEmail);
       const sendPush = pushActive && shouldSendEmptyAware(hasItems, skipPush);
 
+      // 이 슬롯에 실제로 보낼 게 없으면(빈 + skip) 클레임/발송 없이 다음 사용자.
+      if (!sendEmail && !sendPush) continue;
+
+      // 슬롯 멱등 클레임: (user, slot, day) 원자적 선점(ON CONFLICT DO NOTHING). 이미 처리됐으면 스킵 → 슬롯당 1회.
+      const { data: claimRows, error: claimErr } = await supabase
+        .from('send_log')
+        .upsert(
+          { user_id: user.id, slot, send_date: sendDate },
+          { onConflict: 'user_id,slot,send_date', ignoreDuplicates: true },
+        )
+        .select('id');
+      if (claimErr) throw new Error(`send_log 클레임 실패: ${claimErr.message}`);
+      if (!claimRows || claimRows.length === 0) {
+        skipped++;
+        continue; // 다른 실행/트리거가 이미 이 사용자·슬롯을 발송함(중복 방지)
+      }
+      const claimId = (claimRows[0] as { id: string }).id;
+
       let emailOk = false;
       let emailErr = false;
       let pushOk = false;
@@ -166,6 +188,18 @@ export async function deliverAll(
           console.warn(`[deliver] push ${user.id} 실패: ${(e as Error).message}`);
         }
       }
+
+      // 발송 이력(send_log) 갱신 — deliveries 기록 성패와 무관하게 실제 발송 결과를 남긴다(어드민 조회원).
+      await supabase
+        .from('send_log')
+        .update({
+          item_count: selection.items.length,
+          email_status: sendEmail ? (emailOk ? 'sent' : emailErr ? 'failed' : 'skipped') : null,
+          push_status: sendPush ? (pushOk ? 'sent' : 'failed') : null,
+          error: emailErr ? 'email send failed' : null,
+          updated_at: nowIso,
+        })
+        .eq('id', claimId);
 
       // 원장 기록(공유 멱등성): 새 항목을 한 채널이라도 발송했으면 delivered 로 표시.
       if (hasItems && (emailOk || pushOk)) {
@@ -218,7 +252,7 @@ export async function deliverAll(
     }
   }
 
-  return { users: (users ?? []).length, sent, empty, failed, pushSent };
+  return { users: (users ?? []).length, sent, empty, failed, pushSent, skipped };
 }
 
 /** 조회 안전 상한 — 서버 max-rows(기본 1000)에 조용히 잘리지 않도록 명시한다. */
@@ -297,7 +331,11 @@ export async function candidateVideos(
   const alreadySent = new Set((dels ?? []).map((d) => d.video_id));
 
   return videoRows
-    .filter((v) => sumMap.has(v.id) && !alreadySent.has(v.id))
+    // 요약이 준비되고(빈 core_text 제외 → 제목 N=본문 N) 아직 미발송인 영상만.
+    .filter((v) => {
+      const s = sumMap.get(v.id);
+      return s != null && !alreadySent.has(v.id) && (s.core_text ?? '').trim().length > 0;
+    })
     .map((v) => {
       const s = sumMap.get(v.id)!;
       return {
