@@ -41,6 +41,31 @@ describe('planNextCycle', () => {
     }
   });
 
+  it('poc_free 중 예약 다운그레이드 → 롤오버가 신플랜 적용·poc_free 유지·청구 0 (플랜 개방 경로)', () => {
+    const m = { ...base, scheduledChange: { plan_code: 'small' } }; // status 는 poc_free 유지
+    const a = planNextCycle(m, new Date('2026-08-09T15:00:00Z'));
+    expect(a.type).toBe('rollover');
+    if (a.type === 'rollover') {
+      expect(a.newPlan).toBe('small');
+      expect(a.newStatus).toBe('poc_free'); // PoC 유효 → 상태 유지
+      expect(a.charge).toBe(0);
+      expect(a.channelLimit).toBe(10);
+      expect(a.clearPoc).toBe(false);
+    }
+  });
+
+  it('poc_free 가 Medium 아닌 플랜(즉시 업그레이드 후 Large)이어도 롤오버 정상 (플랜 무관·청구 0)', () => {
+    const m: MembershipState = { ...base, planCode: 'large' };
+    const a = planNextCycle(m, new Date('2026-08-09T15:00:00Z'));
+    expect(a.type).toBe('rollover');
+    if (a.type === 'rollover') {
+      expect(a.newPlan).toBe('large');
+      expect(a.newStatus).toBe('poc_free');
+      expect(a.charge).toBe(0);
+      expect(a.channelLimit).toBe(30);
+    }
+  });
+
   it('S4 — 예약 다운그레이드가 롤오버 시 적용되고 채널 한도 반영', () => {
     const m = { ...base, status: 'active', pocFreeUntil: null, scheduledChange: { plan_code: 'small' } };
     const a = planNextCycle(m, new Date('2026-08-09T15:00:00Z'));

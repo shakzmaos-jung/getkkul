@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.16.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [123],
+    summary: '멤버십 플랜 변경 개방(Free/Small/Medium) — 실제 업·다운그레이드 전환',
+    dev: "MembershipScreen 플랜 잠금을 code==='large' && !isCurrent 로 완화 — PoC 중에도 Free/Small/Medium 전환 가능(Large만 추후 오픈). 백엔드(changePlan/service/RPC)엔 poc_free 가드가 없어 UI만 열면 실동작. 무PG(NO_PG_FREE)라 청구·크레딧 0, poc_free 는 플랜 무관 유지. 배너 planName 인식. cycle.test poc_free 전환 케이스 보강. 라이브 스모크(예약/취소·즉시 업그레이드) 검증.",
+    nonDev: '멤버십에서 그동안 잠겨 있던 플랜 변경(Free·Small·Medium)을 열었다. 업그레이드는 바로, 다운그레이드·해지는 다음 결제일부터 적용된다. 지금은 무료 체험 기간이라 플랜을 바꿔도 돈이 나가지 않고, 다운그레이드로 한도를 넘는 채널은 지워지지 않고 잠시 멈춘다(상위 플랜에서 다시 켤 수 있음).',
+    userImpact: '멤버십 플랜을 직접 올리고 내릴 수 있다(무료 체험 중이라 과금 없음). Large 는 아직 열리지 않았다.',
+  },
+  {
     version: '0.15.0',
     date: '2026-07-18',
     type: 'minor',

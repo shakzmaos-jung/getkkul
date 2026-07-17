@@ -115,10 +115,10 @@ export default function MembershipScreen({
         >
           <p className="flex items-center gap-2 text-sm font-semibold text-accent">
             <span aria-hidden>🎉</span>
-            얼리버드 무료 체험 중 — Medium 혜택 무료
+            얼리버드 무료 체험 중 — {view.planName} 혜택 무료
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {pocUntilText}까지 모든 Medium 기능을 무료로 쓸 수 있어요.
+            {pocUntilText}까지 모든 {view.planName} 기능을 무료로 쓸 수 있어요.
           </p>
         </div>
       )}
@@ -199,8 +199,8 @@ export default function MembershipScreen({
             const p = PLANS[code];
             const isCurrent = code === cur;
             const up = planRank(code) > planRank(cur);
-            // 얼리버드 기간엔 현재(Medium) 외 플랜은 잠금(추후 오픈).
-            const locked = view.pocActive && !isCurrent;
+            // Large 는 PG 연동 전까지 "추후 오픈" 잠금. Free/Small/Medium 은 개방(실 전환 가능).
+            const locked = code === 'large' && !isCurrent;
             return (
               <Card
                 key={code}
