@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-07-18
+
+### Fixed
+- **멤버십 플랜 카드 표시 수정**: 얼리버드(PoC) 무료 기간 동안 열려 있는 유료 플랜(Small·Medium)의 요금을 정가 대신 "얼리버드 무료"로 표시(Free는 "무료", 잠긴 Large는 정가 유지). 예약 취소 버튼이 좁은 카드에서 2행으로 줄바꿈되던 것을 "현재 플랜"과 동일하게 1행으로 표시. (`components/membership/MembershipScreen.tsx`)
+
 ## [0.16.1] - 2026-07-18
 
 ### Changed
