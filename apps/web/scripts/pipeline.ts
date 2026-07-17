@@ -4,6 +4,7 @@ import { renewWebSubSubscriptions } from '@/lib/pipeline/websub-subscribe';
 import { reconcileChannels } from '@/lib/pipeline/reconcile';
 import { runMembershipCycle } from '@/lib/membership/run-cycle';
 import { summarizePending } from '@/lib/pipeline/summarize-pending';
+import { defineGlossaryPending } from '@/lib/pipeline/define-glossary-pending';
 import { fillMissingDurations } from '@/lib/pipeline/fill-durations';
 import { createNotifier } from '@/lib/notify/create-notifier';
 import { createPipelineClient } from '@/lib/pipeline/supabase';
@@ -124,6 +125,15 @@ async function main() {
     failures,
   );
   console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
+
+  // 용어 정의: content_terms 의 미정의 용어만 전역 사전에 적재(이미 정의된 건 스킵 = LLM 재호출 없음).
+  const gloss = await runStage(
+    'glossary',
+    () => recordRun(supabase, 'glossary', () => defineGlossaryPending()),
+    { pending: 0, defined: 0 },
+    failures,
+  );
+  if (gloss.pending > 0) console.log(`[glossary] defined=${gloss.defined}/${gloss.pending}`);
 
   // 자가치유 백필(하루 1회 셀프 게이트): WebSub·폴링이 놓친 영상까지 회복(REQ-E).
   const rec = await runStage(

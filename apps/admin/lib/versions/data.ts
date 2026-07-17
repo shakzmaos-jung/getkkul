@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.13.0',
+    date: '2026-07-17',
+    type: 'minor',
+    prs: [120],
+    summary: '용어 정의 인라인 툴팁 + 어드민 용어사전(수정·이력) + 요약 오타 교정 확대',
+    dev: '요약 단일 호출에 terms 추출을 접붙여(추가 LLM 0) content_terms 캐시. 신규 스테이지 defineGlossaryPending 이 미정의 용어만 배치 정의 → 전역 glossary_terms(용어당 1회, 재사용). 읽기는 get_video_glossary(본문×사전 매칭)로 LLM 0. 카드 renderWithTerms + TermTooltip(점선·탭). 설정 term_tooltips 토글. 어드민 용어사전: get_glossary 조회 + edit_glossary_term(원자적 정의수정+source=admin+이력) — 어드민 최초 WRITE. summarize 프롬프트에 일반 오타 교정 확대 + PROMPT_VERSION bump.',
+    nonDev: '요약을 읽다가 모르는 용어에 점선이 보이면 눌러서 바로 뜻을 볼 수 있다(예전 AI 질의처럼 기다리지 않고 즉시). 용어 뜻은 한 번만 만들어 재사용하므로 비용도 아낀다. 관리자 화면에는 용어사전을 조회·수정하고 누가 언제 고쳤는지 보는 메뉴가 생겼다. 전사 과정에서 생기던 오타도 요약에서 더 많이 바로잡는다.',
+    userImpact: '요약 속 어려운 용어를 탭 한 번으로 즉시 이해할 수 있고(설정에서 끌 수 있음), 요약의 오타가 줄어든다. 기존 영상이 아니라 새로 처리되는 영상부터 적용된다.',
+  },
+  {
     version: '0.12.1',
     date: '2026-07-17',
     type: 'patch',

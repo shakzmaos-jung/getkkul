@@ -50,7 +50,7 @@ export default async function FeedPage({
         .eq('user_id', user.id),
       supabase
         .from('user_settings')
-        .select('summary_length')
+        .select('summary_length, term_tooltips')
         .eq('user_id', user.id)
         .maybeSingle(),
       // 디지스트 탭: 프리로드 창(오늘·어제)만 — 날짜경계 인덱스로 빠르게(북마크 OR 제거).
@@ -63,6 +63,7 @@ export default async function FeedPage({
       supabase.rpc('get_bookmarked_digests'),
     ]);
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
+  const termTooltips = setting?.term_tooltips ?? true;
   const activeSubs = (subs ?? []).filter((s) => !s.paused);
   const channelById = new Map<string, ChannelMeta>(
     activeSubs.map((s) => [
@@ -113,6 +114,7 @@ export default async function FeedPage({
             todayKst={todayKst}
             initialDate={initialDate}
             preloadFrom={preloadFrom}
+            termTooltips={termTooltips}
           />
         )}
       </main>

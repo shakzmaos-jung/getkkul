@@ -141,7 +141,7 @@ export async function getOrCreateSummaries(
   }
 
   const hint = await loadDomainHint(supabase, video.data.channel_id, video.data.title, videoId);
-  const { structured, ceiling, usage } = await summarizeAllModes(
+  const { structured, ceiling, usage, terms } = await summarizeAllModes(
     video.data.transcript,
     language,
     deps,
@@ -153,6 +153,14 @@ export async function getOrCreateSummaries(
     .from('summaries')
     .upsert(rows, { onConflict: 'video_id,length_mode,language', ignoreDuplicates: true });
   if (inserted.error) throw new Error(`요약 저장 실패: ${inserted.error.message}`);
+
+  // 추출 용어를 content_terms 에 저장(처리시점 사전계산, ko). 도메인 힌트·전역 용어사전의 시드.
+  if (language === 'ko' && terms.length > 0) {
+    const ct = await supabase
+      .from('content_terms')
+      .upsert({ video_id: videoId, terms }, { onConflict: 'video_id' });
+    if (ct.error) console.warn(`[summarize] content_terms 저장 실패(무시): ${ct.error.message}`);
+  }
 
   return { generated: missing.length, usage };
 }

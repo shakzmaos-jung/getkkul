@@ -168,3 +168,24 @@ export async function updateSkipEmpty(
   revalidatePath('/settings');
   return { ok: true };
 }
+
+/** 용어 정의 툴팁 on/off (읽기 화면 반영). RLS 로 본인 user_settings 만. */
+export async function updateTermTooltips(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const { error } = await supabase
+    .from('user_settings')
+    .update({ term_tooltips: formData.get('term_tooltips') != null })
+    .eq('user_id', user.id);
+  if (error) return { error: '설정 저장에 실패했습니다.' };
+  revalidatePath('/settings');
+  revalidatePath('/feed');
+  revalidatePath('/');
+  return { ok: true };
+}

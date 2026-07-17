@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import AppHeader from '@/components/layout/AppHeader';
 import { Card } from '@/components/ui/Card';
 import LengthModeForm from '@/components/settings/LengthModeForm';
+import TermTooltipsForm from '@/components/settings/TermTooltipsForm';
 import DeliveryEmailForm from '@/components/settings/DeliveryEmailForm';
 import DeliverySlotsForm from '@/components/settings/DeliverySlotsForm';
 import VideoDurationFilterForm from '@/components/settings/VideoDurationFilterForm';
@@ -26,12 +27,13 @@ export default async function SettingsPage() {
     supabase
       .from('user_settings')
       .select(
-        'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, push_slot_2130, skip_empty_push, skip_empty_email',
+        'summary_length, delivery_email, delivery_slots, exclude_over_2h, push_slot_0730, push_slot_1130, push_slot_1730, push_slot_2130, skip_empty_push, skip_empty_email, term_tooltips',
       )
       .eq('user_id', user.id)
       .maybeSingle(),
   );
   const current = (setting?.summary_length ?? 'normal') as LengthMode;
+  const termTooltips = setting?.term_tooltips ?? true;
   const deliveryEmail = setting?.delivery_email ?? user.email ?? '';
   const isDefaultEmail = !setting?.delivery_email;
   const deliverySlots = (setting?.delivery_slots ?? SLOT_CODES) as SlotCode[];
@@ -59,6 +61,14 @@ export default async function SettingsPage() {
               다이제스트 카드에 보여줄 요약 분량을 정합니다.
             </p>
             <LengthModeForm current={current} />
+          </Card>
+
+          <Card className="p-5">
+            <h2 className="mb-1 text-sm font-semibold">용어 정의 툴팁</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              요약 본문의 어려운 용어에 점선을 표시하고, 클릭하면 정의를 보여줍니다.
+            </p>
+            <TermTooltipsForm enabled={termTooltips} />
           </Card>
 
           <Card className="p-5">
