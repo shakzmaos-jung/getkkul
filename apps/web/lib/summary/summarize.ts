@@ -26,7 +26,7 @@ const REASONING_EFFORT = 'low' as const;
 const MAX_COMPLETION_TOKENS = 16384;
 
 /** 시스템 프롬프트 버전(회귀 비교·피드백 지표 연결용). 변경 시 반드시 증가. */
-export const PROMPT_VERSION = 'sq-2026-07-14.1';
+export const PROMPT_VERSION = 'sq-2026-07-17.1';
 
 /** 요약 생성에 주입하는 채널/콘텐츠 힌트(보수적 용어 교정 근거, REQ-D1). */
 export interface DomainHint {
@@ -64,8 +64,9 @@ const ALL_MODE_SCHEMA = {
     short: POINTS_SCHEMA,
     normal: POINTS_SCHEMA,
     long: LONG_SCHEMA,
+    terms: { type: 'array', items: { type: 'string' } },
   },
-  required: ['depthCeiling', 'short', 'normal', 'long'],
+  required: ['depthCeiling', 'short', 'normal', 'long', 'terms'],
   additionalProperties: false,
 } as const;
 
@@ -112,7 +113,8 @@ export function allModesSystemPrompt(language: SummaryLanguage, hint?: DomainHin
     '정보 계층(단조성): 상위 깊이는 하위를 포함하고 확장한다. 반드시 정보량이 short ≤ normal ≤ long 이 되도록, 상위일수록 더 깊고 구체적으로 쓴다. 상위가 하위보다 얕거나 짧아서는 안 된다.',
     '적응형 깊이: 콘텐츠가 빈약해 깊은 요약이 무리라면 depthCeiling 을 낮게 판정한다(예: 잡담·아주 짧은 영상 → "short"). depthCeiling 위의 모드는 억지로 부풀리지 말고 핵심만 간단히 두라(우리가 사용자에게 제공하지 않는다). 내용이 충분하면 "long".',
     '근거 준수: 원문 전사에 없는 내용을 지어내지 않는다(함의·해석도 반드시 전사의 사실에 근거한다).',
-    '보수적 용어 교정: 전사의 음성인식 오류 중 "잘 알려진 고유명사·전문용어의 명백한 오인식"만 교정한다(예: "SMP 500"→"S&P500"). 발음이 비슷하다는 이유로 원문에 없던 고유명사·개체를 지어내지 마라. 확실하지 않으면 원문 표현을 그대로 둔다(과교정 금지).',
+    '보수적 오타·용어 교정: 요약에 반영할 때 (1) 잘 알려진 고유명사·전문용어의 명백한 오인식(예 "SMP 500"→"S&P500")과 (2) 명백한 띄어쓰기·조사·오탈자·동음이의 오인식을 자연스러운 한국어로 바로잡는다. 단 발음이 비슷하다는 이유로 원문에 없던 고유명사·개체를 지어내지 마라. 의미가 바뀌거나 확실하지 않으면 원문 표현을 그대로 둔다(과교정 금지).',
+    '용어 추출: 일반 독자가 모를 만한 어려운·전문 용어(개념·기술·전문용어)를 요약 본문에 등장하는 표기 그대로 최대 8개까지 terms 배열에 담는다(없으면 빈 배열). 흔한 일반 단어는 제외하고, 정의를 알면 이해가 쉬워지는 것 위주로.',
     ...hintLines(hint),
     '광고·인사말·잡담·구독요청은 제외하고 정보 가치가 높은 내용만 담아라.',
   ].join('\n');
@@ -156,27 +158,31 @@ export function resolveProvidedCeiling(s: StructuredSummaries): DepthCeiling {
   }
 }
 
-function extractStructured(content: string | null): StructuredSummaries {
+function extractStructured(content: string | null): { structured: StructuredSummaries; terms: string[] } {
   if (!content || !content.trim()) throw new Error('요약 응답이 비어 있습니다.');
   const p = JSON.parse(content) as {
     depthCeiling?: unknown;
     short?: { headline?: unknown; points?: unknown };
     normal?: { headline?: unknown; points?: unknown };
     long?: { headline?: unknown; facts?: unknown; insights?: unknown };
+    terms?: unknown;
   };
   const flat = (m: 'short' | 'normal') => ({
     headline: typeof p[m]?.headline === 'string' ? (p[m]!.headline as string) : '',
     points: toStrings(p[m]?.points),
   });
   return {
-    depthCeiling: normalizeCeiling(p.depthCeiling),
-    short: flat('short'),
-    normal: flat('normal'),
-    long: {
-      headline: typeof p.long?.headline === 'string' ? p.long!.headline : '',
-      facts: toStrings(p.long?.facts),
-      insights: toStrings(p.long?.insights),
+    structured: {
+      depthCeiling: normalizeCeiling(p.depthCeiling),
+      short: flat('short'),
+      normal: flat('normal'),
+      long: {
+        headline: typeof p.long?.headline === 'string' ? p.long!.headline : '',
+        facts: toStrings(p.long?.facts),
+        insights: toStrings(p.long?.insights),
+      },
     },
+    terms: toStrings(p.terms).slice(0, 8),
   };
 }
 
@@ -205,7 +211,7 @@ export async function summarizeAllModes(
   language: SummaryLanguage,
   deps: { client?: OpenAI } = {},
   opts: { hint?: DomainHint } = {},
-): Promise<{ structured: StructuredSummaries; ceiling: DepthCeiling; usage: SummaryUsage }> {
+): Promise<{ structured: StructuredSummaries; ceiling: DepthCeiling; usage: SummaryUsage; terms: string[] }> {
   const client = deps.client ?? new OpenAI();
   const sys: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
     role: 'system',
@@ -217,6 +223,7 @@ export async function summarizeAllModes(
   ];
   const usage: SummaryUsage = { promptTokens: 0, completionTokens: 0, calls: 0 };
   let last: StructuredSummaries | null = null;
+  let lastTerms: string[] = [];
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await client.chat.completions.create({
@@ -234,18 +241,22 @@ export async function summarizeAllModes(
     usage.completionTokens += res.usage?.completion_tokens ?? 0;
 
     let parsed: StructuredSummaries;
+    let terms: string[];
     try {
-      parsed = extractStructured(res.choices[0]?.message?.content ?? null);
+      const ex = extractStructured(res.choices[0]?.message?.content ?? null);
+      parsed = ex.structured;
+      terms = ex.terms;
     } catch (e) {
       console.warn(`[summarize] 응답 파싱 실패(재시도): ${(e as Error).message}`);
       messages = [sys, { role: 'user', content: '반드시 유효한 JSON 으로만 응답하라.' }];
       continue;
     }
     last = parsed;
+    lastTerms = terms;
 
     const errs = structuralErrors(parsed);
     if (errs.length === 0) {
-      return { structured: parsed, ceiling: resolveProvidedCeiling(parsed), usage };
+      return { structured: parsed, ceiling: resolveProvidedCeiling(parsed), usage, terms };
     }
     // 교정 재시도 — 전사 미포함(REQ-CO3). 직전 출력(JSON)만으로 구조 재정형.
     messages = [
@@ -257,5 +268,5 @@ export async function summarizeAllModes(
 
   if (!last) throw new Error('요약 JSON 파싱에 반복 실패했습니다.');
   console.warn('[summarize] 구조 검증 최종 실패 — best-effort 반환');
-  return { structured: last, ceiling: resolveProvidedCeiling(last), usage };
+  return { structured: last, ceiling: resolveProvidedCeiling(last), usage, terms: lastTerms };
 }

@@ -117,6 +117,28 @@ export async function setContentFeedback(
 }
 
 /**
+ * 여러 영상의 용어 사전(하이브리드: 본문에 등장하는 정의 있는 전역 용어)을 한 번에 조회.
+ * 반환 {videoId: [{term, definition}]}. 읽기 전용·즉시(사전계산, LLM 미호출).
+ */
+export async function fetchGlossaryForVideos(
+  videoIds: string[],
+): Promise<Record<string, { term: string; definition: string }[]>> {
+  if (videoIds.length === 0) return {};
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+  const { data, error } = await supabase.rpc('get_video_glossary', { p_video_ids: videoIds });
+  if (error || !data) return {};
+  const map: Record<string, { term: string; definition: string }[]> = {};
+  for (const r of data) {
+    (map[r.video_id] ??= []).push({ term: r.term, definition: r.definition });
+  }
+  return map;
+}
+
+/**
  * 특정 KST 일자의 다이제스트 카드 온디맨드 조회(하이브리드 프리로드 밖 날짜, plan F1).
  * get_feed_digests RPC(p_from=일자 00:00 KST, p_to=+1일)를 페이지와 동일 매핑으로 반환한다.
  */

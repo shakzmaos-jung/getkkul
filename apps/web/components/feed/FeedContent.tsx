@@ -6,7 +6,8 @@ import SummaryCard from '@/components/feed/SummaryCard';
 import ChannelFilter from '@/components/feed/ChannelFilter';
 import { TabCards } from '@/components/ui/TabCards';
 import { Spinner } from '@/components/ui/Spinner';
-import { toggleBookmark, fetchDigestsForDate } from '@/app/feed/actions';
+import { toggleBookmark, fetchDigestsForDate, fetchGlossaryForVideos } from '@/app/feed/actions';
+import type { GlossaryTerm } from '@/lib/feed/render-terms';
 import {
   isPreloadedDate,
   type ModeSummary,
@@ -50,6 +51,7 @@ export default function FeedContent({
   todayKst,
   initialDate,
   preloadFrom,
+  termTooltips,
 }: {
   items: FeedItem[];
   bookmarkedItems: FeedItem[];
@@ -58,6 +60,7 @@ export default function FeedContent({
   todayKst: string;
   initialDate?: string;
   preloadFrom: string;
+  termTooltips: boolean;
 }) {
   const [tab, setTab] = useState<Tab>('digest');
   const [selected, setSelected] = useState(() => initialDate ?? todayKst);
@@ -72,6 +75,9 @@ export default function FeedContent({
   const [extraByDate, setExtraByDate] = useState<Record<string, FeedItem[]>>({});
   const inflight = useRef<Set<string>>(new Set()); // 중복 조회 방지
   const [, startTransition] = useTransition();
+  // 용어 툴팁: 영상별 사전계산 용어(하이브리드). 미조회 영상만 배치로 채운다.
+  const [glossaryByVideo, setGlossaryByVideo] = useState<Record<string, GlossaryTerm[]>>({});
+  const glossaryFetched = useRef<Set<string>>(new Set());
 
   function onToggleBookmark(id: string, next: boolean) {
     setBookmarks((prev) => {
@@ -146,6 +152,19 @@ export default function FeedContent({
     tab === 'digest'
       ? digestSource.filter((it) => it.dateKst === selected && checked.has(it.channelId))
       : bookmarkList;
+
+  // 현재 렌더 목록의 미조회 영상 용어를 배치로 가져와 캐시(설정 on일 때만, 읽기 전용·LLM 미호출).
+  const listIds = list.map((it) => it.id).join(',');
+  useEffect(() => {
+    if (!termTooltips) return;
+    const missing = list.map((it) => it.id).filter((id) => !glossaryFetched.current.has(id));
+    if (missing.length === 0) return;
+    for (const id of missing) glossaryFetched.current.add(id);
+    void fetchGlossaryForVideos(missing).then((map) => {
+      setGlossaryByVideo((prev) => ({ ...prev, ...map }));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listIds, termTooltips]);
 
   // 딥링크(#d-<id>) 스크롤: 대상 카드가 실제 렌더된 뒤(비동기 로딩 완료 포함) 1회 스크롤+강조.
   // Next/브라우저 기본 앵커 점프는 비동기 렌더 카드보다 먼저 실행돼 실패하므로 직접 처리한다.
@@ -226,6 +245,8 @@ export default function FeedContent({
               feedback={it.feedback}
               bookmarked={bookmarks.has(it.id)}
               onToggleBookmark={(next) => onToggleBookmark(it.id, next)}
+              glossary={glossaryByVideo[it.id]}
+              termTooltips={termTooltips}
             />
           ))}
         </div>

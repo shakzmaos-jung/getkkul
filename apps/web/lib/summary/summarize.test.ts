@@ -44,6 +44,8 @@ describe('allModesSystemPrompt (프롬프트 계약)', () => {
     expect(p).toContain('단조성');
     expect(p).toMatch(/과교정 금지|지어내지 마라/);
     expect(p).toContain('S&P500');
+    expect(p).toMatch(/띄어쓰기|조사|오탈자/); // 일반 STT 오타 교정 확장
+    expect(p).toContain('용어 추출'); // 어려운 용어 목록 추출 지시
     expect(p).not.toMatch(/하이라이트|밑줄|key=true/); // 하이라이트 지시 제거
   });
   it('채널 도메인 힌트 주입', () => {
@@ -70,6 +72,19 @@ describe('summarizeAllModes (단일 호출 3종 불릿)', () => {
     expect(structured.normal.points.length).toBe(2);
     expect(structured.long.facts.length).toBe(3);
     expect(structured.long.insights.length).toBe(1);
+  });
+
+  it('terms 배열을 함께 반환한다(용어 추출·trim·빈값 제외)', async () => {
+    const withTerms = JSON.stringify({
+      depthCeiling: 'long',
+      short: { headline: 's', points: ['핵심.'] },
+      normal: { headline: 'n', points: ['핵심.', '둘.'] },
+      long: { headline: 'l', facts: ['가.', '나.', '다.'], insights: ['시사점.'] },
+      terms: ['NPU', ' 파운드리 ', '  '],
+    });
+    const { client } = mockClient([withTerms]);
+    const { terms } = await summarizeAllModes('전사', 'ko', { client });
+    expect(terms).toEqual(['NPU', '파운드리']);
   });
 
   it('depthCeiling=short 이면 상위 모드 미제공', async () => {

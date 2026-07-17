@@ -322,6 +322,44 @@ export type Database = {
           },
         ]
       }
+      glossary_terms: {
+        Row: {
+          created_at: string
+          defined_at: string | null
+          definition: string | null
+          source: string
+          term: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          defined_at?: string | null
+          definition?: string | null
+          source?: string
+          term: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          defined_at?: string | null
+          definition?: string | null
+          source?: string
+          term?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "glossary_terms_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_grants: {
         Row: {
           amount: number
@@ -924,6 +962,7 @@ export type Database = {
           push_slot_2130: boolean
           skip_empty_email: boolean
           skip_empty_push: boolean
+          term_tooltips: boolean
           summary_length: Database["public"]["Enums"]["summary_length"]
           theme: string | null
           user_id: string
@@ -943,6 +982,7 @@ export type Database = {
           push_slot_2130?: boolean
           skip_empty_email?: boolean
           skip_empty_push?: boolean
+          term_tooltips?: boolean
           summary_length?: Database["public"]["Enums"]["summary_length"]
           theme?: string | null
           user_id: string
@@ -962,6 +1002,7 @@ export type Database = {
           push_slot_2130?: boolean
           skip_empty_email?: boolean
           skip_empty_push?: boolean
+          term_tooltips?: boolean
           summary_length?: Database["public"]["Enums"]["summary_length"]
           theme?: string | null
           user_id?: string
@@ -1108,6 +1149,11 @@ export type Database = {
         Returns: number
       }
       dispatch_deliver: { Args: never; Returns: undefined }
+      define_glossary_terms: { Args: { p_defs: Json }; Returns: number }
+      get_video_glossary: {
+        Args: { p_video_ids: string[] }
+        Returns: { definition: string; term: string; video_id: string }[]
+      }
       dispatch_pipeline: { Args: never; Returns: undefined }
       dispatch_pipeline_check: { Args: never; Returns: undefined }
       expire_credits: { Args: never; Returns: number }

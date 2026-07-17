@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { ChannelAvatar } from '@/components/ui/ChannelAvatar';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -20,6 +20,8 @@ import {
   type CardView,
 } from '@/lib/feed/card-views';
 import type { ModeSummary, FeedbackRating } from '@/lib/feed/map-digests';
+import { TermTooltip } from '@/components/ui/TermTooltip';
+import { renderWithTerms, type GlossaryTerm } from '@/lib/feed/render-terms';
 
 const CV = messages.feed.cardViews;
 const VIEWS: { view: CardView; label: string }[] = [
@@ -42,10 +44,12 @@ interface Props {
   feedback: Partial<Record<LengthMode, FeedbackRating>>;
   bookmarked: boolean;
   onToggleBookmark: (next: boolean) => void;
+  glossary?: GlossaryTerm[]; // 이 영상 본문에 등장하는 정의 있는 용어(하이브리드)
+  termTooltips?: boolean; // 사용자 설정 on/off
 }
 
 /** 불릿 목록 — 항목마다 줄바꿈(요약품질 개선: 짧게/보통 불릿 가독성). */
-function Bullets({ items }: { items: string[] }) {
+function Bullets({ items, render }: { items: string[]; render?: (text: string) => ReactNode }) {
   return (
     <ul className="flex flex-col gap-1.5">
       {items.map((p, i) => (
@@ -53,7 +57,7 @@ function Bullets({ items }: { items: string[] }) {
           <span aria-hidden className="mt-[2px] text-muted-foreground">
             •
           </span>
-          <span>{p}</span>
+          <span>{render ? render(p) : p}</span>
         </li>
       ))}
     </ul>
@@ -120,6 +124,8 @@ export default function SummaryCard({
   feedback,
   bookmarked,
   onToggleBookmark,
+  glossary,
+  termTooltips,
 }: Props) {
   const showToast = useToast();
   // 영상 길이: {n}시간 {n}분 {n}초(정확).
@@ -139,6 +145,14 @@ export default function SummaryCard({
   const { bullets, text: viewText } = viewContent(summaries, view);
   const hasBody = viewText.trim().length > 0;
   const detailUnavailable = !viewAvailable(summaries, 'detail'); // 자세히·인사이트 미제공 안내용
+
+  // 용어 툴팁: 설정 on + 이 영상 용어가 있을 때만 본문 텍스트에 클릭 용어를 주입(사전계산 정의, 즉시).
+  const renderBody = (text: string): ReactNode =>
+    termTooltips && glossary && glossary.length > 0
+      ? renderWithTerms(text, glossary, (t, k) => (
+          <TermTooltip key={k} term={t.term} definition={t.definition} />
+        ))
+      : text;
 
   // 피드백(👍/👎): 자세히·인사이트는 같은 long 요약 → enum 기준(공유). 낙관적 로컬 상태.
   const fbEnum = VIEW_ENUM[view];
@@ -364,14 +378,14 @@ export default function SummaryCard({
       {/* 본문: 현재 뷰(간단히=요점 불릿 / 자세히=핵심 사실 / 인사이트=맥락·인사이트) */}
       {bullets.length > 0 ? (
         <div data-testid="summary-body" className="mt-3 text-sm leading-relaxed text-foreground/80">
-          <Bullets items={bullets} />
+          <Bullets items={bullets} render={renderBody} />
         </div>
       ) : (
         <p
           data-testid="summary-body"
           className="mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground/80"
         >
-          {viewText}
+          {renderBody(viewText)}
         </p>
       )}
 
