@@ -228,7 +228,8 @@ export default function MembershipScreen({
                     예약됨
                   </span>
                 )}
-                {isCurrent && view.pocActive ? (
+                {/* PoC 중엔 개방된 유료 플랜(Small/Medium)은 얼리버드 무료. Free 는 원래 무료, Large 는 잠금이라 정가 표시. */}
+                {view.pocActive && !locked && p.price > 0 ? (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold leading-tight text-background">
                     얼리버드 무료
                   </span>
@@ -265,16 +266,16 @@ export default function MembershipScreen({
                     추후 오픈
                   </span>
                 ) : isScheduled ? (
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    className="mt-auto w-full px-1"
-                    disabled={pending}
+                  // '현재 플랜' span 과 동일 치수(px-1·py-1.5·text-[11px])로 1행 유지. Button(size sm px-3) 은 좁은 카드에서 2행 래핑됨.
+                  <button
+                    type="button"
                     onClick={undo}
+                    disabled={pending}
+                    className="mt-auto w-full whitespace-nowrap rounded-lg border border-danger/40 bg-danger/10 px-1 py-1.5 text-[11px] font-semibold text-danger transition-colors hover:bg-danger/20 disabled:opacity-50"
                     data-testid={`cancel-${code}`}
                   >
                     예약 취소
-                  </Button>
+                  </button>
                 ) : (
                   <Button
                     size="sm"

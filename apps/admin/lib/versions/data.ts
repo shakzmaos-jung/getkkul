@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.16.2',
+    date: '2026-07-18',
+    type: 'patch',
+    prs: [125],
+    summary: '멤버십 플랜 카드 표시 수정 — 얼리버드 무료 표기 + 예약취소 버튼 1행',
+    dev: "플랜 비교 카드 요금 표기 조건을 isCurrent&&pocActive → pocActive&&!locked&&price>0 로 변경(Small/Medium 얼리버드 무료, Free 무료, Large 정가). 예약취소 버튼을 Button(size sm px-3, 좁은 카드서 2행) → '현재 플랜' span 동일 치수 plain button(px-1·text-[11px]·whitespace-nowrap) 로 교체해 1행 유지.",
+    nonDev: '멤버십 플랜 카드에서 무료 체험 기간 동안 Small 플랜도 "얼리버드 무료"로 표시되고(기존엔 1,000원), "예약 취소" 버튼이 두 줄로 깨지던 것을 한 줄로 맞췄다.',
+    userImpact: '플랜 카드 요금 표기와 예약 취소 버튼이 정확·깔끔하게 보인다.',
+  },
+  {
     version: '0.16.1',
     date: '2026-07-18',
     type: 'patch',
