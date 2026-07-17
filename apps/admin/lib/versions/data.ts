@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.17.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [126],
+    summary: '용어사전 다른 표기(Alias) 매칭 + 어드민 CSV 다운로드/업로드(일괄 편집)',
+    dev: 'glossary_terms.aliases text[] 추가 → get_video_glossary 가 term_ko/en + aliases 를 본문 매칭(대표 반환), render-terms 서피스에 aliases 포함(같은 id 병합). define/import 중복 스킵에 alias union(부활 방지). 어드민 EditDialog Alias 입력 + add/save p_aliases. CSV: 자작 RFC4180 인코드/파서(BOM), exportGlossaryCsv(필터 전량)·importGlossaryCsv→import_glossary_csv RPC(id 기준 대표명·Alias·정의·메모만, 변경분만 updated_at).',
+    nonDev: '같은 용어를 콘텐츠마다 다르게 적어도(키미3·Kimi 3·키미쓰리 등) 하나의 용어로 묶어 툴팁이 뜨게 하는 "다른 표기(Alias)" 기능을 넣었다. 또 관리자 화면에서 용어DB를 CSV로 내려받아 엑셀에서 한꺼번에 고친 뒤 다시 올려 반영할 수 있다(바뀐 항목만 수정일 갱신).',
+    userImpact: '요약 속 같은 용어의 여러 표기에 모두 툴팁이 뜬다. 관리자는 용어를 CSV로 내려받아 일괄 편집·재업로드할 수 있다.',
+  },
+  {
     version: '0.16.2',
     date: '2026-07-18',
     type: 'patch',

@@ -5,6 +5,7 @@ export type GlossaryRow = {
   termEn: string | null;
   definition: string | null;
   note: string | null; // 관리자 메모(이력 없음)
+  aliases: string[]; // 다른 표기(매칭 전용, 툴팁은 대표명)
   source: string; // 'llm' | 'admin'
   disabled: boolean; // 일시 사용정지
   editorEmail: string | null; // 마스킹

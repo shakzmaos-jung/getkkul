@@ -40,7 +40,7 @@ export default async function GlossaryPage({
     <div className="space-y-4 p-8">
       <h2 className="text-sm font-medium text-ink-muted">용어 정의 (총 {data.total}개)</h2>
       <FilterBar source={q.source ?? ''} status={q.status ?? ''} search={q.search ?? ''} />
-      <GlossaryTable rows={data.rows} />
+      <GlossaryTable rows={data.rows} filter={{ source: q.source, status: q.status, search: q.search }} />
       <div className="flex items-center justify-between text-xs text-ink-subtle">
         <span>
           {q.page} / {pages} 페이지

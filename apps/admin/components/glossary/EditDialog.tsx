@@ -46,6 +46,7 @@ export function EditDialog({
   const [termEn, setTermEn] = useState(row?.termEn ?? '');
   const [definition, setDefinition] = useState(row?.definition ?? '');
   const [note, setNote] = useState(row?.note ?? '');
+  const [aliasesText, setAliasesText] = useState((row?.aliases ?? []).join(', '));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -80,12 +81,17 @@ export function EditDialog({
   }
 
   const nameEmpty = !termKo.trim() && !termEn.trim();
-  const save = () =>
-    run(() =>
+  const save = () => {
+    const aliases = aliasesText
+      .split(/[;,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return run(() =>
       isCreate
-        ? addGlossaryTerm(termKo, termEn, definition, note)
-        : saveGlossaryTerm(row.id, termKo, termEn, definition, note),
+        ? addGlossaryTerm(termKo, termEn, definition, note, aliases)
+        : saveGlossaryTerm(row.id, termKo, termEn, definition, note, aliases),
     );
+  };
 
   return (
     <div
@@ -120,6 +126,18 @@ export function EditDialog({
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-subtle">영어 표기</label>
             <input value={termEn} onChange={(e) => setTermEn(e.target.value)} className={INPUT} placeholder="예: Yen carry trade" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-subtle">다른 표기(Alias) · 쉼표/줄바꿈 구분</label>
+            <input
+              value={aliasesText}
+              onChange={(e) => setAliasesText(e.target.value)}
+              className={INPUT}
+              placeholder="예: 키미3, 키미 3, Kimi3, 키미쓰리"
+            />
+            <p className="mt-1 text-[11px] text-ink-tertiary">
+              본문에 이 표기들이 나와도 같은 용어 툴팁이 뜹니다(툴팁엔 대표명 표시).
+            </p>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-subtle">정의</label>

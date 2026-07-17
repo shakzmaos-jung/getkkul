@@ -6,6 +6,7 @@ export type GlossaryEntry = {
   termKo: string | null;
   termEn: string | null;
   definition: string;
+  aliases?: string[]; // 다른 표기(매칭 전용, 툴팁은 대표명 표시)
 };
 
 type Interval = { start: number; end: number; entry: GlossaryEntry };
@@ -28,7 +29,7 @@ export function renderWithTerms(
   // 1) 각 엔트리의 표기(ko/en) 첫 출현 → 인터벌.
   const intervals: Interval[] = [];
   for (const entry of entries) {
-    for (const surface of [entry.termKo, entry.termEn]) {
+    for (const surface of [entry.termKo, entry.termEn, ...(entry.aliases ?? [])]) {
       if (!surface) continue;
       const idx = text.indexOf(surface);
       if (idx < 0) continue;

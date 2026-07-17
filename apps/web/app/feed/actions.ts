@@ -139,6 +139,7 @@ export async function fetchGlossaryForVideos(
       termKo: r.term_ko,
       termEn: r.term_en,
       definition: r.definition,
+      aliases: r.aliases ?? [],
     });
   }
   return map;

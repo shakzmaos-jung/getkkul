@@ -324,6 +324,7 @@ export type Database = {
       }
       glossary_terms: {
         Row: {
+          aliases: string[]
           created_at: string
           defined_at: string | null
           definition: string | null
@@ -337,6 +338,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          aliases?: string[]
           created_at?: string
           defined_at?: string | null
           definition?: string | null
@@ -350,6 +352,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          aliases?: string[]
           created_at?: string
           defined_at?: string | null
           definition?: string | null
@@ -1164,7 +1167,7 @@ export type Database = {
       define_glossary_terms: { Args: { p_defs: Json }; Returns: number }
       get_video_glossary: {
         Args: { p_video_ids: string[] }
-        Returns: { definition: string; id: string; term_en: string | null; term_ko: string | null; video_id: string }[]
+        Returns: { aliases: string[]; definition: string; id: string; term_en: string | null; term_ko: string | null; video_id: string }[]
       }
       dispatch_pipeline: { Args: never; Returns: undefined }
       dispatch_pipeline_check: { Args: never; Returns: undefined }
