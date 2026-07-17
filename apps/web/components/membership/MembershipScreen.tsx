@@ -9,23 +9,16 @@ import { useToast } from '@/components/ui/ToastProvider';
 import { PLANS, PLAN_ORDER, planRank, type PlanCode } from '@/lib/membership/plans';
 import type { MembershipView } from '@/lib/membership/view';
 import { changePlan, cancelScheduled } from '@/app/membership/actions';
-
-interface BillingRow {
-  period: string;
-  planCode: string;
-  amount: number;
-  creditUsed: number;
-  status: string;
-  at: string;
-  memo: string | null;
-}
+import { TabCards } from '@/components/ui/TabCards';
+import BillingHistoryCards from '@/components/membership/BillingHistoryCards';
+import type { BillingCard } from '@/lib/membership/history';
 
 interface Props {
   view: MembershipView;
   nextBillingText: string;
   pocUntilText: string | null;
   graceUntilText: string | null;
-  billingHistory: BillingRow[];
+  billingCards: BillingCard[];
 }
 
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
@@ -67,25 +60,18 @@ function UsageRing({ label, used, limit }: { label: string; used: number; limit:
   );
 }
 
-const BILLING_STATUS_LABEL: Record<string, string> = {
-  success: '성공',
-  failed: '실패',
-  grace: '유예',
-  skipped_free: 'Free',
-  proration: '비례정산',
-};
-
 export default function MembershipScreen({
   view,
   nextBillingText,
   pocUntilText,
   graceUntilText,
-  billingHistory,
+  billingCards,
 }: Props) {
   const router = useRouter();
   const showToast = useToast();
   const [pending, startTransition] = useTransition();
   const [confirm, setConfirm] = useState<PlanCode | null>(null);
+  const [tab, setTab] = useState<'current' | 'history'>('current');
 
   const cur = view.planCode;
 
@@ -147,6 +133,18 @@ export default function MembershipScreen({
         </Card>
       )}
 
+      <TabCards
+        ariaLabel="현재 멤버십 / 멤버십 이용내역"
+        active={tab}
+        onChange={(k) => setTab(k as 'current' | 'history')}
+        tabs={[
+          { key: 'current', title: '현재 멤버십' },
+          { key: 'history', title: '멤버십 이용내역', count: billingCards.length },
+        ]}
+      />
+
+      {tab === 'current' && (
+        <>
       {/* 현재 플랜 + 사용량 */}
       <Card className="p-5">
         <div className="flex items-start justify-between">
@@ -270,31 +268,10 @@ export default function MembershipScreen({
           })}
         </div>
       </div>
-
-      {/* 결제 내역 */}
-      {billingHistory.length > 0 && (
-        <div>
-          <h2 className="mb-2 text-sm font-semibold">결제 내역</h2>
-          <Card className="divide-y divide-border">
-            {billingHistory.map((h, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-3 text-xs">
-                <div>
-                  <p className="font-medium">
-                    {PLANS[h.planCode as PlanCode]?.name ?? h.planCode} · {BILLING_STATUS_LABEL[h.status] ?? h.status}
-                  </p>
-                  <p className="text-muted-foreground">{h.at}</p>
-                </div>
-                <div className="text-right">
-                  <p className="tabular-nums">{won(h.amount)}</p>
-                  {h.creditUsed > 0 && (
-                    <p className="text-muted-foreground">크레딧 {won(h.creditUsed)}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
+        </>
       )}
+
+      {tab === 'history' && <BillingHistoryCards cards={billingCards} />}
 
       {/* 변경 확인 다이얼로그 */}
       {confirm && (
