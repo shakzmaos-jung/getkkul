@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-07-17
+
+### Fixed
+- **다이제스트 발송 중복·개수불일치 수정(인시던트 2026-07-17)**: 한 슬롯에 이메일이 여러 통 발송되고(예: "8개"+"1개"+"없음"), 동일 콘텐츠가 두 이메일에 중복되며, 제목 개수 ≠ 본문 개수이던 문제. 원인 (1) GitHub 크론 + pg_cron 이중 트리거가 같은 슬롯에 발화 + 슬롯 멱등장치 부재, (2) 발송→기록 비원자 레이스, (3) 빈 요약 영상이 제목엔 세지만 본문엔 안 보임. **수정**: GitHub 네이티브 schedule 제거(pg_cron 단독) + 신규 `send_log`(user,slot,day) 원자적 클레임으로 **슬롯당 1회 발송 보장** + 빈 core_text 요약 제외(제목=본문). (`.github/workflows/deliver.yml`, `lib/delivery/deliver.ts`, `supabase/migrations/20260717010000_send_log.sql`)
+
+### Added
+- **어드민 '발송 이력' 메뉴**: 이메일·푸시 슬롯 발송 로그를 슬롯·상태 필터 + 이메일 검색 + 페이지네이션으로 조회(마스킹·KST). 재발 진단·관측용. (`apps/admin/**/send-history/*`, `get_send_history` RPC)
+
 ## [0.12.0] - 2026-07-15
 
 ### Added
