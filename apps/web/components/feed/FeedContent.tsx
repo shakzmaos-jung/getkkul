@@ -7,7 +7,7 @@ import ChannelFilter from '@/components/feed/ChannelFilter';
 import { TabCards } from '@/components/ui/TabCards';
 import { Spinner } from '@/components/ui/Spinner';
 import { toggleBookmark, fetchDigestsForDate, fetchGlossaryForVideos } from '@/app/feed/actions';
-import type { GlossaryTerm } from '@/lib/feed/render-terms';
+import type { GlossaryEntry } from '@/lib/feed/render-terms';
 import {
   isPreloadedDate,
   type ModeSummary,
@@ -76,7 +76,7 @@ export default function FeedContent({
   const inflight = useRef<Set<string>>(new Set()); // 중복 조회 방지
   const [, startTransition] = useTransition();
   // 용어 툴팁: 영상별 사전계산 용어(하이브리드). 미조회 영상만 배치로 채운다.
-  const [glossaryByVideo, setGlossaryByVideo] = useState<Record<string, GlossaryTerm[]>>({});
+  const [glossaryByVideo, setGlossaryByVideo] = useState<Record<string, GlossaryEntry[]>>({});
   const glossaryFetched = useRef<Set<string>>(new Set());
 
   function onToggleBookmark(id: string, next: boolean) {

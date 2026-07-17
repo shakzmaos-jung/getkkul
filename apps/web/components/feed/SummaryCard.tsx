@@ -21,7 +21,7 @@ import {
 } from '@/lib/feed/card-views';
 import type { ModeSummary, FeedbackRating } from '@/lib/feed/map-digests';
 import { TermTooltip } from '@/components/ui/TermTooltip';
-import { renderWithTerms, type GlossaryTerm } from '@/lib/feed/render-terms';
+import { renderWithTerms, type GlossaryEntry } from '@/lib/feed/render-terms';
 
 const CV = messages.feed.cardViews;
 const VIEWS: { view: CardView; label: string }[] = [
@@ -44,7 +44,7 @@ interface Props {
   feedback: Partial<Record<LengthMode, FeedbackRating>>;
   bookmarked: boolean;
   onToggleBookmark: (next: boolean) => void;
-  glossary?: GlossaryTerm[]; // 이 영상 본문에 등장하는 정의 있는 용어(하이브리드)
+  glossary?: GlossaryEntry[]; // 이 영상 본문에 등장하는 정의 있는 용어(하이브리드)
   termTooltips?: boolean; // 사용자 설정 on/off
 }
 
@@ -149,8 +149,8 @@ export default function SummaryCard({
   // 용어 툴팁: 설정 on + 이 영상 용어가 있을 때만 본문 텍스트에 클릭 용어를 주입(사전계산 정의, 즉시).
   const renderBody = (text: string): ReactNode =>
     termTooltips && glossary && glossary.length > 0
-      ? renderWithTerms(text, glossary, (t, k) => (
-          <TermTooltip key={k} term={t.term} definition={t.definition} />
+      ? renderWithTerms(text, glossary, (ents, surface, k) => (
+          <TermTooltip key={k} entries={ents} surface={surface} />
         ))
       : text;
 

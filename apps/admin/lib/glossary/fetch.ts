@@ -11,9 +11,8 @@ export async function fetchGlossary(q: ParsedGlossaryQuery): Promise<Glossary> {
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc('get_glossary', {
     p_source: q.source ?? null,
+    p_status: q.status ?? null,
     p_search: q.search ?? null,
-    p_from: null,
-    p_to: null,
     p_limit: q.limit,
     p_offset: q.offset,
   });

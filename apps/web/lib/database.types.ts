@@ -327,8 +327,12 @@ export type Database = {
           created_at: string
           defined_at: string | null
           definition: string | null
+          disabled: boolean
+          id: string
+          note: string | null
           source: string
-          term: string
+          term_en: string | null
+          term_ko: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -336,8 +340,12 @@ export type Database = {
           created_at?: string
           defined_at?: string | null
           definition?: string | null
+          disabled?: boolean
+          id?: string
+          note?: string | null
           source?: string
-          term: string
+          term_en?: string | null
+          term_ko?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -345,8 +353,12 @@ export type Database = {
           created_at?: string
           defined_at?: string | null
           definition?: string | null
+          disabled?: boolean
+          id?: string
+          note?: string | null
           source?: string
-          term?: string
+          term_en?: string | null
+          term_ko?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -1152,7 +1164,7 @@ export type Database = {
       define_glossary_terms: { Args: { p_defs: Json }; Returns: number }
       get_video_glossary: {
         Args: { p_video_ids: string[] }
-        Returns: { definition: string; term: string; video_id: string }[]
+        Returns: { definition: string; id: string; term_en: string | null; term_ko: string | null; video_id: string }[]
       }
       dispatch_pipeline: { Args: never; Returns: undefined }
       dispatch_pipeline_check: { Args: never; Returns: undefined }

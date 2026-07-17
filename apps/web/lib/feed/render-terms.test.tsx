@@ -1,41 +1,48 @@
 import { describe, it, expect } from 'vitest';
-import { renderWithTerms } from './render-terms';
+import { renderWithTerms, type GlossaryEntry } from './render-terms';
 
-const wrap = (t: { term: string }, key: string) => ({ key, term: t.term }) as unknown as React.ReactNode;
+const E = (id: string, ko: string | null, en: string | null, def = 'def'): GlossaryEntry => ({
+  id,
+  termKo: ko,
+  termEn: en,
+  definition: def,
+});
 
-describe('renderWithTerms', () => {
-  it('용어 없거나 매칭 없으면 원문 문자열 그대로', () => {
-    expect(renderWithTerms('평범한 문장', [], wrap)).toBe('평범한 문장');
-    expect(renderWithTerms('평범한 문장', [{ term: '없음', definition: 'x' }], wrap)).toBe('평범한 문장');
-    expect(renderWithTerms('', [{ term: 'a', definition: 'x' }], wrap)).toBe('');
+// renderTerm 을 마커로: [surface|id1,id2]. 반환 배열을 문자열로 재조립해 검증.
+const render = (text: string, entries: GlossaryEntry[]) => {
+  const out = renderWithTerms(text, entries, (ents, surface) => `[${surface}|${ents.map((e) => e.id).join(',')}]`);
+  return typeof out === 'string' ? out : (out as unknown[]).join('');
+};
+
+describe('renderWithTerms v2', () => {
+  it('매칭 없거나 빈 엔트리면 원문 그대로', () => {
+    expect(render('그냥 문장', [E('1', '용어', null)])).toBe('그냥 문장');
+    expect(render('아무것', [])).toBe('아무것');
+    expect(render('', [E('1', 'a', null)])).toBe('');
   });
 
-  it('용어를 토큰화해 노드 배열로 반환(앞뒤 텍스트 보존)', () => {
-    const out = renderWithTerms('오늘 NPU 성능이 좋다', [{ term: 'NPU', definition: '신경망 처리장치' }], wrap) as unknown[];
-    expect(Array.isArray(out)).toBe(true);
-    expect(out[0]).toBe('오늘 ');
-    expect((out[1] as { term: string }).term).toBe('NPU');
-    expect(out[2]).toBe(' 성능이 좋다');
+  it('단일 용어 · 영어 표기 매칭', () => {
+    expect(render('이것은 NPU 칩', [E('1', null, 'NPU')])).toBe('이것은 [NPU|1] 칩');
   });
 
-  it('용어당 첫 출현만 감싼다', () => {
-    const out = renderWithTerms('NPU 그리고 NPU', [{ term: 'NPU', definition: 'x' }], wrap) as unknown[];
-    const wrapped = out.filter((n) => typeof n !== 'string');
-    expect(wrapped).toHaveLength(1);
-    expect(out[out.length - 1]).toBe(' 그리고 NPU');
+  it('엔트리는 ko/en 을 함께 가지되 본문에 나온 표기로 매칭', () => {
+    expect(render('엔캐리 트레이드 주의', [E('1', '엔캐리 트레이드', 'Yen carry trade')])).toBe(
+      '[엔캐리 트레이드|1] 주의',
+    );
   });
 
-  it('겹치는 용어는 긴 용어 우선', () => {
-    const out = renderWithTerms(
-      '에이전틱 AI 시대',
-      [
-        { term: 'AI', definition: '인공지능' },
-        { term: '에이전틱 AI', definition: '자율 에이전트 AI' },
-      ],
-      wrap,
-    ) as unknown[];
-    const wrapped = out.filter((n) => typeof n !== 'string') as { term: string }[];
-    expect(wrapped).toHaveLength(1);
-    expect(wrapped[0].term).toBe('에이전틱 AI');
+  it('중첩: "Hermes 에이전트"⊃"에이전트" → 부분 스팬은 겹치는 엔트리 모두', () => {
+    const out = render('Hermes 에이전트가', [E('A', 'Hermes 에이전트', null), E('B', '에이전트', null)]);
+    expect(out).toBe('[Hermes |A][에이전트|A,B]가');
+  });
+
+  it('동음이의: 같은 표기·다른 id → 같은 스팬에 둘 다', () => {
+    expect(render('에이전트란', [E('B1', '에이전트', null), E('B2', '에이전트', null)])).toBe(
+      '[에이전트|B1,B2]란',
+    );
+  });
+
+  it('표기당 첫 출현만 감싼다', () => {
+    expect(render('용어 용어', [E('1', '용어', null)])).toBe('[용어|1] 용어');
   });
 });

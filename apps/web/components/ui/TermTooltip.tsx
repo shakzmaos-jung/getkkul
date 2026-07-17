@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import type { GlossaryEntry } from '@/lib/feed/render-terms';
 
 /**
- * 인라인 용어 클릭 → 정의 팝오버. InfoTooltip 패턴 재사용(탭으로 열림·body 포털·바깥탭/ESC/스크롤 닫힘,
- * 뷰포트 클램프, 불투명 배경). 정의는 사전계산 값이라 즉시 표시(LLM·대기 없음). 은은한 점선 밑줄로 구분.
+ * 인라인 용어 클릭 → 정의 팝오버. 한 스팬을 덮는 엔트리들(동음이의·중첩)을 모두 나열한다.
+ * 각 엔트리 헤더는 `한글 · 영어`(있는 것만). InfoTooltip 패턴 재사용(탭 열림·body 포털·바깥탭/ESC/스크롤 닫힘,
+ * 뷰포트 클램프). 정의는 사전계산 값이라 즉시 표시. 밑줄을 또렷하게 강조(가독).
  */
-export function TermTooltip({ term, definition }: { term: string; definition: string }) {
+export function TermTooltip({ entries, surface }: { entries: GlossaryEntry[]; surface: string }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -19,7 +21,7 @@ export function TermTooltip({ term, definition }: { term: string; definition: st
       const b = btnRef.current?.getBoundingClientRect();
       if (!b) return;
       const margin = 8;
-      const width = Math.min(280, window.innerWidth - margin * 2);
+      const width = Math.min(300, window.innerWidth - margin * 2);
       const left = Math.max(margin, Math.min(b.left, window.innerWidth - width - margin));
       setPos({ top: b.bottom + 6, left, width });
     };
@@ -44,12 +46,14 @@ export function TermTooltip({ term, definition }: { term: string; definition: st
     };
   }, [open]);
 
+  const label = (e: GlossaryEntry) => [e.termKo, e.termEn].filter(Boolean).join(' · ');
+
   return (
     <>
       <button
         ref={btnRef}
         type="button"
-        aria-label={`${term} 정의 보기`}
+        aria-label={`${surface} 정의 보기`}
         aria-expanded={open}
         data-testid="term-trigger"
         onClick={(e) => {
@@ -57,9 +61,9 @@ export function TermTooltip({ term, definition }: { term: string; definition: st
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="cursor-help border-b border-dashed border-accent/50 text-foreground transition-colors hover:border-accent hover:text-accent"
+        className="cursor-help rounded-[2px] font-medium text-accent underline decoration-accent/80 decoration-2 underline-offset-2 transition-colors hover:bg-accent/10 hover:decoration-accent"
       >
-        {term}
+        {surface}
       </button>
       {open &&
         pos &&
@@ -72,8 +76,17 @@ export function TermTooltip({ term, definition }: { term: string; definition: st
             style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width }}
             className="z-[70] block rounded-lg border border-border bg-card p-3 text-xs leading-relaxed text-foreground shadow-xl"
           >
-            <span className="mb-1 block font-semibold text-accent">{term}</span>
-            {definition}
+            {entries.map((e, i) => (
+              <span
+                key={e.id}
+                className={i > 0 ? 'mt-2 block border-t border-border pt-2' : 'block'}
+              >
+                <span className="mb-0.5 block font-semibold text-accent">
+                  {entries.length > 1 ? `${i + 1}. ${label(e)}` : label(e)}
+                </span>
+                {e.definition}
+              </span>
+            ))}
           </span>,
           document.body,
         )}
