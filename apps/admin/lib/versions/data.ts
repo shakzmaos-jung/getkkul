@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.16.1',
+    date: '2026-07-18',
+    type: 'patch',
+    prs: [124],
+    summary: '멤버십 플랜 변경 UX — 다운/해지 모달 한도감소 표시 + 예약 시각화·취소',
+    dev: 'ChangeConfirm 다운/해지 분기에 이번주기 유지기간(nextBillingText) + 채널/다이제스트/AI 한도 감소표(채널 초과 시 정지수) 추가, 확인 버튼 danger-solid(신규 Button variant) "다운그레이드 예약"/"해지 예약". 플랜 그리드에 scheduledTarget "예약됨" 강조 + 예약취소 버튼(undo). 서버·스키마 변경 없음.',
+    nonDev: '플랜을 낮추거나 해지할 때 뜨는 확인창에서 "언제까지 지금 혜택이 유지되고, 채널·다이제스트·AI 한도가 얼마로 줄어드는지"를 보여주고, 확정 버튼을 빨간색으로 명확히 했다. 예약이 걸린 플랜은 카드에 "예약됨"으로 표시되고 바로 취소할 수 있다.',
+    userImpact: '다운그레이드·해지 전에 무엇이 어떻게 줄어드는지 미리 확인하고, 예약 상태와 취소를 플랜 카드에서 바로 볼 수 있다.',
+  },
+  {
     version: '0.16.0',
     date: '2026-07-18',
     type: 'minor',
