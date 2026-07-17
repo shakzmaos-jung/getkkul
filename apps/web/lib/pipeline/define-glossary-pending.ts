@@ -29,12 +29,15 @@ export async function defineGlossaryPending(
   if (candidates.size === 0) return { pending: 0, defined: 0 };
 
   // 이미 등록된 표기(term_ko ∪ term_en, disabled 포함) 제외(재호출·부활 방지).
-  const { data: gts, error: gErr } = await supabase.from('glossary_terms').select('term_ko, term_en');
+  const { data: gts, error: gErr } = await supabase
+    .from('glossary_terms')
+    .select('term_ko, term_en, aliases');
   if (gErr) throw new Error(`glossary_terms 조회 실패: ${gErr.message}`);
   const defined = new Set<string>();
   for (const g of gts ?? []) {
     if (g.term_ko) defined.add(g.term_ko);
     if (g.term_en) defined.add(g.term_en);
+    for (const a of g.aliases ?? []) if (a) defined.add(a);
   }
 
   const pending = [...candidates].filter((t) => !defined.has(t)).slice(0, BATCH);

@@ -45,4 +45,16 @@ describe('renderWithTerms v2', () => {
   it('표기당 첫 출현만 감싼다', () => {
     expect(render('용어 용어', [E('1', '용어', null)])).toBe('[용어|1] 용어');
   });
+
+  it('alias 표기가 본문에 나오면 대표 엔트리로 매칭(툴팁은 대표명)', () => {
+    const entry: GlossaryEntry = {
+      id: 'K',
+      termKo: '키미 3',
+      termEn: 'Kimi 3',
+      definition: 'def',
+      aliases: ['키미3', '키미쓰리'],
+    };
+    expect(render('오늘 키미쓰리 공개', [entry])).toBe('오늘 [키미쓰리|K] 공개');
+    expect(render('Kimi 3 발표', [entry])).toBe('[Kimi 3|K] 발표');
+  });
 });

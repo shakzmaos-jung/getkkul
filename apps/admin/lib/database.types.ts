@@ -75,6 +75,7 @@ export type Database = {
           p_definition: string;
           p_note: string;
           p_editor: string;
+          p_aliases?: string[];
         };
         Returns: string | null;
       };
@@ -86,8 +87,13 @@ export type Database = {
           p_definition: string;
           p_note: string;
           p_editor: string;
+          p_aliases?: string[];
         };
         Returns: string;
+      };
+      import_glossary_csv: {
+        Args: { p_rows: Json; p_editor: string };
+        Returns: Json;
       };
       set_glossary_disabled: {
         Args: { p_id: string; p_disabled: boolean; p_editor: string };
