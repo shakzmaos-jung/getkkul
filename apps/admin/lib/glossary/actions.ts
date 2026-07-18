@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { maskEmail } from '@getkkul/domain';
-import type { GlossaryRow, GlossaryHistoryRow } from './types';
+import type { GlossaryRow, GlossaryHistoryRow, GlossarySourceRow } from './types';
 import type { Json } from '@/lib/database.types';
 import { toCsv, parseCsv } from './csv';
 
@@ -126,6 +126,15 @@ export async function fetchGlossaryHistoryAction(termId: string): Promise<Glossa
   if (error || !data) return [];
   const rows = data as unknown as GlossaryHistoryRow[];
   return rows.map((r) => ({ ...r, editorEmail: r.editorEmail ? maskEmail(r.editorEmail) : null }));
+}
+
+/** 용어가 도출된 소스 콘텐츠(영상 요약 + 메타). ContentDialog 에서 지연 조회. */
+export async function fetchGlossarySources(termId: string): Promise<GlossarySourceRow[]> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc('get_glossary_sources', { p_term_id: termId });
+  if (error || !data) return [];
+  return data as unknown as GlossarySourceRow[];
 }
 
 // CSV 컬럼(업로드 시 앞 6개만 반영: id 키 + 대표명·Alias·정의·메모. 뒤 4개는 참고용 읽기전용).

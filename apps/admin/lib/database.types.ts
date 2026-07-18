@@ -117,6 +117,10 @@ export type Database = {
         Args: { p_term_id: string };
         Returns: Json;
       };
+      get_glossary_sources: {
+        Args: { p_term_id: string; p_limit?: number };
+        Returns: Json;
+      };
       get_incident_log: {
         Args: { p_days?: number };
         Returns: Json;

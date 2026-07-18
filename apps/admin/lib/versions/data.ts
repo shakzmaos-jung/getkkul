@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.18.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [127],
+    summary: '어드민 용어사전 콘텐츠 열 — 용어가 도출된 원문 조회 모달',
+    dev: 'get_glossary_sources RPC(용어 표기 term_ko/en/aliases 를 content_terms 배열 멤버십 매칭 → 소스 영상 + ko 요약(long→normal→short) + videos·channel_catalog 메타·썸네일). 어드민 정의↔메모 사이 콘텐츠 열 + ContentDialog(EditDialog 셸 재사용·lazy fetch·읽기전용). fetchGlossarySources 액션.',
+    nonDev: '관리자 용어사전에서 각 용어 옆 "원문" 버튼을 누르면, 그 용어가 어떤 영상 콘텐츠에서 뽑혔는지 모달로 볼 수 있다 — 영상 제목·채널·게시일·길이·썸네일과 요약 본문까지 함께.',
+    userImpact: '(관리자용) 용어가 도출된 원본 콘텐츠를 바로 확인할 수 있다.',
+  },
+  {
     version: '0.17.0',
     date: '2026-07-18',
     type: 'minor',

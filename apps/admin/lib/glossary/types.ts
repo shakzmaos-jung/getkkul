@@ -33,3 +33,19 @@ export type GlossaryHistoryRow = {
   editorEmail: string | null; // 마스킹
   editedAtKst: string;
 };
+
+/** 용어가 도출된 소스 콘텐츠(영상 요약 + 메타). get_glossary_sources RPC. */
+export type GlossarySourceRow = {
+  videoId: string;
+  title: string | null;
+  youtubeUrl: string;
+  ytId: string;
+  thumbnail: string;
+  durationSeconds: number | null;
+  publishedAtKst: string | null;
+  channelTitle: string | null;
+  channelHandle: string | null;
+  headline: string | null;
+  coreText: string | null;
+  summaryCreatedAtKst: string | null;
+};
