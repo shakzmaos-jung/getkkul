@@ -76,6 +76,7 @@ describe('getOrCreateSummaries (요약품질 — 캐시/배치/구조화 저장)
     const rows = upserts[0].rows;
     expect(rows.map((x) => x.length_mode).sort()).toEqual(['long', 'normal', 'short']);
     expect(rows.every((x) => typeof x.prompt_version === 'string')).toBe(true);
+    expect(rows.every((x) => x.body.modelCeiling === 'long')).toBe(true); // 관측성: 모델 원본 판정 전 행 기록
     const normal = rows.find((x) => x.length_mode === 'normal');
     expect(normal.body.points).toEqual(['핵심 사실 하나.', '맥락 포함 둘.']);
     expect(normal.core_text).toBe('핵심 사실 하나.\n맥락 포함 둘.'); // 불릿 줄바꿈 결합
@@ -98,6 +99,7 @@ describe('getOrCreateSummaries (요약품질 — 캐시/배치/구조화 저장)
     await getOrCreateSummaries(client, 'v1', 'ko', { client: oa.client });
     const long = upserts[0].rows.find((x) => x.length_mode === 'long');
     expect(long.body.notProvided).toBe(true);
+    expect(long.body.modelCeiling).toBe('normal'); // 관측성: 해소 전 모델 원본 판정 기록
     expect(long.core_text).toBe('');
     const short = upserts[0].rows.find((x) => x.length_mode === 'short');
     expect(short.body.notProvided).toBeUndefined();

@@ -90,7 +90,7 @@ function rowFor(
       ...base,
       headline: '',
       core_text: '',
-      body: { notProvided: true, ceiling, v: PROMPT_VERSION } as unknown as Json,
+      body: { notProvided: true, ceiling, modelCeiling: s.depthCeiling, v: PROMPT_VERSION } as unknown as Json,
     };
   }
   if (mode === 'long') {
@@ -98,14 +98,14 @@ function rowFor(
       ...base,
       headline: s.long.headline,
       core_text: longBodyToText(s.long),
-      body: { facts: s.long.facts, insights: s.long.insights, v: PROMPT_VERSION } as unknown as Json,
+      body: { facts: s.long.facts, insights: s.long.insights, modelCeiling: s.depthCeiling, v: PROMPT_VERSION } as unknown as Json,
     };
   }
   return {
     ...base,
     headline: s[mode].headline,
     core_text: pointsToText(s[mode].points),
-    body: { points: s[mode].points, v: PROMPT_VERSION } as unknown as Json,
+    body: { points: s[mode].points, modelCeiling: s.depthCeiling, v: PROMPT_VERSION } as unknown as Json,
   };
 }
 
@@ -147,6 +147,13 @@ export async function getOrCreateSummaries(
     deps,
     { hint },
   );
+
+  // 관측성: 모델 원본 depthCeiling(해소 전) 경보 — short/normal 판정을 파이프라인 로그로 감지(재발 추적용, 판정엔 관여 안 함).
+  if (structured.depthCeiling !== 'long') {
+    console.warn(
+      `[summarize] depthCeiling=${structured.depthCeiling} resolved=${ceiling} video=${videoId} lang=${language} transcript_len=${video.data.transcript.length}`,
+    );
+  }
 
   const rows = missing.map((m) => rowFor(videoId, m, language, structured, ceiling));
   const inserted = await supabase
