@@ -63,7 +63,9 @@ export default async function FeedPage({
       supabase.rpc('get_bookmarked_digests'),
     ]);
   const globalMode = (setting?.summary_length ?? 'normal') as LengthMode;
-  const termTooltips = setting?.term_tooltips ?? true;
+  // 용어기능 일시 비활성 (v0.19.0): 용어 추출/정의 재정비 유보 동안 툴팁 렌더·get_video_glossary 페치를
+  // 모두 차단한다. 설정 폼·DB 컬럼(term_tooltips)은 보존 — 복구 시 이 상수만 되돌리면 됨.
+  const termTooltips = false;
   const activeSubs = (subs ?? []).filter((s) => !s.paused);
   const channelById = new Map<string, ChannelMeta>(
     activeSubs.map((s) => [
