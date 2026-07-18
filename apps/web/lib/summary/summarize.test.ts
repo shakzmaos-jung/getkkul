@@ -48,6 +48,14 @@ describe('allModesSystemPrompt (프롬프트 계약)', () => {
     expect(p).toContain('용어 추출'); // 어려운 용어 목록 추출 지시
     expect(p).not.toMatch(/하이라이트|밑줄|key=true/); // 하이라이트 지시 제거
   });
+  it('depthCeiling 을 길이·말투가 아니라 내용(정보 밀도) 기준으로 판정하도록 지시한다', () => {
+    const p = allModesSystemPrompt('ko');
+    expect(p).toContain('depthCeiling');
+    expect(p).toContain('실질 정보'); // 정보 밀도 기준
+    expect(p).toMatch(/대화체.*낮추지|낮추지 마라/); // 대화체라고 낮추지 말 것
+    expect(p).toMatch(/길어도 알맹이가 없으면 short|길든 짧든/); // 길이로 판정하지 않음
+    expect(p).not.toMatch(/짧은 영상 → "short"/); // 길이=short 오도 앵커 제거
+  });
   it('표기형 정규화(한/영/하이브리드)와 교정 보고(corrections)를 지시한다', () => {
     const p = allModesSystemPrompt('ko');
     expect(p).toContain('표기형'); // 표기형 정규화 규칙

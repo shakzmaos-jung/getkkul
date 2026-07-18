@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.22.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [131],
+    summary: '요약 깊이 판정 개선 — 긴 콘텐츠가 간단히만 나오던 오판 수정 + 관측성',
+    dev: 'depthCeiling 판정을 전사 길이·말투가 아니라 정보 밀도 기준으로 프롬프트 재작성(오도 앵커 "잡담·짧은 영상→short" 제거, "대화체라고 낮추지 말고 실질 정보량으로 판단" 명시). PROMPT_VERSION sq-2026-07-18.1(재생성 가드가 prompt_version 미참조 → 신규 영상부터). 관측성: 모델 원본 depthCeiling 을 summaries body.modelCeiling 기록 + short/normal 시 warn 로그 → Path A(모델 short) vs Path B(단조성 붕괴) 사후 구분. 길이 하한 미채택(사용자 지적: 긴 잡담은 여전히 short). 백필 추후.',
+    nonDev: '50분짜리 알찬 인터뷰가 30초 "간단히"만 제공되던 문제를 고쳤다. 원인은 AI가 "말 많은 대화체=알맹이 없음"으로 오해해 깊이를 낮게 잡은 것. 이제 길이·말투가 아니라 담긴 실질 정보량으로 판단하도록 지시를 바꿔, 긴 분석·인터뷰·강연은 "자세히/최대한"까지 나온다(진짜 잡담 영상은 여전히 간단히). 새로 처리되는 영상부터 적용되며 재발 추적용 기록도 남긴다.',
+    userImpact: '긴 분석·인터뷰 영상의 자세히/최대한 다이제스트가 제대로 제공된다(신규 영상부터).',
+  },
+  {
     version: '0.21.0',
     date: '2026-07-18',
     type: 'minor',
