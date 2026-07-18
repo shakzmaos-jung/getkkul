@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-07-18
+
+### Added
+- **멤버십 Large 플랜 오픈**: 플랜 변경에서 Large(30채널 · 다이제스트 1,000 · AI 질의 100)를 선택할 수 있게 열었다(기존 "추후 오픈" 잠금 해제). PoC 기간에는 다른 유료 플랜과 동일하게 "얼리버드 무료"로 표시된다. 업그레이드/다운그레이드/해지 상태머신은 이미 Large를 수용하고 있어 UI 잠금만 해제. (`components/membership/MembershipScreen.tsx`)
+
+### Fixed
+- **멤버십 `poc_warned` 스키마 정합화**: 멤버십 주기(PoC 종료 7일 전 안내)가 사용하는 `membership.poc_warned` 컬럼이 마이그레이션 없이 라이브에만 존재하던 드리프트를 멱등 마이그레이션으로 복구(재빌드 안전, 운영 영향 없음). (`supabase/migrations/20260718120000_membership_poc_warned.sql`)
+
 ## [0.20.0] - 2026-07-18
 
 ### Added

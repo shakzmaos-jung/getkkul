@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.21.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [130],
+    summary: '멤버십 Large 플랜 오픈 + poc_warned 스키마 정합화',
+    dev: 'MembershipScreen 의 locked 플래그(code===large) 제거 → Large 카드 활성(PoC 중 얼리버드 무료 자동표시). 백엔드(enum·plans·plan_channel_limit·proration·changePlan·confirm modal)는 이미 large 제네릭 수용 — UI 한 줄이 유일 변경. 감사로 발견한 poc_warned 드리프트(run-cycle read/write, 마이그레이션 부재)를 멱등 add-column 마이그레이션으로 복구. plans.test 에 Large 한도 단언 추가.',
+    nonDev: '멤버십 플랜에서 그동안 "추후 오픈"이던 Large(채널 30·다이제스트 1,000·AI 100)를 선택할 수 있게 열었다. PoC 기간엔 다른 유료 플랜처럼 "얼리버드 무료". 업/다운/해지 흐름은 이미 Large를 처리하도록 돼 있어 잠금만 풀었다. 더불어 재빌드 시 멤버십 알림 주기가 깨질 수 있던 숨은 문제(누락 컬럼)를 함께 고쳤다.',
+    userImpact: 'Large 플랜을 선택·업그레이드할 수 있다(PoC 기간 무료).',
+  },
+  {
     version: '0.20.0',
     date: '2026-07-18',
     type: 'minor',

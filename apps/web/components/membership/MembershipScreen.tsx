@@ -204,21 +204,16 @@ export default function MembershipScreen({
             const p = PLANS[code];
             const isCurrent = code === cur;
             const up = planRank(code) > planRank(cur);
-            // Large 는 PG 연동 전까지 "추후 오픈" 잠금. Free/Small/Medium 은 개방(실 전환 가능).
-            const locked = code === 'large' && !isCurrent;
             const isScheduled = code === scheduledTarget && !isCurrent;
             return (
               <Card
                 key={code}
-                onClick={locked ? () => showToast('추후 오픈 예정입니다') : undefined}
                 className={`flex flex-col items-center gap-1.5 p-2 text-center ${
                   isCurrent
                     ? 'border-accent bg-accent/10 ring-1 ring-accent/40'
                     : isScheduled
                       ? 'border-danger/50 ring-1 ring-danger/25'
-                      : locked
-                        ? 'cursor-pointer opacity-50 transition-opacity hover:opacity-70'
-                        : ''
+                      : ''
                 }`}
                 data-testid={`plan-${code}`}
               >
@@ -228,8 +223,8 @@ export default function MembershipScreen({
                     예약됨
                   </span>
                 )}
-                {/* PoC 중엔 개방된 유료 플랜(Small/Medium)은 얼리버드 무료. Free 는 원래 무료, Large 는 잠금이라 정가 표시. */}
-                {view.pocActive && !locked && p.price > 0 ? (
+                {/* PoC 중엔 유료 플랜(Small/Medium/Large) 얼리버드 무료. Free 는 원래 무료. */}
+                {view.pocActive && p.price > 0 ? (
                   <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold leading-tight text-background">
                     얼리버드 무료
                   </span>
@@ -260,10 +255,6 @@ export default function MembershipScreen({
                 {isCurrent ? (
                   <span className="mt-auto w-full rounded-lg border border-accent/40 bg-accent/15 px-1 py-1.5 text-[11px] font-semibold text-accent">
                     현재 플랜
-                  </span>
-                ) : locked ? (
-                  <span className="mt-auto w-full rounded-lg bg-muted px-1 py-1.5 text-[11px] text-muted-foreground">
-                    추후 오픈
                   </span>
                 ) : isScheduled ? (
                   // '현재 플랜' span 과 동일 치수(px-1·py-1.5·text-[11px])로 1행 유지. Button(size sm px-3) 은 좁은 카드에서 2행 래핑됨.
