@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { GlossaryRow } from '@/lib/glossary/types';
 import { exportGlossaryCsv, importGlossaryCsv } from '@/lib/glossary/actions';
 import { EditDialog } from './EditDialog';
+import { ContentDialog } from './ContentDialog';
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
   llm: { label: 'LLM', cls: 'bg-surface-2 text-ink-subtle' },
@@ -22,6 +23,7 @@ export function GlossaryTable({
   const router = useRouter();
   const [editing, setEditing] = useState<GlossaryRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [viewing, setViewing] = useState<GlossaryRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -118,6 +120,7 @@ export function GlossaryTable({
               <tr className="border-b border-hairline">
                 <th className="px-3 py-2 font-medium">용어</th>
                 <th className="px-3 py-2 font-medium">정의</th>
+                <th className="px-3 py-2 font-medium">콘텐츠</th>
                 <th className="px-3 py-2 font-medium">메모</th>
                 <th className="px-3 py-2 font-medium">출처</th>
                 <th className="px-3 py-2 font-medium">상태</th>
@@ -147,6 +150,14 @@ export function GlossaryTable({
                       )}
                     </td>
                     <td className="max-w-80 whitespace-pre-wrap px-3 py-2 text-ink-subtle">{r.definition ?? '—'}</td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <button
+                        onClick={() => setViewing(r)}
+                        className="rounded-lg border border-hairline bg-surface-1 px-2.5 py-1 text-xs text-ink-subtle hover:text-ink"
+                      >
+                        원문
+                      </button>
+                    </td>
                     <td className="max-w-40 whitespace-pre-wrap px-3 py-2 text-xs text-ink-tertiary">{r.note ?? '—'}</td>
                     <td className="whitespace-nowrap px-3 py-2">
                       <span className={`rounded-pill px-2 py-0.5 text-xs ${badge.cls}`}>{badge.label}</span>
@@ -180,6 +191,7 @@ export function GlossaryTable({
       )}
 
       {(editing || creating) && <EditDialog row={editing} onClose={close} onSaved={saved} />}
+      {viewing && <ContentDialog row={viewing} onClose={() => setViewing(null)} />}
     </>
   );
 }
