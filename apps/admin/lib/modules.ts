@@ -24,5 +24,6 @@ export const MODULES: readonly AdminModule[] = [
   { id: 'versions', path: '/versions', label: '버전 히스토리', desc: '릴리스별 변경 · 3단계 설명 · PR', milestone: 'M10', icon: '🏷️' },
   { id: 'send-history', path: '/send-history', label: '발송 이력', desc: '이메일 · 푸시 슬롯 발송 로그', milestone: 'M11', icon: '📨' },
   { id: 'glossary', path: '/glossary', label: '용어사전', desc: '용어 정의 조회 · 수정 · 이력', milestone: 'M12', icon: '📚', badge: '일시적 미사용' },
+  { id: 'corrections', path: '/corrections', label: '오타 교정 로그', desc: '자막 용어 오인식 자동 교정 · 검토 · 메모', milestone: 'M14', icon: '✏️' },
   { id: 'membership', path: '/membership', label: '멤버십 이력', desc: '구독 · 결제 · 업그레이드 이력', milestone: 'M13', icon: '💳' },
 ] as const;

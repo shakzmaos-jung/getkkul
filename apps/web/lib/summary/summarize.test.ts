@@ -48,6 +48,13 @@ describe('allModesSystemPrompt (프롬프트 계약)', () => {
     expect(p).toContain('용어 추출'); // 어려운 용어 목록 추출 지시
     expect(p).not.toMatch(/하이라이트|밑줄|key=true/); // 하이라이트 지시 제거
   });
+  it('표기형 정규화(한/영/하이브리드)와 교정 보고(corrections)를 지시한다', () => {
+    const p = allModesSystemPrompt('ko');
+    expect(p).toContain('표기형'); // 표기형 정규화 규칙
+    expect(p).toContain('corrections'); // 교정 보고 배열
+    expect(p).toMatch(/하이브리드|Kimi K3/); // 하이브리드 표기 예시
+    expect(p).toContain('ChatGPT'); // 음차→라틴 정규화 예시
+  });
   it('채널 도메인 힌트 주입', () => {
     const p = allModesSystemPrompt('ko', { channelTitle: '삼프로TV', videoTitle: '금리', terms: ['연준'] });
     expect(p).toContain('삼프로TV');
@@ -85,6 +92,34 @@ describe('summarizeAllModes (단일 호출 3종 불릿)', () => {
     const { client } = mockClient([withTerms]);
     const { terms } = await summarizeAllModes('전사', 'ko', { client });
     expect(terms).toEqual(['NPU', '파운드리']);
+  });
+
+  it('corrections 배열을 파싱해 반환한다(빈 표기·잘못된 form 제거)', async () => {
+    const withCorr = JSON.stringify({
+      depthCeiling: 'long',
+      short: { headline: 's', points: ['핵심.'] },
+      normal: { headline: 'n', points: ['핵심.', '둘.'] },
+      long: { headline: 'l', facts: ['가.', '나.', '다.'], insights: [] },
+      terms: [],
+      corrections: [
+        { original: '챗지피티', corrected: 'ChatGPT', form: 'en', reason: '음차→라틴' },
+        { original: ' 키미 케이쓰리 ', corrected: '키미 K3(Kimi K3)', form: 'hybrid', reason: '하이브리드' },
+        { original: '', corrected: 'x', form: 'en', reason: '빈 원문 제거' },
+        { original: 'y', corrected: 'z', form: 'bogus', reason: '잘못된 form 제거' },
+      ],
+    });
+    const { client } = mockClient([withCorr]);
+    const { corrections } = await summarizeAllModes('전사', 'ko', { client });
+    expect(corrections).toEqual([
+      { original: '챗지피티', corrected: 'ChatGPT', form: 'en', reason: '음차→라틴' },
+      { original: '키미 케이쓰리', corrected: '키미 K3(Kimi K3)', form: 'hybrid', reason: '하이브리드' },
+    ]);
+  });
+
+  it('corrections 필드가 없어도 빈 배열로 안전 반환한다', async () => {
+    const { client } = mockClient([validAll]);
+    const { corrections } = await summarizeAllModes('전사', 'ko', { client });
+    expect(corrections).toEqual([]);
   });
 
   it('depthCeiling=short 이면 상위 모드 미제공', async () => {

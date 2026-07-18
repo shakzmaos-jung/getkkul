@@ -121,6 +121,30 @@ export type Database = {
         Args: { p_term_id: string; p_limit?: number };
         Returns: Json;
       };
+      get_term_corrections: {
+        Args: {
+          p_search?: string | null;
+          p_method?: string | null;
+          p_form?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      save_term_correction: {
+        Args: {
+          p_id: string;
+          p_corrected: string;
+          p_form: string;
+          p_memo: string | null;
+          p_editor: string | null;
+        };
+        Returns: string;
+      };
+      get_video_content: {
+        Args: { p_video_id: string };
+        Returns: Json;
+      };
       get_incident_log: {
         Args: { p_days?: number };
         Returns: Json;

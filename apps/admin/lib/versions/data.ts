@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.20.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [129],
+    summary: '자막 오타 교정 파이프라인 + 어드민 교정 로그(검토·수정·메모)',
+    dev: '요약 호출(summarize.ts)에 corrections 구조화 출력 + 표기형(ko/en/hybrid) 정규화 프롬프트 통합(전사 재전송 없음·추가 LLM 비용 0). get-or-create-summary 가 record_term_corrections 로 적재. DB term_corrections(service_role) + record/get/save_term_correction·get_video_content RPC. 어드민 corrections 모듈(send-history 복제 + ContentDialog 일반화(title·fetcher) + EditCorrectionDialog·saveCorrection·gate). 관리자 수정은 method=admin 승격 → 재적재 보존.',
+    nonDev: '유튜브 자막이 브랜드·전문용어를 잘못 받아쓰는 것(예 "키미 케이쓰리")을 요약할 때 맥락에 맞게 바로잡고(한글/영어/하이브리드 표기 통일), 무엇을 왜 고쳤는지 관리자 화면에 로그로 남긴다. 관리자는 자동 교정을 검토·수정하고 메모를 달 수 있다(향후 품질 향상용). 추가 비용은 거의 없다(기존 요약 처리에 얹음).',
+    userImpact: '요약 속 고유명사·용어 표기가 더 정확해진다. (교정 로그·검토·수정은 관리자용.)',
+  },
+  {
     version: '0.19.0',
     date: '2026-07-18',
     type: 'minor',

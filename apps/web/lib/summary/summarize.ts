@@ -56,7 +56,27 @@ const LONG_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-/** 3모드 + 콘텐츠 깊이 판정을 한 번에 내는 구조화 스키마(REQ-A1/C1). */
+/** 자막 오인식 용어 교정 1건: 원표기→교정표기 + 표기형(한글/영어/하이브리드) + 근거. */
+export interface TermCorrection {
+  original: string;
+  corrected: string;
+  form: 'ko' | 'en' | 'hybrid';
+  reason: string;
+}
+
+const CORRECTION_ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    original: { type: 'string' },
+    corrected: { type: 'string' },
+    form: { type: 'string', enum: ['ko', 'en', 'hybrid'] },
+    reason: { type: 'string' },
+  },
+  required: ['original', 'corrected', 'form', 'reason'],
+  additionalProperties: false,
+} as const;
+
+/** 3모드 + 콘텐츠 깊이 판정 + 용어 추출 + 교정 보고를 한 번에 내는 구조화 스키마(REQ-A1/C1). */
 const ALL_MODE_SCHEMA = {
   type: 'object',
   properties: {
@@ -65,8 +85,9 @@ const ALL_MODE_SCHEMA = {
     normal: POINTS_SCHEMA,
     long: LONG_SCHEMA,
     terms: { type: 'array', items: { type: 'string' } },
+    corrections: { type: 'array', items: CORRECTION_ITEM_SCHEMA },
   },
-  required: ['depthCeiling', 'short', 'normal', 'long', 'terms'],
+  required: ['depthCeiling', 'short', 'normal', 'long', 'terms', 'corrections'],
   additionalProperties: false,
 } as const;
 
@@ -114,6 +135,8 @@ export function allModesSystemPrompt(language: SummaryLanguage, hint?: DomainHin
     '적응형 깊이: 콘텐츠가 빈약해 깊은 요약이 무리라면 depthCeiling 을 낮게 판정한다(예: 잡담·아주 짧은 영상 → "short"). depthCeiling 위의 모드는 억지로 부풀리지 말고 핵심만 간단히 두라(우리가 사용자에게 제공하지 않는다). 내용이 충분하면 "long".',
     '근거 준수: 원문 전사에 없는 내용을 지어내지 않는다(함의·해석도 반드시 전사의 사실에 근거한다).',
     '보수적 오타·용어 교정: 요약에 반영할 때 (1) 잘 알려진 고유명사·전문용어의 명백한 오인식(예 "SMP 500"→"S&P500")과 (2) 명백한 띄어쓰기·조사·오탈자·동음이의 오인식을 자연스러운 한국어로 바로잡는다. 단 발음이 비슷하다는 이유로 원문에 없던 고유명사·개체를 지어내지 마라. 의미가 바뀌거나 확실하지 않으면 원문 표현을 그대로 둔다(과교정 금지).',
+    '표기형 정규화: 위에서 교정한 용어(특히 고유명사·제품·모델·전문용어)는 대상 독자(한국 기술·경제 독자)가 가장 쉽게 알아보는 표기로 통일한다 — (a) 영어 표기가 지배적이면 라틴으로(음차 한글 "챗지피티"→"ChatGPT", "에이피아이"→"API", 영숫자 모델 "GPT-5"·"K3"), (b) 한글이 일반적인 보통명사·정착 외래어는 한글로("인공지능","반도체","금리"), (c) 낯설거나 새로운 고유명사는 콘텐츠 내 첫 등장에서 한글(라틴) 하이브리드로("키미 K3(Kimi K3)","앤트로픽(Anthropic)"). 채널·제목 도메인으로 분야를 판단해 동음이의·음차 후보를 정한다. 확신 없으면 원문 유지.',
+    '교정 보고: 위 기준으로 실제로 교정한 항목만 corrections 배열에 {original: 원문 표기, corrected: 교정 표기(표기형 반영), form: "ko"|"en"|"hybrid", reason: 간단한 근거}로 담는다(교정한 게 없으면 빈 배열). 교정한 표기는 요약 본문에도 그대로 반영한다.',
     '용어 추출: 일반 독자가 모를 만한 어려운·전문 용어(개념·기술·전문용어)를 요약 본문에 등장하는 표기 그대로 최대 8개까지 terms 배열에 담는다(없으면 빈 배열). 흔한 일반 단어는 제외하고, 정의를 알면 이해가 쉬워지는 것 위주로.',
     ...hintLines(hint),
     '광고·인사말·잡담·구독요청은 제외하고 정보 가치가 높은 내용만 담아라.',
@@ -133,6 +156,23 @@ function toStrings(v: unknown): string[] {
     .map((x) => (typeof x === 'string' ? x : ''))
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** 교정 보고 배열을 안전 파싱(형식 이탈·빈 표기·잘못된 form 은 버림). */
+function toCorrections(v: unknown): TermCorrection[] {
+  if (!Array.isArray(v)) return [];
+  const out: TermCorrection[] = [];
+  for (const x of v) {
+    if (!x || typeof x !== 'object') continue;
+    const o = x as Record<string, unknown>;
+    const original = typeof o.original === 'string' ? o.original.trim() : '';
+    const corrected = typeof o.corrected === 'string' ? o.corrected.trim() : '';
+    const form = o.form === 'ko' || o.form === 'en' || o.form === 'hybrid' ? o.form : null;
+    const reason = typeof o.reason === 'string' ? o.reason.trim() : '';
+    if (!original || !corrected || !form) continue;
+    out.push({ original, corrected, form, reason });
+  }
+  return out;
 }
 
 /** 모드별 렌더 텍스트(단조성 판정 기준). long 은 facts+insights 결합. */
@@ -158,7 +198,9 @@ export function resolveProvidedCeiling(s: StructuredSummaries): DepthCeiling {
   }
 }
 
-function extractStructured(content: string | null): { structured: StructuredSummaries; terms: string[] } {
+function extractStructured(
+  content: string | null,
+): { structured: StructuredSummaries; terms: string[]; corrections: TermCorrection[] } {
   if (!content || !content.trim()) throw new Error('요약 응답이 비어 있습니다.');
   const p = JSON.parse(content) as {
     depthCeiling?: unknown;
@@ -166,6 +208,7 @@ function extractStructured(content: string | null): { structured: StructuredSumm
     normal?: { headline?: unknown; points?: unknown };
     long?: { headline?: unknown; facts?: unknown; insights?: unknown };
     terms?: unknown;
+    corrections?: unknown;
   };
   const flat = (m: 'short' | 'normal') => ({
     headline: typeof p[m]?.headline === 'string' ? (p[m]!.headline as string) : '',
@@ -183,6 +226,7 @@ function extractStructured(content: string | null): { structured: StructuredSumm
       },
     },
     terms: toStrings(p.terms).slice(0, 8),
+    corrections: toCorrections(p.corrections),
   };
 }
 
@@ -211,7 +255,13 @@ export async function summarizeAllModes(
   language: SummaryLanguage,
   deps: { client?: OpenAI } = {},
   opts: { hint?: DomainHint } = {},
-): Promise<{ structured: StructuredSummaries; ceiling: DepthCeiling; usage: SummaryUsage; terms: string[] }> {
+): Promise<{
+  structured: StructuredSummaries;
+  ceiling: DepthCeiling;
+  usage: SummaryUsage;
+  terms: string[];
+  corrections: TermCorrection[];
+}> {
   const client = deps.client ?? new OpenAI();
   const sys: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
     role: 'system',
@@ -224,6 +274,7 @@ export async function summarizeAllModes(
   const usage: SummaryUsage = { promptTokens: 0, completionTokens: 0, calls: 0 };
   let last: StructuredSummaries | null = null;
   let lastTerms: string[] = [];
+  let lastCorrections: TermCorrection[] = [];
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await client.chat.completions.create({
@@ -242,10 +293,12 @@ export async function summarizeAllModes(
 
     let parsed: StructuredSummaries;
     let terms: string[];
+    let corrections: TermCorrection[];
     try {
       const ex = extractStructured(res.choices[0]?.message?.content ?? null);
       parsed = ex.structured;
       terms = ex.terms;
+      corrections = ex.corrections;
     } catch (e) {
       console.warn(`[summarize] 응답 파싱 실패(재시도): ${(e as Error).message}`);
       messages = [sys, { role: 'user', content: '반드시 유효한 JSON 으로만 응답하라.' }];
@@ -253,10 +306,11 @@ export async function summarizeAllModes(
     }
     last = parsed;
     lastTerms = terms;
+    lastCorrections = corrections;
 
     const errs = structuralErrors(parsed);
     if (errs.length === 0) {
-      return { structured: parsed, ceiling: resolveProvidedCeiling(parsed), usage, terms };
+      return { structured: parsed, ceiling: resolveProvidedCeiling(parsed), usage, terms, corrections };
     }
     // 교정 재시도 — 전사 미포함(REQ-CO3). 직전 출력(JSON)만으로 구조 재정형.
     messages = [
@@ -268,5 +322,11 @@ export async function summarizeAllModes(
 
   if (!last) throw new Error('요약 JSON 파싱에 반복 실패했습니다.');
   console.warn('[summarize] 구조 검증 최종 실패 — best-effort 반환');
-  return { structured: last, ceiling: resolveProvidedCeiling(last), usage, terms: lastTerms };
+  return {
+    structured: last,
+    ceiling: resolveProvidedCeiling(last),
+    usage,
+    terms: lastTerms,
+    corrections: lastCorrections,
+  };
 }

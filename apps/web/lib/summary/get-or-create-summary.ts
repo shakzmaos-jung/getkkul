@@ -141,7 +141,7 @@ export async function getOrCreateSummaries(
   }
 
   const hint = await loadDomainHint(supabase, video.data.channel_id, video.data.title, videoId);
-  const { structured, ceiling, usage, terms } = await summarizeAllModes(
+  const { structured, ceiling, usage, terms, corrections } = await summarizeAllModes(
     video.data.transcript,
     language,
     deps,
@@ -160,6 +160,15 @@ export async function getOrCreateSummaries(
       .from('content_terms')
       .upsert({ video_id: videoId, terms }, { onConflict: 'video_id' });
     if (ct.error) console.warn(`[summarize] content_terms 저장 실패(무시): ${ct.error.message}`);
+  }
+
+  // 자막 오인식 용어 교정 로그 적재(ko, 처리시점). 실패해도 요약은 유지(격리 — 어드민 조회 데이터원).
+  if (language === 'ko' && corrections.length > 0) {
+    const cr = await supabase.rpc('record_term_corrections', {
+      p_video_id: videoId,
+      p_items: corrections as unknown as Json,
+    });
+    if (cr.error) console.warn(`[summarize] term_corrections 적재 실패(무시): ${cr.error.message}`);
   }
 
   return { generated: missing.length, usage };
