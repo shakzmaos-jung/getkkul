@@ -126,14 +126,21 @@ async function main() {
   );
   console.log(`[summarize] videos=${sum.videos} generated=${sum.generated}`);
 
-  // 용어 정의: content_terms 의 미정의 용어만 전역 사전에 적재(이미 정의된 건 스킵 = LLM 재호출 없음).
-  const gloss = await runStage(
-    'glossary',
-    () => recordRun(supabase, 'glossary', () => defineGlossaryPending()),
-    { pending: 0, defined: 0 },
-    failures,
-  );
-  if (gloss.pending > 0) console.log(`[glossary] defined=${gloss.defined}/${gloss.pending}`);
+  // 용어 정의 일시정지 (v0.19.0): 용어 추출/정의 재정비 유보 동안 정의 생성만 끈다.
+  // content_terms 추출은 요약 호출에 그대로 남아 Q&A·요약 도메인 힌트를 계속 채운다.
+  // 재개: 환경변수 GLOSSARY_DEFINE_ENABLED=true.
+  if (process.env.GLOSSARY_DEFINE_ENABLED === 'true') {
+    // 미정의 용어만 전역 사전에 적재(이미 정의된 건 스킵 = LLM 재호출 없음).
+    const gloss = await runStage(
+      'glossary',
+      () => recordRun(supabase, 'glossary', () => defineGlossaryPending()),
+      { pending: 0, defined: 0 },
+      failures,
+    );
+    if (gloss.pending > 0) console.log(`[glossary] defined=${gloss.defined}/${gloss.pending}`);
+  } else {
+    console.log('[glossary] 일시정지(GLOSSARY_DEFINE_ENABLED≠true) — 용어 정의 생략');
+  }
 
   // 자가치유 백필(하루 1회 셀프 게이트): WebSub·폴링이 놓친 영상까지 회복(REQ-E).
   const rec = await runStage(

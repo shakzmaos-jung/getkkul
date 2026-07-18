@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-07-18
+
+### Changed
+- **용어 정의(툴팁) 기능 일시 비활성화**: 용어 추출·정의 파이프라인 재정비를 유보하는 동안, 사용자 화면의 용어 툴팁 표시와 설정의 "용어 정의 툴팁" 스위치를 숨긴다(렌더 엔진·DB 컬럼은 보존 — 복구 가능). 파이프라인의 용어 *정의* 생성 단계를 일시정지하고(`GLOSSARY_DEFINE_ENABLED` 플래그, 기본 정지), 용어 *추출*(content_terms)은 AI Q&A·요약 도메인 힌트를 위해 유지한다. 어드민 용어사전 메뉴는 살려두되 "일시적 미사용" 뱃지를 단다. (`apps/web/app/{feed,settings}/page.tsx`, `apps/web/scripts/pipeline.ts`, `apps/admin/lib/modules.ts`, `apps/admin/components/shell/Sidebar.tsx`)
+
 ## [0.18.0] - 2026-07-18
 
 ### Added

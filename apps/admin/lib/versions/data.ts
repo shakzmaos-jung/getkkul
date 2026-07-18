@@ -10,6 +10,16 @@ export const prUrl = (n: number) => `${REPO}/pull/${n}`;
  */
 export const VERSION_HISTORY: VersionEntry[] = [
   {
+    version: '0.19.0',
+    date: '2026-07-18',
+    type: 'minor',
+    prs: [128],
+    summary: '용어 정의(툴팁) 기능 일시 비활성화 — 사용자 표시 숨김·정의 파이프라인 정지·어드민 뱃지',
+    dev: '웹 feed/page termTooltips 상수 false 강제(툴팁 렌더·get_video_glossary 페치 차단), settings 용어 카드·TermTooltipsForm 제거. pipeline glossary 스테이지를 GLOSSARY_DEFINE_ENABLED env 게이트로(기본 정지) — content_terms 추출은 요약 호출에 유지(Q&A·요약 힌트). 어드민 AdminModule.badge + Sidebar warn 뱃지("일시적 미사용"). 렌더 엔진·테스트·DB 컬럼 보존(복구 가능).',
+    nonDev: '용어 추출 품질을 다듬는 동안, 요약 속 용어 툴팁과 설정의 관련 스위치를 잠시 감췄다. 자동 용어 "정의" 생성도 멈춘다(비용 절감). 관리자 용어사전 메뉴는 그대로 두되 "일시적 미사용" 표시를 달았다. 언제든 되돌릴 수 있게 코드·데이터는 남겨뒀다.',
+    userImpact: '요약에서 용어 툴팁이 잠시 보이지 않는다(설정의 용어 툴팁 항목도 숨김). 나머지 기능은 그대로.',
+  },
+  {
     version: '0.18.0',
     date: '2026-07-18',
     type: 'minor',

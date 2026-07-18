@@ -80,6 +80,11 @@ export function Sidebar({
                 {m.icon}
               </span>
               {!collapsed && <span className="truncate">{m.label}</span>}
+              {!collapsed && m.badge && (
+                <span className="ml-auto shrink-0 whitespace-nowrap rounded-pill bg-warn/15 px-1.5 py-0.5 text-[10px] text-warn">
+                  {m.badge}
+                </span>
+              )}
             </Link>
           );
         })}
