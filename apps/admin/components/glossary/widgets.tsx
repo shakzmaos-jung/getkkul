@@ -3,9 +3,9 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GlossaryRow } from '@/lib/glossary/types';
-import { exportGlossaryCsv, importGlossaryCsv } from '@/lib/glossary/actions';
+import { exportGlossaryCsv, importGlossaryCsv, fetchGlossarySources } from '@/lib/glossary/actions';
 import { EditDialog } from './EditDialog';
-import { ContentDialog } from './ContentDialog';
+import { ContentDialog } from '@/components/ContentDialog';
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
   llm: { label: 'LLM', cls: 'bg-surface-2 text-ink-subtle' },
@@ -191,7 +191,14 @@ export function GlossaryTable({
       )}
 
       {(editing || creating) && <EditDialog row={editing} onClose={close} onSaved={saved} />}
-      {viewing && <ContentDialog row={viewing} onClose={() => setViewing(null)} />}
+      {viewing && (
+        <ContentDialog
+          title={[viewing.termKo, viewing.termEn].filter(Boolean).join(' · ') || '(이름 없음)'}
+          countNoun="도출 콘텐츠"
+          fetcher={() => fetchGlossarySources(viewing.id)}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </>
   );
 }

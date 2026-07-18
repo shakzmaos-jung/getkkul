@@ -1165,6 +1165,7 @@ export type Database = {
       }
       dispatch_deliver: { Args: never; Returns: undefined }
       define_glossary_terms: { Args: { p_defs: Json }; Returns: number }
+      record_term_corrections: { Args: { p_video_id: string; p_items: Json }; Returns: number }
       get_video_glossary: {
         Args: { p_video_ids: string[] }
         Returns: { aliases: string[]; definition: string; id: string; term_en: string | null; term_ko: string | null; video_id: string }[]

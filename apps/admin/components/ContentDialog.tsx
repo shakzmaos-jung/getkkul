@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { GlossaryRow, GlossarySourceRow } from '@/lib/glossary/types';
-import { fetchGlossarySources } from '@/lib/glossary/actions';
+import { useEffect, useRef, useState } from 'react';
+import type { GlossarySourceRow } from '@/lib/glossary/types';
 
 function fmtDuration(sec: number | null): string {
   if (!sec || sec <= 0) return '';
@@ -13,11 +12,25 @@ function fmtDuration(sec: number | null): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-const label = (r: GlossaryRow) => [r.termKo, r.termEn].filter(Boolean).join(' · ') || '(이름 없음)';
-
-/** 용어가 도출된 소스 콘텐츠(영상 요약 + 메타) 조회 모달. 읽기 전용. EditDialog 셸 재사용. */
-export function ContentDialog({ row, onClose }: { row: GlossaryRow; onClose: () => void }) {
+/**
+ * 소스 콘텐츠(영상 요약 + 메타) 조회 모달. 읽기 전용·재사용.
+ * `fetcher` 로 조회 방식을 주입한다(용어사전: 도출 소스 여러 건, 교정 로그: video_id 단건).
+ * 열릴 때(마운트) 1회 지연 조회 — 다이얼로그는 열 때마다 새로 마운트되므로 마운트 의존으로 충분.
+ */
+export function ContentDialog({
+  title,
+  countNoun = '콘텐츠',
+  fetcher,
+  onClose,
+}: {
+  title: string;
+  countNoun?: string;
+  fetcher: () => Promise<GlossarySourceRow[]>;
+  onClose: () => void;
+}) {
   const [sources, setSources] = useState<GlossarySourceRow[] | null>(null);
+  // 다이얼로그는 열 때마다 새로 마운트되므로 최초 fetcher 를 고정 캡처해 1회 조회한다(재렌더 시 재조회 방지).
+  const fetcherRef = useRef(fetcher);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -29,13 +42,13 @@ export function ContentDialog({ row, onClose }: { row: GlossaryRow; onClose: () 
 
   useEffect(() => {
     let alive = true;
-    fetchGlossarySources(row.id).then((s) => {
+    fetcherRef.current().then((s) => {
       if (alive) setSources(s);
     });
     return () => {
       alive = false;
     };
-  }, [row.id]);
+  }, []);
 
   return (
     <div
@@ -43,7 +56,7 @@ export function ContentDialog({ row, onClose }: { row: GlossaryRow; onClose: () 
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={`${label(row)} 도출 콘텐츠`}
+      aria-label={`${title} ${countNoun}`}
     >
       <div
         className="max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-hairline bg-surface-1 p-6 shadow-xl"
@@ -51,9 +64,10 @@ export function ContentDialog({ row, onClose }: { row: GlossaryRow; onClose: () 
       >
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-ink">
-            {label(row)}
+            {title}
             <span className="ml-2 text-xs font-normal text-ink-tertiary">
-              도출 콘텐츠{sources ? ` ${sources.length}개` : ''}
+              {countNoun}
+              {sources ? ` ${sources.length}개` : ''}
             </span>
           </h2>
           <button onClick={onClose} aria-label="닫기" className="text-ink-tertiary hover:text-ink">
@@ -64,7 +78,7 @@ export function ContentDialog({ row, onClose }: { row: GlossaryRow; onClose: () 
         {sources === null ? (
           <p className="text-xs text-ink-tertiary">불러오는 중…</p>
         ) : sources.length === 0 ? (
-          <p className="text-sm text-ink-subtle">이 용어가 도출된 콘텐츠가 없습니다.</p>
+          <p className="text-sm text-ink-subtle">표시할 콘텐츠가 없습니다.</p>
         ) : (
           <ul className="space-y-4">
             {sources.map((s) => (
